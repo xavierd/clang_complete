@@ -1,1 +1,22 @@
-This plugin use clang for completing C and C++ code.
+This plugin use clang for accurately completing C and C++ code.
+
+How-to use it? Simply put it on ~/.vim/plugin
+It should work immediately.
+
+Configuration:
+ - g:clang_complete_auto: 1 -> automatically completing after ->, ., ::
+ - g:clang_complete_copen: 1 -> open the quickfix window on error.
+                                (Please read the Note below)
+
+Note:
+ - This plugin is incompatible with omnicppcomplete due to the
+ unconditionnaly set mapping done by omnicppcomplete. So don't forget to
+ suppress it before using this plugin.
+
+ - Don't set g:clang_complete_copen to 1 unless you know what you are
+ doing. Read carefully the comment at the end of s:ClangQuickFix if you
+ want to enable it
+
+ - You're free to use it, to distribute it, but please, don't modify it
+ privately, others can be interested by your work. If you have a patch
+ or a bug or a feature request, mail me.
