@@ -21,7 +21,7 @@
 "       - http://llvm.org/viewvc/llvm-project/llvm/trunk/utils/vim/vimrc
 "
 
-au FileType c,cpp call s:ClangCompleteInit()
+au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
 
 let b:clang_exec = ''
 let b:clang_parameters = ''
@@ -57,8 +57,11 @@ function s:ClangCompleteInit()
     let b:clang_exec = 'clang'
     let b:clang_parameters = '-x c'
 
-    if &filetype == 'cpp'
-        let b:clang_exec .= '++'
+    if &filetype == 'objc'
+        let b:clang_parameters = '-x objective-c'
+    endif
+
+    if &filetype == 'cpp' || &filetype == 'objcpp'
         let b:clang_parameters .= '++'
     endif
 
