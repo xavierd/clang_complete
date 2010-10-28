@@ -131,7 +131,7 @@ function ClangComplete(findstart, base)
         return start
     else
         let l:buf = getline(1, '$')
-        let l:tempfile = system("mktemp --tmpdir=" . expand('%:p:h')
+        let l:tempfile = system("mktemp --tmpdir=" . shellescape(expand('%:p:h'))
                     \. " --suffix=" . expand('%:t'))
         let l:tempfile = l:tempfile[:-2] " Suppress the '\n' at the end of the filename.
         call writefile(l:buf, l:tempfile)
