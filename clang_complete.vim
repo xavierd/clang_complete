@@ -29,7 +29,7 @@ let b:clang_user_options = ''
 
 function s:ClangCompleteInit()
     let l:local_conf = findfile(".clang_complete", '.;')
-    let l:opts = split(system("cat " . l:local_conf), "\n")
+    let l:opts = readfile(l:local_conf)
     let b:clang_user_options = ''
     for l:opt in l:opts
         let l:opt = substitute(l:opt, '-I\(\w*\)',
