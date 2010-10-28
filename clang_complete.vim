@@ -124,14 +124,39 @@ function s:ClangQuickFix(clang_output)
     endif
 endfunction
 
+function s:DemangleProto(prototype)
+    let l:proto = substitute(a:prototype, '[#', "", "g")
+    let l:proto = substitute(l:proto, '#]', ' ', "g")
+    let l:proto = substitute(l:proto, '#>', "", "g")
+    let l:proto = substitute(l:proto, '<#', "", "g")
+    " TODO: add a candidate for each optional parameter
+    let l:proto = substitute(l:proto, '{#', "", "g")
+    let l:proto = substitute(l:proto, '#}', "", "g")
+
+    return l:proto
+endfunction
+
+let b:should_overload = 0
+
 function ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
         let l:start = col('.') - 1
-        while l:start > 0 && l:line[start - 1] =~ '\i'
+        let l:wsstart = l:start
+        if l:line[l:wsstart - 1] =~ '\s'
+            while l:wsstart > 0 && l:line[l:wsstart - 1] =~ '\s'
+                let l:wsstart -= 1
+            endwhile
+        endif
+        if l:line[l:wsstart - 1] =~ '[(,]'
+            let b:should_overload = 1
+            return l:wsstart
+        endif
+        let b:should_overload = 0
+        while l:start > 0 && l:line[l:start - 1] =~ '\i'
             let l:start -= 1
         endwhile
-        return start
+        return l:start
     else
         let l:buf = getline(1, '$')
         let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
@@ -152,7 +177,7 @@ function ClangComplete(findstart, base)
             return {}
         endif
         for l:line in l:clang_output
-            if l:line[:11] == 'COMPLETION: '
+            if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
                 let l:value = l:line[12:]
 
                 if l:value !~ '^' . a:base
@@ -163,13 +188,7 @@ function ClangComplete(findstart, base)
                 let l:word = value[:l:colonidx - 1]
                 let l:proto = value[l:colonidx + 3:]
                 let l:kind = s:get_kind(l:proto)
-                let l:proto = substitute(l:proto, '[#', "", "g")
-                let l:proto = substitute(l:proto, '#]', ' ', "g")
-                let l:proto = substitute(l:proto, '#>', "", "g")
-                let l:proto = substitute(l:proto, '<#', "", "g")
-                " TODO: add a candidate for each optional parameter
-                let l:proto = substitute(l:proto, '{#', "", "g")
-                let l:proto = substitute(l:proto, '#}', "", "g")
+                let l:proto = s:DemangleProto(l:proto)
 
                 let l:item = {
                             \ "word": l:word,
@@ -185,15 +204,16 @@ function ClangComplete(findstart, base)
                     return {}
                 endif
 
-            elseif l:line[:9] == 'OVERLOAD: '
-                " An overload candidate. Use a crazy hack to get vim to
-                " display the results. TODO: Make this better.
+            elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
                 let l:value = l:line[10:]
+                let l:word = substitute(l:value, '.*<#', "", "g")
+                let l:word = substitute(l:word, '#>.*', "", "g")
+                let l:proto = s:DemangleProto(l:value)
                 let l:item = {
-                            \ "word": " ",
-                            \ "menu": l:value,
+                            \ "word": l:word,
+                            \ "menu": l:proto,
                             \ "kind": "f",
-                            \ "info": l:line,
+                            \ "info": l:proto,
                             \ "dup": 1}
 
                 " Report a result.
