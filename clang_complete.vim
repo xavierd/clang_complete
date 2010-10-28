@@ -131,10 +131,9 @@ function ClangComplete(findstart, base)
         return start
     else
         let l:buf = getline(1, '$')
-        let l:tempfile = system("mktemp --tmpdir=" . shellescape(expand('%:p:h'))
-                    \. " --suffix=" . expand('%:t'))
-        let l:tempfile = l:tempfile[:-2] " Suppress the '\n' at the end of the filename.
+        let l:tempfile = expand('%:p:h') . localtime() . expand('%:t')
         call writefile(l:buf, l:tempfile)
+        let l:tempfile = shellescape(l:tempfile)
 
         let l:command = b:clang_exec . " -cc1 -fsyntax-only -code-completion-at="
                     \ . l:tempfile . ":" . line('.') . ":" . col('.') . " " . l:tempfile
