@@ -131,12 +131,13 @@ function ClangComplete(findstart, base)
         return start
     else
         let l:buf = getline(1, '$')
-        let l:tempfile = expand('%:p:h') . localtime() . expand('%:t')
+        let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
         call writefile(l:buf, l:tempfile)
-        let l:tempfile = shellescape(l:tempfile)
+        let l:escaped_tempfile = shellescape(l:tempfile)
 
         let l:command = b:clang_exec . " -cc1 -fsyntax-only -code-completion-at="
-                    \ . l:tempfile . ":" . line('.') . ":" . col('.') . " " . l:tempfile
+                    \ . l:escaped_tempfile . ":" . line('.') . ":" . col('.')
+                    \ . " " . l:escaped_tempfile
                     \ . " " . b:clang_parameters . " " . b:clang_user_options . " -o -"
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
