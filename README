@@ -20,3 +20,8 @@ Note:
  - You're free to use it, to distribute it, but please, don't modify it
  privately, others can be interested by your work. If you have a patch
  or a bug or a feature request, mail me.
+
+Known Issues:
+ - If clang is not able to compile your file, it cannot complete
+ anything. Since clang is not supporting every C++0x features, this is
+ normal if it can do any completion on C++0x file.
