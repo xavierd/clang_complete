@@ -29,13 +29,15 @@ let b:clang_user_options = ''
 
 function s:ClangCompleteInit()
     let l:local_conf = findfile(".clang_complete", '.;')
-    let l:opts = readfile(l:local_conf)
     let b:clang_user_options = ''
-    for l:opt in l:opts
-        let l:opt = substitute(l:opt, '-I\(\w*\)',
-                    \ '-I' . l:local_conf[:-16] . '\1', "g")
-        let b:clang_user_options .= " " . l:opt
-    endfor
+    if l:local_conf != ""
+        let l:opts = readfile(l:local_conf)
+        for l:opt in l:opts
+            let l:opt = substitute(l:opt, '-I\(\w*\)',
+                        \ '-I' . l:local_conf[:-16] . '\1', "g")
+            let b:clang_user_options .= " " . l:opt
+        endfor
+    endif
 
     if !exists('g:clang_complete_auto')
         let g:clang_complete_auto = 1
