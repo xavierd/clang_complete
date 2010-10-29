@@ -184,9 +184,24 @@ function ClangComplete(findstart, base)
                     continue
                 endif
 
+                if l:value =~ 'Pattern'
+                    let l:value = l:value[10:]
+                endif
+
                 let l:colonidx = stridx(l:value, " : ")
-                let l:word = value[:l:colonidx - 1]
-                let l:proto = value[l:colonidx + 3:]
+                if l:colonidx == -1
+                    let l:word = s:DemangleProto(l:value)
+                    let l:proto = l:value
+                else
+                    let l:word = l:value[:l:colonidx - 1]
+                    let l:proto = l:value[l:colonidx + 3:]
+                endif
+
+                " WTF is that?
+                if l:word =~ '(Hidden)'
+                    let l:word = l:word[:-10]
+                endif
+
                 let l:kind = s:get_kind(l:proto)
                 let l:proto = s:DemangleProto(l:proto)
 
