@@ -223,7 +223,7 @@ function ClangComplete(findstart, base)
 endfunction
 
 function ShouldComplete()
-    if (getline(".") =~ '#\s*include')
+    if (getline(".") =~ '#\s*\(include\|import\)')
         return 0
     else
         return match(synIDattr(synID(line("."), col(".") - 1, 1), "name"),
