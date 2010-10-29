@@ -48,10 +48,10 @@ function s:ClangCompleteInit()
     endif
 
     if g:clang_complete_auto == 1
-        inoremap <expr> <C-X><C-U> LaunchCompletion()
-        inoremap <expr> . CompleteDot()
-        inoremap <expr> > CompleteArrow()
-        inoremap <expr> : CompleteColon()
+        inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
+        inoremap <expr> <buffer> . CompleteDot()
+        inoremap <expr> <buffer> > CompleteArrow()
+        inoremap <expr> <buffer> : CompleteColon()
     endif
 
     let b:clang_exec = 'clang'
@@ -197,13 +197,6 @@ function ClangComplete(findstart, base)
                             \ "dup": 1,
                             \ "kind": l:kind }
 
-                if complete_add(l:item) == 0
-                    return {}
-                endif
-                if complete_check()
-                    return {}
-                endif
-
             elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
                 let l:value = l:line[10:]
                 let l:word = substitute(l:value, '.*<#', "", "g")
@@ -216,14 +209,14 @@ function ClangComplete(findstart, base)
                             \ "info": l:proto,
                             \ "dup": 1}
 
-                " Report a result.
-                if complete_add(l:item) == 0
-                    return {}
-                endif
-                if complete_check()
-                    return {}
-                endif
-
+            else
+                continue
+            endif
+            if complete_add(l:item) == 0
+                return {}
+            endif
+            if complete_check()
+                return {}
             endif
         endfor
     endif
