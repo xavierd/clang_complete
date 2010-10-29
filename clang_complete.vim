@@ -222,17 +222,19 @@ function ClangComplete(findstart, base)
     endif
 endfunction
 
-function InComment()
-    return match(synIDattr(synID(line("."), col(".") - 1, 1), "name"),
-                \'\C\<cComment\|\<cCppString\|\<cIncluded\|\<cString\|cInclude')
-                \ >= 0
+function ShouldComplete()
+    if (getline(".") =~ '#\s*include')
+        return 0
+    else
+        return match(synIDattr(synID(line("."), col(".") - 1, 1), "name"),
+                    \'\C\<cComment\|\<cCppString\|\<cString') == -1
 endfunction
 
 function LaunchCompletion()
-    if InComment()
-        return ""
-    else
+    if ShouldComplete()
         return "\<C-X>\<C-U>"
+    else
+        return ""
     endif
 endfunction
 
