@@ -16,9 +16,8 @@
 "                                  unpatched vim!
 "                                  Default: 0
 "
-" Todo: - Handle OVERLOAD when completing function arguments correctly.
-"       - Handle COMPLETION: Pattern correctly.
-"       - http://llvm.org/viewvc/llvm-project/llvm/trunk/utils/vim/vimrc
+" Todo: - Fix bugs
+"       - Add snippets on Pattern and OVERLOAD (is it possible?)
 "
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
@@ -184,6 +183,9 @@ function ClangComplete(findstart, base)
                     continue
                 endif
 
+                " We can do something smarter for Pattern.
+                " My idea is to have some sort of snippets.
+                " It could be great if it can be done.
                 if l:value =~ 'Pattern'
                     let l:value = l:value[10:]
                 endif
@@ -205,28 +207,26 @@ function ClangComplete(findstart, base)
                 let l:kind = s:get_kind(l:proto)
                 let l:proto = s:DemangleProto(l:proto)
 
-                let l:item = {
-                            \ "word": l:word,
-                            \ "menu": l:proto,
-                            \ "info": l:proto,
-                            \ "dup": 1,
-                            \ "kind": l:kind }
-
             elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
+
+                " The comment on Pattern also apply here.
                 let l:value = l:line[10:]
                 let l:word = substitute(l:value, '.*<#', "", "g")
                 let l:word = substitute(l:word, '#>.*', "", "g")
                 let l:proto = s:DemangleProto(l:value)
-                let l:item = {
-                            \ "word": l:word,
-                            \ "menu": l:proto,
-                            \ "kind": "f",
-                            \ "info": l:proto,
-                            \ "dup": 1}
+                let l:kind = ""
 
             else
                 continue
             endif
+
+            let l:item = {
+                        \ "word": l:word,
+                        \ "menu": l:proto,
+                        \ "info": l:proto,
+                        \ "dup": 1,
+                        \ "kind": l:kind }
+
             if complete_add(l:item) == 0
                 return {}
             endif
