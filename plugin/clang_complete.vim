@@ -5,8 +5,11 @@
 " Description: Use of clang to complete in C/C++.
 "
 " Configuration: Each project can have a .clang_complete at his root,
-"                containing the compiler options. This is usefull if
+"                containing the compiler options. This is useful if
 "                you're using some non-standard include paths.
+"                For simplicity, please don't put relative and
+"                absolute include path on the same line. It is not
+"                currently correctly handled.
 "
 " Options: g:clang_complete_auto: if equal to 1, automatically complete
 "                                 after ->, ., ::
@@ -32,8 +35,16 @@ function s:ClangCompleteInit()
     if l:local_conf != ""
         let l:opts = readfile(l:local_conf)
         for l:opt in l:opts
-            let l:opt = substitute(l:opt, '-I\(\w*\)',
-                        \ '-I' . l:local_conf[:-16] . '\1', "g")
+            " Better handling of absolute path
+            " I don't know if those pattern will work on windows
+            " platform
+            if matchstr(l:opt, '-I\s*/') != ""
+                let l:opt = substitute(l:opt, '-I\s*\(/\%(\w\|\\\s\)*\)',
+                            \ '-I' . '\1', "g")
+            else
+                let l:opt = substitute(l:opt, '-I\s*\(\%(\w\|\\\s\)*\)',
+                            \ '-I' . l:local_conf[:-16] . '\1', "g")
+            endif
             let b:clang_user_options .= " " . l:opt
         endfor
     endif
