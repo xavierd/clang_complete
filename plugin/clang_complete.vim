@@ -145,7 +145,7 @@ function s:ClangQuickFix(clang_output)
         " Highlight the error
         let l:err_line = getline(l:lnum)
         let l:err_word = matchstr(l:err_line, '\i*', l:col - 1)
-        exe "syntax keyword SpellBad " . l:err_word
+        exe "syntax match SpellBad " . '/\%' . l:lnum . 'l' . l:err_word . '/'
     endfor
     call setqflist(l:list)
     " The following line cause vim to segfault. A patch is ready on vim
