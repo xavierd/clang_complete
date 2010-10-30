@@ -80,9 +80,12 @@ function s:ClangCompleteInit()
     endif
 
     setlocal completefunc=ClangComplete
+
+    au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+
 endfunction
 
-function s:get_kind(proto)
+function s:GetKind(proto)
     if a:proto == ""
         return 't'
     endif
@@ -98,6 +101,23 @@ function s:get_kind(proto)
         return 'f'
     endif
     return 'm'
+endfunction
+
+function s:DoPeriodicQuickFix()
+    let l:buf = getline(1, '$')
+    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+    call writefile(l:buf, l:tempfile)
+    let l:escaped_tempfile = shellescape(l:tempfile)
+
+    let l:command = b:clang_exec . " -cc1 -fsyntax-only "
+                \ . l:escaped_tempfile
+                \ . " " . b:clang_parameters . " " . b:clang_user_options . " -o -"
+
+    let l:clang_output = split(system(l:command), "\n")
+    call delete(l:tempfile)
+    if v:shell_error
+        call s:ClangQuickFix(l:clang_output)
+    endif
 endfunction
 
 function s:ClangQuickFix(clang_output)
@@ -215,7 +235,7 @@ function ClangComplete(findstart, base)
                     let l:word = l:word[:-10]
                 endif
 
-                let l:kind = s:get_kind(l:proto)
+                let l:kind = s:GetKind(l:proto)
                 let l:proto = s:DemangleProto(l:proto)
 
             elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
