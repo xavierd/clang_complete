@@ -141,6 +141,11 @@ function s:ClangQuickFix(clang_output)
                     \ "text": l:text[l:erridx + 7:],
                     \ "type": l:type }
         let l:list = add(l:list, l:item)
+
+        " Highlight the error
+        let l:err_line = getline(l:lnum)
+        let l:err_word = matchstr(l:err_line, '\i*', l:col - 1)
+        exe "syntax keyword SpellBad " . l:err_word
     endfor
     call setqflist(l:list)
     " The following line cause vim to segfault. A patch is ready on vim
@@ -199,6 +204,9 @@ function ClangComplete(findstart, base)
                     \ . " " . b:clang_parameters . " " . b:clang_user_options . " -o -"
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
+
+        " Clear the bad spell, the user may have corrected them.
+        syntax clear SpellBad
         if v:shell_error
             call s:ClangQuickFix(l:clang_output)
             return {}
