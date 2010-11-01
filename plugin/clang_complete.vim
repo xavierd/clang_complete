@@ -18,6 +18,10 @@
 "                                  on error. WARNING: segfault on
 "                                  unpatched vim!
 "                                  Default: 0
+"          g:clang_hl_errors: if equal to 1, it will highlight the
+"                             warnings and errors the same way clang
+"                             does it.
+"                             Default: 1
 "
 " Todo: - Fix bugs
 "       - Add snippets on Pattern and OVERLOAD (is it possible?)
@@ -57,6 +61,10 @@ function s:ClangCompleteInit()
 
     if !exists('g:clang_complete_copen')
         let g:clang_complete_copen = 0
+    endif
+
+    if !exists('g:clang_hl_errors')
+        let g:clang_complete_copen = 1
     endif
 
     if g:clang_complete_auto == 1
@@ -117,43 +125,66 @@ function s:DoPeriodicQuickFix()
 
     let l:clang_output = split(system(l:command), "\n")
     call delete(l:tempfile)
-    if v:shell_error
-        call s:ClangQuickFix(l:clang_output)
-    else
-        call setqflist([])
-        doautocmd QuickFixCmdPost make
-    endif
+    call s:ClangQuickFix(l:clang_output)
 endfunction
 
 function s:ClangQuickFix(clang_output)
     let l:list = []
     for l:line in a:clang_output
-        let l:erridx = stridx(l:line, "error:")
+        let l:erridx = match(l:line, '\%(error\|warning\): ')
         if l:erridx == -1
+            " Error are always at the beginning.
+            if l:line[:11] == 'COMPLETION: ' || l:line[:9] == 'OVERLOAD: '
+                break
+            endif
             continue
         endif
         let l:bufnr = bufnr("%")
-        let l:pattern = '\.*:\(\d*\):\(\d*\):'
+        let l:pattern = '\.*:\(\d*\):\(\d*\):\(\%({\d\+:\d\+-\d\+:\d\+}\)*\)'
         let tmp = matchstr(l:line, l:pattern)
         let l:lnum = substitute(tmp, l:pattern, '\1', '')
         let l:col = substitute(tmp, l:pattern, '\2', '')
-        let l:text = l:line
-        let l:type = 'E'
+        let l:errors = substitute(tmp, l:pattern, '\3', '')
+        if l:line[l:erridx] == 'e'
+            let l:text = l:line[l:erridx + 7:]
+            let l:type = 'E'
+            let l:hlgroup = " SpellBad "
+        else
+            let l:text = l:line[l:erridx + 9:]
+            let l:type = 'W'
+            let l:hlgroup = " SpellLocal "
+        endif
         let l:item = {
                     \ "bufnr": l:bufnr,
                     \ "lnum": l:lnum,
                     \ "col": l:col,
-                    \ "text": l:text[l:erridx + 7:],
+                    \ "text": l:text,
                     \ "type": l:type }
         let l:list = add(l:list, l:item)
 
         " Highlight the error
-        let l:err_line = getline(l:lnum)
-        let l:err_word = matchstr(l:err_line, '\i*', l:col - 1)
-        if l:err_word != ""
-            let l:pat = '/\%' . l:lnum . 'l' . l:err_word . '/'
-            exe "syntax match SpellBad " . l:pat
+        if l:errors == "" || g:clang_hl_errors == 0
+            continue
         endif
+        let l:ranges = split(l:errors, '}')
+        for l:range in l:ranges
+            " Doing precise error and warning handling.
+            " The highlight will be the same as clang's carets.
+            let l:pattern = '{\%(\d\+\):\(\d\+\)-\%(\d\+\):\(\d\+\)'
+            let l:tmp = matchstr(l:range, l:pattern)
+            let l:startcol = substitute(l:tmp, l:pattern, '\1', '')
+            let l:endcol = substitute(l:tmp, l:pattern, '\2', '')
+            " Highlighting the ~~~~
+            let l:pat = '/\%' . l:lnum . 'l'
+                        \ . '\%' . l:startcol . 'c'
+                        \ . '.*'
+                        \ . '\%' . l:endcol . 'c/'
+            exe "syntax match" . l:hlgroup . l:pat
+
+            " Highlighting the ^
+            let l:pat = '/\%' . l:lnum . 'l' . '\%' . l:col . 'c./'
+            exe "syntax match" . l:hlgroup . l:pat
+        endfor
     endfor
     call setqflist(l:list)
     doautocmd QuickFixCmdPost make
@@ -207,21 +238,19 @@ function ClangComplete(findstart, base)
         call writefile(l:buf, l:tempfile)
         let l:escaped_tempfile = shellescape(l:tempfile)
 
-        let l:command = b:clang_exec . " -cc1 -fsyntax-only -code-completion-at="
-                    \ . l:escaped_tempfile . ":" . line('.') . ":" . col('.')
-                    \ . " " . l:escaped_tempfile
-                    \ . " " . b:clang_parameters . " " . b:clang_user_options . " -o -"
+        let l:command = b:clang_exec . " -cc1 -fsyntax-only"
+                    \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
+                    \ . " -code-completion-at=" . l:escaped_tempfile . ":"
+                    \ . line('.') . ":" . col('.') . " " . l:escaped_tempfile
+                    \ . " " . b:clang_parameters . " " . b:clang_user_options
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
 
         " Clear the bad spell, the user may have corrected them.
         syntax clear SpellBad
+        call s:ClangQuickFix(l:clang_output)
         if v:shell_error
-            call s:ClangQuickFix(l:clang_output)
             return {}
-        else
-            call setqflist([])
-            doautocmd QuickFixCmdPost make
         endif
         if l:clang_output == []
             return {}
