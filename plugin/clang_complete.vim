@@ -21,6 +21,8 @@
 "
 " Todo: - Fix bugs
 "       - Add snippets on Pattern and OVERLOAD (is it possible?)
+"       - Parse warnings, fix-its and highlight them with
+"       Spell{Rare,Local,Cap}
 "
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
@@ -117,6 +119,8 @@ function s:DoPeriodicQuickFix()
     call delete(l:tempfile)
     if v:shell_error
         call s:ClangQuickFix(l:clang_output)
+    else
+        call setqflist([])
     endif
 endfunction
 
@@ -210,6 +214,8 @@ function ClangComplete(findstart, base)
         if v:shell_error
             call s:ClangQuickFix(l:clang_output)
             return {}
+        else
+            call setqflist([])
         endif
         if l:clang_output == []
             return {}
