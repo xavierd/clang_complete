@@ -121,6 +121,7 @@ function s:DoPeriodicQuickFix()
         call s:ClangQuickFix(l:clang_output)
     else
         call setqflist([])
+        doautocmd QuickFixCmdPost make
     endif
 endfunction
 
@@ -155,6 +156,7 @@ function s:ClangQuickFix(clang_output)
         endif
     endfor
     call setqflist(l:list)
+    doautocmd QuickFixCmdPost make
     " The following line cause vim to segfault. A patch is ready on vim
     " mailing list but not currently upstream, I will update it as soon
     " as it's upstream. If you want to have error reporting will you're
@@ -219,6 +221,7 @@ function ClangComplete(findstart, base)
             return {}
         else
             call setqflist([])
+            doautocmd QuickFixCmdPost make
         endif
         if l:clang_output == []
             return {}
