@@ -7,6 +7,10 @@ Configuration:
  - g:clang_complete_auto: 1 -> automatically completing after ->, ., ::
  - g:clang_complete_copen: 1 -> open the quickfix window on error.
                                 (Please read the Note below)
+ - g:clang_hl_errors: 1 -> highlights the errors directly on the code.
+
+Thanks to:
+    Xaizek (Александр Александров)
 
 Note:
  - This plugin is incompatible with omnicppcomplete due to the

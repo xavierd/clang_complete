@@ -64,7 +64,7 @@ function s:ClangCompleteInit()
     endif
 
     if !exists('g:clang_hl_errors')
-        let g:clang_complete_copen = 1
+        let g:clang_hl_errors = 1
     endif
 
     if g:clang_complete_auto == 1
@@ -119,9 +119,10 @@ function s:DoPeriodicQuickFix()
     call writefile(l:buf, l:tempfile)
     let l:escaped_tempfile = shellescape(l:tempfile)
 
-    let l:command = b:clang_exec . " -cc1 -fsyntax-only "
-                \ . l:escaped_tempfile
-                \ . " " . b:clang_parameters . " " . b:clang_user_options . " -o -"
+    let l:command = b:clang_exec . " -cc1 -fsyntax-only"
+                \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
+                \ . " " . l:escaped_tempfile
+                \ . " " . b:clang_parameters . " " . b:clang_user_options
 
     let l:clang_output = split(system(l:command), "\n")
     call delete(l:tempfile)
