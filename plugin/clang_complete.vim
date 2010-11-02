@@ -11,22 +11,30 @@
 "                absolute include path on the same line. It is not
 "                currently correctly handled.
 "
-" Options: g:clang_complete_auto: if equal to 1, automatically complete
-"                                 after ->, ., ::
-"                                 Default: 1
-"          g:clang_complete_copen: if equal to 1, open quickfix window
-"                                  on error. WARNING: segfault on
-"                                  unpatched vim!
-"                                  Default: 0
-"          g:clang_hl_errors: if equal to 1, it will highlight the
-"                             warnings and errors the same way clang
-"                             does it.
-"                             Default: 1
+" Options:
+"  - g:clang_complete_auto:
+"       if equal to 1, automatically complete after ->, ., ::
+"       Default: 1
+"
+"  - g:clang_complete_copen:
+"       if equal to 1, open quickfix window on error.
+"       WARNING: segfault on unpatched vim!
+"       Default: 0
+"
+"  - g:clang_hl_errors:
+"       if equal to 1, it will highlight the warnings and errors the
+"       same way clang does it.
+"       Default: 1
+"
+"  - g:clang_periodic_quickfix:
+"       if equal to 1, it will periodically update the quickfix window
+"       Note: You could use the g:ClangUpdateQuickFix() to do the same
+"             with a mapping.
+"       Default: 0
 "
 " Todo: - Fix bugs
 "       - Add snippets on Pattern and OVERLOAD (is it possible?)
-"       - Parse warnings, fix-its and highlight them with
-"       Spell{Rare,Local,Cap}
+"       - Parse fix-its and do something useful with it.
 "
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
@@ -67,6 +75,10 @@ function s:ClangCompleteInit()
         let g:clang_hl_errors = 1
     endif
 
+    if !exists('g:clang_periodic_quickfix')
+        let g:clang_periodic_quickfix = 0
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -91,7 +103,9 @@ function s:ClangCompleteInit()
 
     setlocal completefunc=ClangComplete
 
-    au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+    if g:clang_periodic_quickfix == 1
+        au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+    endif
 
 endfunction
 
@@ -359,4 +373,10 @@ function CompleteColon()
         return ':'
     endif
     return ':' . LaunchCompletion()
+endfunction
+
+" May be used in a mapping to update the quickfix window.
+function g:ClangUpdateQuickFix()
+    call s:DoPeriodicQuickFix()
+    return ""
 endfunction
