@@ -134,6 +134,9 @@ function s:DoPeriodicQuickFix()
 endfunction
 
 function s:ClangQuickFix(clang_output)
+    " Clear the bad spell, the user may have corrected them.
+    syntax clear SpellBad
+    syntax clear SpellLocal
     let l:list = []
     for l:line in a:clang_output
         let l:erridx = match(l:line, '\%(error\|warning\): ')
@@ -255,8 +258,6 @@ function ClangComplete(findstart, base)
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
 
-        " Clear the bad spell, the user may have corrected them.
-        syntax clear SpellBad
         call s:ClangQuickFix(l:clang_output)
         if v:shell_error
             return {}
