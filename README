@@ -10,7 +10,7 @@ Configuration:
  - g:clang_hl_errors: 1 -> highlights the errors directly on the code.
 
 Thanks to:
-    Xaizek (Александр Александров)
+    Xaizek
 
 Note:
  - This plugin is incompatible with omnicppcomplete due to the

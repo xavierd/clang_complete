@@ -116,7 +116,11 @@ endfunction
 function s:DoPeriodicQuickFix()
     let l:buf = getline(1, '$')
     let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
-    call writefile(l:buf, l:tempfile)
+    try
+        call writefile(l:buf, l:tempfile)
+    catch /^Vim\%((\a\+)\)\=:E482/
+        return
+    endtry
     let l:escaped_tempfile = shellescape(l:tempfile)
 
     let l:command = b:clang_exec . " -cc1 -fsyntax-only"
@@ -236,7 +240,11 @@ function ClangComplete(findstart, base)
     else
         let l:buf = getline(1, '$')
         let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
-        call writefile(l:buf, l:tempfile)
+        try
+            call writefile(l:buf, l:tempfile)
+        catch /^Vim\%((\a\+)\)\=:E482/
+            return {}
+        endtry
         let l:escaped_tempfile = shellescape(l:tempfile)
 
         let l:command = b:clang_exec . " -cc1 -fsyntax-only"
