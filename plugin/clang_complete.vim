@@ -144,10 +144,10 @@ function s:DoPeriodicQuickFix()
 
     let l:clang_output = split(system(l:command), "\n")
     call delete(l:tempfile)
-    call s:ClangQuickFix(l:clang_output)
+    call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
-function s:ClangQuickFix(clang_output)
+function s:ClangQuickFix(clang_output, tempfname)
     " Clear the bad spell, the user may have corrected them.
     syntax clear SpellBad
     syntax clear SpellLocal
@@ -161,12 +161,16 @@ function s:ClangQuickFix(clang_output)
             endif
             continue
         endif
-        let l:bufnr = bufnr("%")
-        let l:pattern = '\.*:\(\d*\):\(\d*\):\(\%({\d\+:\d\+-\d\+:\d\+}\)*\)'
+        let l:pattern = '^\(.*\):\(\d*\):\(\d*\):\(\%({\d\+:\d\+-\d\+:\d\+}\)*\)'
         let tmp = matchstr(l:line, l:pattern)
-        let l:lnum = substitute(tmp, l:pattern, '\1', '')
-        let l:col = substitute(tmp, l:pattern, '\2', '')
-        let l:errors = substitute(tmp, l:pattern, '\3', '')
+        let l:fname = substitute(tmp, l:pattern, '\1', '')
+        if l:fname == a:tempfname
+            let l:fname = "%"
+        endif
+        let l:bufnr = bufnr(l:fname, 1)
+        let l:lnum = substitute(tmp, l:pattern, '\2', '')
+        let l:col = substitute(tmp, l:pattern, '\3', '')
+        let l:errors = substitute(tmp, l:pattern, '\4', '')
         if l:line[l:erridx] == 'e'
             let l:text = l:line[l:erridx + 7:]
             let l:type = 'E'
@@ -275,7 +279,7 @@ function ClangComplete(findstart, base)
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
 
-        call s:ClangQuickFix(l:clang_output)
+        call s:ClangQuickFix(l:clang_output, l:tempfile)
         if v:shell_error
             return {}
         endif
