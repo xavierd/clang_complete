@@ -184,8 +184,15 @@ function s:ClangQuickFix(clang_output)
                     \ "type": l:type }
         let l:list = add(l:list, l:item)
 
-        " Highlight the error
-        if l:errors == "" || g:clang_hl_errors == 0
+        if g:clang_hl_errors == 0
+            continue
+        endif
+
+        " Highlighting the ^
+        let l:pat = '/\%' . l:lnum . 'l' . '\%' . l:col . 'c./'
+        exe "syntax match" . l:hlgroup . l:pat
+
+        if l:errors == ""
             continue
         endif
         let l:ranges = split(l:errors, '}')
@@ -201,10 +208,6 @@ function s:ClangQuickFix(clang_output)
                         \ . '\%' . l:startcol . 'c'
                         \ . '.*'
                         \ . '\%' . l:endcol . 'c/'
-            exe "syntax match" . l:hlgroup . l:pat
-
-            " Highlighting the ^
-            let l:pat = '/\%' . l:lnum . 'l' . '\%' . l:col . 'c./'
             exe "syntax match" . l:hlgroup . l:pat
         endfor
     endfor
