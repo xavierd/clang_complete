@@ -188,7 +188,7 @@ function s:ClangQuickFix(clang_output, tempfname)
                     \ "type": l:type }
         let l:list = add(l:list, l:item)
 
-        if g:clang_hl_errors == 0
+        if g:clang_hl_errors == 0 || l:fname != "%"
             continue
         endif
 
