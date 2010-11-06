@@ -42,6 +42,7 @@ au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
 let b:clang_exec = ''
 let b:clang_parameters = ''
 let b:clang_user_options = ''
+let b:my_changedtick = 0
 
 function s:ClangCompleteInit()
     let l:local_conf = findfile(".clang_complete", '.;')
@@ -86,6 +87,8 @@ function s:ClangCompleteInit()
         inoremap <expr> <buffer> : CompleteColon()
     endif
 
+    let b:should_overload = 0
+    let b:my_changedtick = b:changedtick
     let b:clang_exec = 'clang'
     let b:clang_parameters = '-x c'
 
@@ -128,6 +131,12 @@ function s:GetKind(proto)
 endfunction
 
 function s:DoPeriodicQuickFix()
+    " Don't do any superfluous reparsing.
+    if b:my_changedtick == b:changedtick
+        return
+    endif
+    let b:my_changedtick = b:changedtick
+
     let l:buf = getline(1, '$')
     let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
     try
@@ -224,7 +233,13 @@ function s:ClangQuickFix(clang_output, tempfname)
     " updated.
     " http://groups.google.com/group/vim_dev/browse_thread/thread/5ff146af941b10da
     if g:clang_complete_copen == 1
-        copen
+        " We should get back to the original buffer
+        " It seems that with this fix, unpatched vim does not crash,
+        " which is quite strange...
+        let l:bufnr = bufnr("%")
+        cwindow
+        let l:winbufnr = bufwinnr(l:bufnr)
+        exe l:winbufnr . "wincmd w"
     endif
 endfunction
 
@@ -239,8 +254,6 @@ function s:DemangleProto(prototype)
 
     return l:proto
 endfunction
-
-let b:should_overload = 0
 
 function ClangComplete(findstart, base)
     if a:findstart
@@ -297,6 +310,7 @@ function ClangComplete(findstart, base)
                 " We can do something smarter for Pattern.
                 " My idea is to have some sort of snippets.
                 " It could be great if it can be done.
+                " feedkeys() can be the solution.
                 if l:value =~ 'Pattern'
                     let l:value = l:value[10:]
                 endif
