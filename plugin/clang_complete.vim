@@ -110,6 +110,7 @@ function s:ClangCompleteInit()
         au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
     endif
 
+    au CursorMovedI <buffer> call UpdateSnips()
 endfunction
 
 function s:GetKind(proto)
@@ -171,15 +172,15 @@ function s:ClangQuickFix(clang_output, tempfname)
             continue
         endif
         let l:pattern = '^\(.*\):\(\d*\):\(\d*\):\(\%({\d\+:\d\+-\d\+:\d\+}\)*\)'
-        let tmp = matchstr(l:line, l:pattern)
-        let l:fname = substitute(tmp, l:pattern, '\1', '')
+        let l:tmp = matchstr(l:line, l:pattern)
+        let l:fname = substitute(l:tmp, l:pattern, '\1', '')
         if l:fname == a:tempfname
             let l:fname = "%"
         endif
         let l:bufnr = bufnr(l:fname, 1)
-        let l:lnum = substitute(tmp, l:pattern, '\2', '')
-        let l:col = substitute(tmp, l:pattern, '\3', '')
-        let l:errors = substitute(tmp, l:pattern, '\4', '')
+        let l:lnum = substitute(l:tmp, l:pattern, '\2', '')
+        let l:col = substitute(l:tmp, l:pattern, '\3', '')
+        let l:errors = substitute(l:tmp, l:pattern, '\4', '')
         if l:line[l:erridx] == 'e'
             let l:text = l:line[l:erridx + 7:]
             let l:type = 'E'
@@ -329,6 +330,8 @@ function ClangComplete(findstart, base)
                     let l:word = l:word[:-10]
                 endif
 
+                let l:wabbr = l:word
+
                 let l:kind = s:GetKind(l:proto)
                 let l:proto = s:DemangleProto(l:proto)
 
@@ -336,8 +339,10 @@ function ClangComplete(findstart, base)
 
                 " The comment on Pattern also apply here.
                 let l:value = l:line[10:]
+                let l:snip_size = stridx(l:value, '#>') - stridx(l:value, '<#') - 4
                 let l:word = substitute(l:value, '.*<#', "", "g")
-                let l:word = substitute(l:word, '#>.*', "", "g")
+                let l:word = substitute(l:word, '#>.*', "[SNIP" . l:snip_size . "]", "g")
+                let l:wabbr = substitute(l:word, '\[SNIP\d\+\]', "", "g")
                 let l:proto = s:DemangleProto(l:value)
                 let l:kind = ""
 
@@ -347,6 +352,7 @@ function ClangComplete(findstart, base)
 
             let l:item = {
                         \ "word": l:word,
+                        \ "abbr": l:wabbr,
                         \ "menu": l:proto,
                         \ "info": l:proto,
                         \ "dup": 1,
@@ -359,6 +365,7 @@ function ClangComplete(findstart, base)
                 return {}
             endif
         endfor
+        return {}
     endif
 endfunction
 
@@ -394,6 +401,27 @@ function CompleteColon()
         return ':'
     endif
     return ':' . LaunchCompletion()
+endfunction
+
+function UpdateSnips()
+    if pumvisible() != 0
+        return ""
+    endif
+    let l:line = getline(".")
+    let l:pattern = '\[SNIP\(\d\+\)\]'
+    let l:tmp = matchstr(l:line, l:pattern)
+    if l:tmp == ""
+        return ""
+    endif
+    let l:size = substitute(l:tmp, l:pattern, '\1', "g")
+    let l:line = substitute(l:line, l:pattern, "", "g")
+    let l:cursor_pos = getpos(".")
+    let l:cursor_pos[2] -= (len(l:tmp) + 1)
+    call setline(".", l:line)
+    call setpos(".", l:cursor_pos)
+
+    call feedkeys("\<esc>")
+    exe "normal v" . l:size . "h\<C-G>"
 endfunction
 
 " May be used in a mapping to update the quickfix window.
