@@ -32,6 +32,11 @@
 "             with a mapping.
 "       Default: 0
 "
+"  - g:clang_snippets:
+"       if equal to 1, it will do some snippets magic after a ( or a ,
+"       inside function call. Not currently fully working.
+"       Default: 0
+"
 " Todo: - Fix bugs
 "       - Add snippets on Pattern and OVERLOAD (is it possible?)
 "       - Parse fix-its and do something useful with it.
@@ -80,6 +85,10 @@ function s:ClangCompleteInit()
         let g:clang_periodic_quickfix = 0
     endif
 
+    if !exists('g:clang_snippets')
+        let g:clang_snippets = 0
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -110,7 +119,9 @@ function s:ClangCompleteInit()
         au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
     endif
 
-    au CursorMovedI <buffer> call UpdateSnips()
+    if g:clang_snippets == 1
+        au CursorMovedI <buffer> call UpdateSnips()
+    endif
 endfunction
 
 function s:GetKind(proto)
@@ -256,6 +267,7 @@ function s:DemangleProto(prototype)
     return l:proto
 endfunction
 
+let b:col = 0
 function ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
@@ -268,12 +280,14 @@ function ClangComplete(findstart, base)
         endif
         if l:line[l:wsstart - 1] =~ '[(,]'
             let b:should_overload = 1
+            let b:col = l:wsstart + 1
             return l:wsstart
         endif
         let b:should_overload = 0
         while l:start > 0 && l:line[l:start - 1] =~ '\i'
             let l:start -= 1
         endwhile
+        let b:col = l:start + 1
         return l:start
     else
         let l:buf = getline(1, '$')
@@ -288,7 +302,7 @@ function ClangComplete(findstart, base)
         let l:command = b:clang_exec . " -cc1 -fsyntax-only"
                     \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
                     \ . " -code-completion-at=" . l:escaped_tempfile . ":"
-                    \ . line('.') . ":" . col('.') . " " . l:escaped_tempfile
+                    \ . line('.') . ":" . b:col . " " . l:escaped_tempfile
                     \ . " " . b:clang_parameters . " " . b:clang_user_options
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
@@ -300,6 +314,8 @@ function ClangComplete(findstart, base)
         if l:clang_output == []
             return {}
         endif
+
+        let l:res = []
         for l:line in l:clang_output
             if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
                 let l:value = l:line[12:]
@@ -313,6 +329,10 @@ function ClangComplete(findstart, base)
                 " It could be great if it can be done.
                 " feedkeys() can be the solution.
                 if l:value =~ 'Pattern'
+                    if g:clang_snippets != 1
+                        continue
+                    endif
+
                     let l:value = l:value[10:]
                 endif
 
@@ -336,6 +356,7 @@ function ClangComplete(findstart, base)
                 let l:proto = s:DemangleProto(l:proto)
 
             elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
+                        \ && g:clang_snippets == 1
 
                 " The comment on Pattern also apply here.
                 let l:value = l:line[10:]
@@ -358,14 +379,9 @@ function ClangComplete(findstart, base)
                         \ "dup": 1,
                         \ "kind": l:kind }
 
-            if complete_add(l:item) == 0
-                return {}
-            endif
-            if complete_check()
-                return {}
-            endif
+            call add(l:res, l:item)
         endfor
-        return {}
+        return l:res
     endif
 endfunction
 

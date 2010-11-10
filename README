@@ -4,10 +4,30 @@ How-to use it? Simply put it on ~/.vim/plugin
 It should work immediately.
 
 Configuration:
- - g:clang_complete_auto: 1 -> automatically completing after ->, ., ::
- - g:clang_complete_copen: 1 -> open the quickfix window on error.
-                                (Please read the Note below)
- - g:clang_hl_errors: 1 -> highlights the errors directly on the code.
+  - g:clang_complete_auto:
+       if equal to 1, automatically complete after ->, ., ::
+       Default: 1
+
+  - g:clang_complete_copen:
+       if equal to 1, open quickfix window on error.
+       WARNING: segfault on unpatched vim!
+       Default: 0
+
+  - g:clang_hl_errors:
+       if equal to 1, it will highlight the warnings and errors the
+       same way clang does it.
+       Default: 1
+
+  - g:clang_periodic_quickfix:
+       if equal to 1, it will periodically update the quickfix window
+       Note: You could use the g:ClangUpdateQuickFix() to do the same
+             with a mapping.
+       Default: 0
+
+  - g:clang_snippets:
+       if equal to 1, it will do some snippets magic after a ( or a ,
+       inside function call. Not currently fully working.
+       Default: 0
 
 Thanks to:
     Xaizek
