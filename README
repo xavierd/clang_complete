@@ -41,9 +41,29 @@ Note:
  doing. Read carefully the comment at the end of s:ClangQuickFix if you
  want to enable it
 
+ - If you find that completion is slow, please read the PCH section
+ below.
+
  - You're free to use it, to distribute it, but please, don't modify it
  privately, others can be interested by your work. If you have a patch
  or a bug or a feature request, mail me.
+
+PCH:
+A PreCompiled Header file is a way to accelerate compilation, and so,
+may accelerate the completion. Here is how to create the <vector> pch,
+on linux (OSX users may use -fnext-runtime instead of -fgnu-runtime):
+
+clang -x c++-header /path/to/c++/vector -fno-exceptions -fgnu-runtime -o vector.pch
+You just have to insert it into your .clang_complete:
+echo '-include-pch /path/to/vector.pch -fgnu-runtime' >> .clang_complete
+
+One of the major problem is that you cannot include more that one pch,
+the solution is to put the system headers or non changing headers
+into another header and then compile it to pch:
+
+echo '#include <iostream>\n#include <vector>' > pchheader.h
+clang -x c++-header ./pchheader.h -fno-exceptions -fnu-runtime -o ./pchheader.pch
+And then add it to the .clang_complete file.
 
 Known Issues:
  - If clang is not able to compile your file, it cannot complete
