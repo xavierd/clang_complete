@@ -96,6 +96,11 @@ function s:ClangCompleteInit()
         inoremap <expr> <buffer> : CompleteColon()
     endif
 
+    " Disable every autocmd that could have been set.
+    augroup ClangComplete
+        autocmd!
+    augroup end
+
     let b:should_overload = 0
     let b:my_changedtick = b:changedtick
     let b:clang_exec = 'clang'
@@ -116,11 +121,9 @@ function s:ClangCompleteInit()
     setlocal completefunc=ClangComplete
 
     if g:clang_periodic_quickfix == 1
-        au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
-    endif
-
-    if g:clang_snippets == 1
-        au CursorMovedI <buffer> call UpdateSnips()
+        augroup ClangComplete
+            au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+        augroup end
     endif
 endfunction
 
@@ -361,6 +364,10 @@ function ClangComplete(findstart, base)
                 " The comment on Pattern also apply here.
                 let l:value = l:line[10:]
                 let l:snip_size = stridx(l:value, '#>') - stridx(l:value, '<#') - 4
+                " The function takes 0 arguments.
+                if l:snip_size == - 4
+                    continue
+                endif
                 let l:word = substitute(l:value, '.*<#', "", "g")
                 let l:word = substitute(l:word, '#>.*', "[SNIP" . l:snip_size . "]", "g")
                 let l:wabbr = substitute(l:word, '\[SNIP\d\+\]', "", "g")
@@ -381,6 +388,11 @@ function ClangComplete(findstart, base)
 
             call add(l:res, l:item)
         endfor
+        if g:clang_snippets == 1
+            augroup ClangComplete
+                au CursorMovedI <buffer> call UpdateSnips()
+            augroup end
+        endif
         return l:res
     endif
 endfunction
@@ -438,6 +450,9 @@ function UpdateSnips()
 
     call feedkeys("\<esc>")
     exe "normal v" . l:size . "h\<C-G>"
+    augroup ClangComplete
+        au! CursorMovedI <buffer>
+    augroup end
 endfunction
 
 " May be used in a mapping to update the quickfix window.
