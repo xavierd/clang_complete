@@ -58,11 +58,11 @@ function s:ClangCompleteInit()
             " Better handling of absolute path
             " I don't know if those pattern will work on windows
             " platform
-            if matchstr(l:opt, '-I\s*/') != ""
-                let l:opt = substitute(l:opt, '-I\s*\(/\%(\w\|\\\s\)*\)',
+            if matchstr(l:opt, '\C-I\s*/') != ""
+                let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
                             \ '-I' . '\1', "g")
             else
-                let l:opt = substitute(l:opt, '-I\s*\(\%(\w\|\\\s\)*\)',
+                let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
                             \ '-I' . l:local_conf[:-16] . '\1', "g")
             endif
             let b:clang_user_options .= " " . l:opt
