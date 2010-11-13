@@ -356,7 +356,11 @@ function ClangComplete(findstart, base)
                 endif
 
                 let l:kind = s:GetKind(l:proto)
-                let l:word = substitute(l:proto, '\[#[^#]*#\]', "", "g")
+                if g:clang_snippets == 1
+                    let l:word = substitute(l:proto, '\[#[^#]*#\]', "", "g")
+                else
+                    let l:word = l:wabbr
+                endif
                 let l:proto = s:DemangleProto(l:proto)
 
             elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
