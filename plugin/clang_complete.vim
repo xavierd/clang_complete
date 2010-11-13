@@ -38,8 +38,9 @@
 "       Default: 0
 "
 " Todo: - Fix bugs
-"       - Add snippets on Pattern and OVERLOAD (is it possible?)
 "       - Parse fix-its and do something useful with it.
+"       - -code-completion-macros -code-completion-patterns
+"       - Add Snippets everywhere?
 "
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
@@ -94,6 +95,10 @@ function s:ClangCompleteInit()
         inoremap <expr> <buffer> . CompleteDot()
         inoremap <expr> <buffer> > CompleteArrow()
         inoremap <expr> <buffer> : CompleteColon()
+    endif
+
+    if g:clang_snippets == 1
+        nor <expr> <buffer> <tab> UpdateSnips()
     endif
 
     " Disable every autocmd that could have been set.
@@ -323,14 +328,6 @@ function ClangComplete(findstart, base)
             if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
                 let l:value = l:line[12:]
 
-                if l:value !~ '^' . a:base
-                    continue
-                endif
-
-                " We can do something smarter for Pattern.
-                " My idea is to have some sort of snippets.
-                " It could be great if it can be done.
-                " feedkeys() can be the solution.
                 if l:value =~ 'Pattern'
                     if g:clang_snippets != 1
                         continue
@@ -339,38 +336,36 @@ function ClangComplete(findstart, base)
                     let l:value = l:value[10:]
                 endif
 
+                if l:value !~ '^' . a:base
+                    continue
+                endif
+
                 let l:colonidx = stridx(l:value, " : ")
                 if l:colonidx == -1
-                    let l:word = s:DemangleProto(l:value)
+                    let l:wabbr = s:DemangleProto(l:value)
+                    let l:word = l:value
                     let l:proto = l:value
                 else
                     let l:word = l:value[:l:colonidx - 1]
+                    " WTF is that?
+                    if l:word =~ '(Hidden)'
+                        let l:word = l:word[:-10]
+                    endif
+                    let l:wabbr = l:word
                     let l:proto = l:value[l:colonidx + 3:]
                 endif
 
-                " WTF is that?
-                if l:word =~ '(Hidden)'
-                    let l:word = l:word[:-10]
-                endif
-
-                let l:wabbr = l:word
-
                 let l:kind = s:GetKind(l:proto)
+                let l:word = substitute(l:proto, '\[#[^#]*#\]', "", "g")
                 let l:proto = s:DemangleProto(l:proto)
 
             elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
                         \ && g:clang_snippets == 1
 
-                " The comment on Pattern also apply here.
                 let l:value = l:line[10:]
-                let l:snip_size = stridx(l:value, '#>') - stridx(l:value, '<#') - 4
-                " The function takes 0 arguments.
-                if l:snip_size == - 4
-                    continue
-                endif
-                let l:word = substitute(l:value, '.*<#', "", "g")
-                let l:word = substitute(l:word, '#>.*', "[SNIP" . l:snip_size . "]", "g")
-                let l:wabbr = substitute(l:word, '\[SNIP\d\+\]', "", "g")
+                let l:word = substitute(l:value, '.*<#', '<#', "g")
+                let l:word = substitute(l:word, '#>.*', '#>', "g")
+                let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', "g")
                 let l:proto = s:DemangleProto(l:value)
                 let l:kind = ""
 
@@ -390,7 +385,7 @@ function ClangComplete(findstart, base)
         endfor
         if g:clang_snippets == 1
             augroup ClangComplete
-                au CursorMovedI <buffer> call UpdateSnips()
+                au CursorMovedI <buffer> call BeginSnips()
             augroup end
         endif
         return l:res
@@ -432,27 +427,33 @@ function CompleteColon()
 endfunction
 
 function UpdateSnips()
-    if pumvisible() != 0
-        return ""
-    endif
     let l:line = getline(".")
-    let l:pattern = '\[SNIP\(\d\+\)\]'
+    let l:pattern = '<#[^#]*#>'
     let l:tmp = matchstr(l:line, l:pattern)
     if l:tmp == ""
         return ""
     endif
-    let l:size = substitute(l:tmp, l:pattern, '\1', "g")
-    let l:line = substitute(l:line, l:pattern, "", "g")
-    let l:cursor_pos = getpos(".")
-    let l:cursor_pos[2] -= (len(l:tmp) + 1)
-    call setline(".", l:line)
-    call setpos(".", l:cursor_pos)
+    "return "\<esc>^/<#\<CR>va>\<C-G>"
+    return "\<esc>^/<#\<CR>v/#>\<CR>l\<C-G>"
+endfunction
 
-    call feedkeys("\<esc>")
-    exe "normal v" . l:size . "h\<C-G>"
+function BeginSnips()
+    if pumvisible() != 0
+        return ""
+    endif
     augroup ClangComplete
         au! CursorMovedI <buffer>
     augroup end
+
+    " Do we need to launch UpdateSnippets()?
+    let l:line = getline(".")
+    let l:pattern = '<#[^#]*#>'
+    let l:tmp = matchstr(l:line, l:pattern)
+    if l:tmp == ""
+        return ""
+    endif
+    call feedkeys("\<esc>\<tab>")
+    return ""
 endfunction
 
 " May be used in a mapping to update the quickfix window.
