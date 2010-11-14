@@ -367,6 +367,10 @@ function ClangComplete(findstart, base)
                         \ && g:clang_snippets == 1
 
                 let l:value = l:line[10:]
+                if match(l:value, '<#') == -1
+                    continue
+                endif
+                " TODO: handle optionnal parameters correctly.
                 let l:word = substitute(l:value, '.*<#', '<#', "g")
                 let l:word = substitute(l:word, '#>.*', '#>', "g")
                 let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', "g")
@@ -433,8 +437,7 @@ endfunction
 function UpdateSnips()
     let l:line = getline(".")
     let l:pattern = '<#[^#]*#>'
-    let l:tmp = matchstr(l:line, l:pattern)
-    if l:tmp == ""
+    if match(l:line, l:pattern) == -1
         return ""
     endif
     "return "\<esc>^/<#\<CR>va>\<C-G>"
@@ -452,8 +455,7 @@ function BeginSnips()
     " Do we need to launch UpdateSnippets()?
     let l:line = getline(".")
     let l:pattern = '<#[^#]*#>'
-    let l:tmp = matchstr(l:line, l:pattern)
-    if l:tmp == ""
+    if match(l:line, l:pattern) == -1
         return ""
     endif
     call feedkeys("\<esc>\<tab>")
