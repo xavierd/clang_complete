@@ -108,7 +108,8 @@ function s:ClangCompleteInit()
     endif
 
     if g:clang_snippets == 1
-        nor <expr> <buffer> <tab> UpdateSnips()
+        noremap <expr> <buffer> <tab> UpdateSnips()
+        snoremap <expr> <buffer> <tab> UpdateSnips()
         if g:clang_conceal_snippets == 1
             syntax match Conceal /<#/ conceal
             syntax match Conceal /#>/ conceal
@@ -446,8 +447,9 @@ function UpdateSnips()
     if match(l:line, l:pattern) == -1
         return ""
     endif
-    "return "\<esc>^/<#\<CR>va>\<C-G>"
-    return "\<esc>^/<#\<CR>v/#>\<CR>l\<C-G>"
+    " Is it possible to use f/t/F/T on multiple chars?
+    "return "\<esc>f<va>\<C-G>"
+    return "\<esc>/<#\<CR>v/#>\<CR>l\<C-G>"
 endfunction
 
 function BeginSnips()
@@ -464,7 +466,7 @@ function BeginSnips()
     if match(l:line, l:pattern) == -1
         return ""
     endif
-    call feedkeys("\<esc>\<tab>")
+    call feedkeys("\<esc>^\<tab>")
     return ""
 endfunction
 
