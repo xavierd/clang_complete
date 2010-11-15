@@ -37,10 +37,17 @@
 "       inside function call. Not currently fully working.
 "       Default: 0
 "
+"  - g:clang_conceal_snippets:
+"       if equal to 1, vim will use vim 7.3 conceal feature to hide <#
+"       and #> which delimit a snippets.
+"       Note: See concealcursor and conceallevel for conceal configuration.
+"       Default: 1 (0 if conceal not available)
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
 "       - Add Snippets everywhere?
+"       - conceal to hide <# and #> (concealcursor=nvi conceallevel=3)
 "
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
@@ -90,6 +97,10 @@ function s:ClangCompleteInit()
         let g:clang_snippets = 0
     endif
 
+    if !exists('g:clang_conceal_snippets')
+        let g:clang_conceal_snippets = has("conceal")
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -99,6 +110,10 @@ function s:ClangCompleteInit()
 
     if g:clang_snippets == 1
         nor <expr> <buffer> <tab> UpdateSnips()
+        if g:clang_conceal_snippets == 1
+            syntax match Conceal /<#/ conceal
+            syntax match Conceal /#>/ conceal
+        endif
     endif
 
     " Disable every autocmd that could have been set.

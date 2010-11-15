@@ -29,6 +29,13 @@ Configuration:
        inside function call. Not currently fully working.
        Default: 0
 
+   - g:clang_conceal_snippets:
+        if equal to 1, vim will use vim 7.3 conceal feature to hide <#
+        and #> which delimit a snippets.
+        Note: See concealcursor and conceallevel for conceal configuration.
+        Default: 1 (0 if conceal not available)
+
+
 Thanks to:
     Xaizek
 
