@@ -10,7 +10,6 @@ Configuration:
 
   - g:clang_complete_copen:
        if equal to 1, open quickfix window on error.
-       WARNING: segfault on unpatched vim!
        Default: 0
 
   - g:clang_hl_errors:
@@ -43,10 +42,6 @@ Note:
  - This plugin is incompatible with omnicppcomplete due to the
  unconditionnaly set mapping done by omnicppcomplete. So don't forget to
  suppress it before using this plugin.
-
- - Don't set g:clang_complete_copen to 1 unless you know what you are
- doing. Read carefully the comment at the end of s:ClangQuickFix if you
- want to enable it
 
  - If you find that completion is slow, please read the PCH section
  below.

@@ -18,7 +18,6 @@
 "
 "  - g:clang_complete_copen:
 "       if equal to 1, open quickfix window on error.
-"       WARNING: segfault on unpatched vim!
 "       Default: 0
 "
 "  - g:clang_hl_errors:
@@ -261,16 +260,8 @@ function s:ClangQuickFix(clang_output, tempfname)
     endfor
     call setqflist(l:list)
     doautocmd QuickFixCmdPost make
-    " The following line cause vim to segfault. A patch is ready on vim
-    " mailing list but not currently upstream, I will update it as soon
-    " as it's upstream. If you want to have error reporting will you're
-    " coding, you could open at hand the quickfix window, and it will be
-    " updated.
-    " http://groups.google.com/group/vim_dev/browse_thread/thread/5ff146af941b10da
     if g:clang_complete_copen == 1
         " We should get back to the original buffer
-        " It seems that with this fix, unpatched vim does not crash,
-        " which is quite strange...
         let l:bufnr = bufnr("%")
         cwindow
         let l:winbufnr = bufwinnr(l:bufnr)
