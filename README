@@ -34,6 +34,12 @@ Configuration:
         Note: See concealcursor and conceallevel for conceal configuration.
         Default: 1 (0 if conceal not available)
 
+   - g:clang_exec:
+        Name or path of clang executable.
+        Note: Use this if clang has a non-standard name, or isn't in the
+        path.
+        Default: 'clang'
+
 
 Thanks to:
     Xaizek

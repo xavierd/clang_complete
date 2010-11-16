@@ -42,6 +42,12 @@
 "       Note: See concealcursor and conceallevel for conceal configuration.
 "       Default: 1 (0 if conceal not available)
 "
+"  - g:clang_exec:
+"       Name or path of clang executable.
+"       Note: Use this if clang has a non-standard name, or isn't in the
+"       path.
+"       Default: 'clang'
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
@@ -51,7 +57,6 @@
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
 
-let b:clang_exec = ''
 let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
@@ -100,6 +105,10 @@ function s:ClangCompleteInit()
         let g:clang_conceal_snippets = has("conceal")
     endif
 
+    if !exists('g:clang_exec')
+        let g:clang_exec = 'clang'
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -123,7 +132,6 @@ function s:ClangCompleteInit()
 
     let b:should_overload = 0
     let b:my_changedtick = b:changedtick
-    let b:clang_exec = 'clang'
     let b:clang_parameters = '-x c'
 
     if &filetype == 'objc'
@@ -181,7 +189,7 @@ function s:DoPeriodicQuickFix()
     endtry
     let l:escaped_tempfile = shellescape(l:tempfile)
 
-    let l:command = b:clang_exec . " -cc1 -fsyntax-only"
+    let l:command = g:clang_exec . " -cc1 -fsyntax-only"
                 \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
                 \ . " " . l:escaped_tempfile
                 \ . " " . b:clang_parameters . " " . b:clang_user_options
@@ -314,7 +322,7 @@ function ClangComplete(findstart, base)
         endtry
         let l:escaped_tempfile = shellescape(l:tempfile)
 
-        let l:command = b:clang_exec . " -cc1 -fsyntax-only"
+        let l:command = g:clang_exec . " -cc1 -fsyntax-only"
                     \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
                     \ . " -code-completion-at=" . l:escaped_tempfile . ":"
                     \ . line('.') . ":" . b:col . " " . l:escaped_tempfile
