@@ -48,11 +48,16 @@
 "       path.
 "       Default: 'clang'
 "
+"  - g:clang_user_options:
+"       Option added at the end of clang command. Useful if you want to
+"       filter the result, or if you want to ignore the error code
+"       returned by clang: on error, the completion is not shown.
+"       Default: ''
+"       Example: '|| exit 0' (it will discard clang return value)
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
-"       - Add Snippets everywhere?
-"       - conceal to hide <# and #> (concealcursor=nvi conceallevel=3)
 "
 
 au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
