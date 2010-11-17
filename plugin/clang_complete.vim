@@ -109,6 +109,11 @@ function s:ClangCompleteInit()
         let g:clang_exec = 'clang'
     endif
 
+    if !exists('g:clang_user_options')
+        let g:clang_user_options = ''
+    endif
+    let b:clang_user_options .= ' ' . g:clang_user_options
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
