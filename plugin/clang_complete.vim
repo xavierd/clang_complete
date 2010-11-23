@@ -430,7 +430,7 @@ function ShouldComplete()
         return 0
     else
         return match(synIDattr(synID(line("."), col(".") - 1, 1), "name"),
-                    \'\C\<cComment\|\<cCppString\|\<cString') == -1
+                    \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber') == -1
 endfunction
 
 function LaunchCompletion()
