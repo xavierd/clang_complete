@@ -84,3 +84,7 @@ Known Issues:
  - If clang is not able to compile your file, it cannot complete
  anything. Since clang is not supporting every C++0x features, this is
  normal if it can do any completion on C++0x file.
+
+ - There is no difference in clang's output between private
+ methods/members and public ones. Which means that I cannot filter
+ private methods on the completion list.
