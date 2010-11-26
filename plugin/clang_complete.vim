@@ -65,6 +65,7 @@ au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
 let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
+let b:clang_type_complete = 0
 
 function s:ClangCompleteInit()
     let l:local_conf = findfile(".clang_complete", '.;')
@@ -143,6 +144,7 @@ function s:ClangCompleteInit()
     let b:should_overload = 0
     let b:my_changedtick = b:changedtick
     let b:clang_parameters = '-x c'
+    let b:clang_type_complete = 0
 
     if &filetype == 'objc'
         let b:clang_parameters = '-x objective-c'
@@ -157,6 +159,7 @@ function s:ClangCompleteInit()
     endif
 
     setlocal completefunc=ClangComplete
+    setlocal omnifunc=ClangComplete
 
     if g:clang_periodic_quickfix == 1
         augroup ClangComplete
@@ -305,6 +308,7 @@ function ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
         let l:start = col('.') - 1
+        let b:clang_complete_type = 1
         let l:wsstart = l:start
         if l:line[l:wsstart - 1] =~ '\s'
             while l:wsstart > 0 && l:line[l:wsstart - 1] =~ '\s'
@@ -314,12 +318,16 @@ function ClangComplete(findstart, base)
         if l:line[l:wsstart - 1] =~ '[(,]'
             let b:should_overload = 1
             let b:col = l:wsstart + 1
+            let b:clang_type_complete = 0
             return l:wsstart
         endif
         let b:should_overload = 0
         while l:start > 0 && l:line[l:start - 1] =~ '\i'
             let l:start -= 1
         endwhile
+        if l:line[l:start - 2:] =~ '->' || l:line[l:start - 1] == '.'
+            let b:clang_complete_type = 0
+        endif
         let b:col = l:start + 1
         return l:start
     else
@@ -381,6 +389,10 @@ function ClangComplete(findstart, base)
                 endif
 
                 let l:kind = s:GetKind(l:proto)
+                if l:kind == 't' && b:clang_complete_type == 0
+                    continue
+                endif
+
                 if g:clang_snippets == 1
                     let l:word = substitute(l:proto, '\[#[^#]*#\]', "", "g")
                 else
