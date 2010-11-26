@@ -68,22 +68,22 @@ let b:my_changedtick = 0
 let b:clang_type_complete = 0
 
 function s:ClangCompleteInit()
-    let l:local_conf = findfile(".clang_complete", '.;')
+    let l:local_conf = findfile('.clang_complete', '.;')
     let b:clang_user_options = ''
-    if l:local_conf != ""
+    if l:local_conf != ''
         let l:opts = readfile(l:local_conf)
         for l:opt in l:opts
             " Better handling of absolute path
             " I don't know if those pattern will work on windows
             " platform
-            if matchstr(l:opt, '\C-I\s*/') != ""
+            if matchstr(l:opt, '\C-I\s*/') != ''
                 let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
-                            \ '-I' . '\1', "g")
+                            \ '-I' . '\1', 'g')
             else
                 let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
-                            \ '-I' . l:local_conf[:-16] . '\1', "g")
+                            \ '-I' . l:local_conf[:-16] . '\1', 'g')
             endif
-            let b:clang_user_options .= " " . l:opt
+            let b:clang_user_options .= ' ' . l:opt
         endfor
     endif
 
@@ -108,7 +108,7 @@ function s:ClangCompleteInit()
     endif
 
     if !exists('g:clang_conceal_snippets')
-        let g:clang_conceal_snippets = has("conceal")
+        let g:clang_conceal_snippets = has('conceal')
     endif
 
     if !exists('g:clang_exec')
@@ -118,7 +118,6 @@ function s:ClangCompleteInit()
     if !exists('g:clang_user_options')
         let g:clang_user_options = ''
     endif
-    let b:clang_user_options .= ' ' . g:clang_user_options
 
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
@@ -169,7 +168,7 @@ function s:ClangCompleteInit()
 endfunction
 
 function s:GetKind(proto)
-    if a:proto == ""
+    if a:proto == ''
         return 't'
     endif
     let l:ret = match(a:proto, '^\[#')
@@ -202,10 +201,10 @@ function s:DoPeriodicQuickFix()
     endtry
     let l:escaped_tempfile = shellescape(l:tempfile)
 
-    let l:command = g:clang_exec . " -cc1 -fsyntax-only"
-                \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
-                \ . " " . l:escaped_tempfile
-                \ . " " . b:clang_parameters . " " . b:clang_user_options
+    let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+                \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
+                \ . ' ' . l:escaped_tempfile
+                \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
     let l:clang_output = split(system(l:command), "\n")
     call delete(l:tempfile)
@@ -230,7 +229,7 @@ function s:ClangQuickFix(clang_output, tempfname)
         let l:tmp = matchstr(l:line, l:pattern)
         let l:fname = substitute(l:tmp, l:pattern, '\1', '')
         if l:fname == a:tempfname
-            let l:fname = "%"
+            let l:fname = '%'
         endif
         let l:bufnr = bufnr(l:fname, 1)
         let l:lnum = substitute(l:tmp, l:pattern, '\2', '')
@@ -239,29 +238,29 @@ function s:ClangQuickFix(clang_output, tempfname)
         if l:line[l:erridx] == 'e'
             let l:text = l:line[l:erridx + 7:]
             let l:type = 'E'
-            let l:hlgroup = " SpellBad "
+            let l:hlgroup = ' SpellBad '
         else
             let l:text = l:line[l:erridx + 9:]
             let l:type = 'W'
-            let l:hlgroup = " SpellLocal "
+            let l:hlgroup = ' SpellLocal '
         endif
         let l:item = {
-                    \ "bufnr": l:bufnr,
-                    \ "lnum": l:lnum,
-                    \ "col": l:col,
-                    \ "text": l:text,
-                    \ "type": l:type }
+                    \ 'bufnr': l:bufnr,
+                    \ 'lnum': l:lnum,
+                    \ 'col': l:col,
+                    \ 'text': l:text,
+                    \ 'type': l:type }
         let l:list = add(l:list, l:item)
 
-        if g:clang_hl_errors == 0 || l:fname != "%"
+        if g:clang_hl_errors == 0 || l:fname != '%'
             continue
         endif
 
         " Highlighting the ^
         let l:pat = '/\%' . l:lnum . 'l' . '\%' . l:col . 'c./'
-        exe "syntax match" . l:hlgroup . l:pat
+        exe 'syntax match' . l:hlgroup . l:pat
 
-        if l:errors == ""
+        if l:errors == ''
             continue
         endif
         let l:ranges = split(l:errors, '}')
@@ -277,28 +276,28 @@ function s:ClangQuickFix(clang_output, tempfname)
                         \ . '\%' . l:startcol . 'c'
                         \ . '.*'
                         \ . '\%' . l:endcol . 'c/'
-            exe "syntax match" . l:hlgroup . l:pat
+            exe 'syntax match' . l:hlgroup . l:pat
         endfor
     endfor
     call setqflist(l:list)
     doautocmd QuickFixCmdPost make
     if g:clang_complete_copen == 1
         " We should get back to the original buffer
-        let l:bufnr = bufnr("%")
+        let l:bufnr = bufnr('%')
         cwindow
         let l:winbufnr = bufwinnr(l:bufnr)
-        exe l:winbufnr . "wincmd w"
+        exe l:winbufnr . 'wincmd w'
     endif
 endfunction
 
 function s:DemangleProto(prototype)
-    let l:proto = substitute(a:prototype, '[#', "", "g")
-    let l:proto = substitute(l:proto, '#]', ' ', "g")
-    let l:proto = substitute(l:proto, '#>', "", "g")
-    let l:proto = substitute(l:proto, '<#', "", "g")
+    let l:proto = substitute(a:prototype, '[#', '', 'g')
+    let l:proto = substitute(l:proto, '#]', ' ', 'g')
+    let l:proto = substitute(l:proto, '#>', '', 'g')
+    let l:proto = substitute(l:proto, '<#', '', 'g')
     " TODO: add a candidate for each optional parameter
-    let l:proto = substitute(l:proto, '{#', "", "g")
-    let l:proto = substitute(l:proto, '#}', "", "g")
+    let l:proto = substitute(l:proto, '{#', '', 'g')
+    let l:proto = substitute(l:proto, '#}', '', 'g')
 
     return l:proto
 endfunction
@@ -340,11 +339,11 @@ function ClangComplete(findstart, base)
         endtry
         let l:escaped_tempfile = shellescape(l:tempfile)
 
-        let l:command = g:clang_exec . " -cc1 -fsyntax-only"
-                    \ . " -fno-caret-diagnostics -fdiagnostics-print-source-range-info"
-                    \ . " -code-completion-at=" . l:escaped_tempfile . ":"
-                    \ . line('.') . ":" . b:col . " " . l:escaped_tempfile
-                    \ . " " . b:clang_parameters . " " . b:clang_user_options
+        let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+                    \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
+                    \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
+                    \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
+                    \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
         let l:clang_output = split(system(l:command), "\n")
         call delete(l:tempfile)
 
@@ -373,7 +372,7 @@ function ClangComplete(findstart, base)
                     continue
                 endif
 
-                let l:colonidx = stridx(l:value, " : ")
+                let l:colonidx = stridx(l:value, ' : ')
                 if l:colonidx == -1
                     let l:wabbr = s:DemangleProto(l:value)
                     let l:word = l:value
@@ -394,7 +393,7 @@ function ClangComplete(findstart, base)
                 endif
 
                 if g:clang_snippets == 1
-                    let l:word = substitute(l:proto, '\[#[^#]*#\]', "", "g")
+                    let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
                 else
                     let l:word = l:wabbr
                 endif
@@ -408,23 +407,23 @@ function ClangComplete(findstart, base)
                     continue
                 endif
                 " TODO: handle optionnal parameters correctly.
-                let l:word = substitute(l:value, '.*<#', '<#', "g")
-                let l:word = substitute(l:word, '#>.*', '#>', "g")
-                let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', "g")
+                let l:word = substitute(l:value, '.*<#', '<#', 'g')
+                let l:word = substitute(l:word, '#>.*', '#>', 'g')
+                let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
                 let l:proto = s:DemangleProto(l:value)
-                let l:kind = ""
+                let l:kind = ''
 
             else
                 continue
             endif
 
             let l:item = {
-                        \ "word": l:word,
-                        \ "abbr": l:wabbr,
-                        \ "menu": l:proto,
-                        \ "info": l:proto,
-                        \ "dup": 1,
-                        \ "kind": l:kind }
+                        \ 'word': l:word,
+                        \ 'abbr': l:wabbr,
+                        \ 'menu': l:proto,
+                        \ 'info': l:proto,
+                        \ 'dup': 1,
+                        \ 'kind': l:kind }
 
             call add(l:res, l:item)
         endfor
@@ -438,10 +437,10 @@ function ClangComplete(findstart, base)
 endfunction
 
 function ShouldComplete()
-    if (getline(".") =~ '#\s*\(include\|import\)')
+    if (getline('.') =~ '#\s*\(include\|import\)')
         return 0
     else
-        return match(synIDattr(synID(line("."), col(".") - 1, 1), "name"),
+        return match(synIDattr(synID(line('.'), col('.') - 1, 1), 'name'),
                     \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber') == -1
 endfunction
 
@@ -449,7 +448,7 @@ function LaunchCompletion()
     if ShouldComplete()
         return "\<C-X>\<C-U>"
     else
-        return ""
+        return ''
     endif
 endfunction
 
@@ -472,10 +471,10 @@ function CompleteColon()
 endfunction
 
 function UpdateSnips()
-    let l:line = getline(".")
+    let l:line = getline('.')
     let l:pattern = '<#[^#]*#>'
     if match(l:line, l:pattern) == -1
-        return ""
+        return ''
     endif
     " Is it possible to use f/t/F/T on multiple chars?
     "return "\<esc>f<va>\<C-G>"
@@ -484,24 +483,24 @@ endfunction
 
 function BeginSnips()
     if pumvisible() != 0
-        return ""
+        return ''
     endif
     augroup ClangComplete
         au! CursorMovedI <buffer>
     augroup end
 
     " Do we need to launch UpdateSnippets()?
-    let l:line = getline(".")
+    let l:line = getline('.')
     let l:pattern = '<#[^#]*#>'
     if match(l:line, l:pattern) == -1
-        return ""
+        return ''
     endif
     call feedkeys("\<esc>^\<tab>")
-    return ""
+    return ''
 endfunction
 
 " May be used in a mapping to update the quickfix window.
 function g:ClangUpdateQuickFix()
     call s:DoPeriodicQuickFix()
-    return ""
+    return ''
 endfunction
