@@ -295,9 +295,7 @@ function s:DemangleProto(prototype)
     let l:proto = substitute(l:proto, '#]', ' ', 'g')
     let l:proto = substitute(l:proto, '#>', '', 'g')
     let l:proto = substitute(l:proto, '<#', '', 'g')
-    " TODO: add a candidate for each optional parameter
-    let l:proto = substitute(l:proto, '{#', '', 'g')
-    let l:proto = substitute(l:proto, '#}', '', 'g')
+    let l:proto = substitute(l:proto, '{#.*#}', '', 'g')
 
     return l:proto
 endfunction
@@ -356,8 +354,13 @@ function ClangComplete(findstart, base)
         endif
 
         let l:res = []
-        for l:line in l:clang_output
+        "for l:line in l:clang_output
+        while !empty(l:clang_output)
+            let l:line = l:clang_output[0]
+            let l:clang_output = l:clang_output[1:]
+
             if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
+
                 let l:value = l:line[12:]
 
                 if l:value =~ 'Pattern'
@@ -394,6 +397,11 @@ function ClangComplete(findstart, base)
 
                 if g:clang_snippets == 1
                     let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
+                    if l:word =~ '{#.*#}'
+                        let l:next_line = substitute(l:line, '{#\(.*\)#}', '\1', '')
+                        let l:clang_output = [l:next_line] + l:clang_output
+                        let l:word = substitute(l:word, '{#.*#}', '', 'g')
+                    endif
                 else
                     let l:word = l:wabbr
                 endif
@@ -406,13 +414,11 @@ function ClangComplete(findstart, base)
                 if match(l:value, '<#') == -1
                     continue
                 endif
-                " TODO: handle optionnal parameters correctly.
                 let l:word = substitute(l:value, '.*<#', '<#', 'g')
                 let l:word = substitute(l:word, '#>.*', '#>', 'g')
                 let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
                 let l:proto = s:DemangleProto(l:value)
                 let l:kind = ''
-
             else
                 continue
             endif
@@ -426,7 +432,7 @@ function ClangComplete(findstart, base)
                         \ 'kind': l:kind }
 
             call add(l:res, l:item)
-        endfor
+        endwhile
         if g:clang_snippets == 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
@@ -442,7 +448,7 @@ function ShouldComplete()
     else
         return match(synIDattr(synID(line('.'), col('.') - 1, 0), 'name'),
                     \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber\|cFormat')
-                        == -1
+                    \ == -1
 endfunction
 
 function LaunchCompletion()
