@@ -433,7 +433,7 @@ function ClangComplete(findstart, base)
 
             call add(l:res, l:item)
         endwhile
-        if g:clang_snippets == 1
+        if g:clang_snippets != 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
             augroup end
@@ -483,9 +483,8 @@ function UpdateSnips()
     if match(l:line, l:pattern) == -1
         return ''
     endif
-    " Is it possible to use f/t/F/T on multiple chars?
-    "return "\<esc>f<va>\<C-G>"
-    return "\<esc>/<#\<CR>v/#>\<CR>l\<C-G>"
+    let l:linenb = line('.')
+    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
 endfunction
 
 function BeginSnips()
