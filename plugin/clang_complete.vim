@@ -433,7 +433,7 @@ function ClangComplete(findstart, base)
 
             call add(l:res, l:item)
         endwhile
-        if g:clang_snippets != 1
+        if g:clang_snippets == 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
             augroup end
