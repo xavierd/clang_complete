@@ -97,13 +97,13 @@ def getCurrentTranslationUnit():
 		tu = translationUnits[vim.current.buffer.name]
 		tu.reparse([currentFile])
 		elapsed = (time.time() - start)
-		print "Reparsing" + str(elapsed)
+		print "LibClang - Reparsing: " + str(elapsed)
 	else:
 		start = time.time()
 		tu = index.parse(vim.current.buffer.name, args, [currentFile])
 		translationUnits[vim.current.buffer.name] = tu
 		elapsed = (time.time() - start)
-		print "First parse" + str(elapsed)
+		print "LibClang - First parse: " + str(elapsed)
 	return translationUnits[vim.current.buffer.name]
 
 def getDiagnosticStrings(translationUnit):
