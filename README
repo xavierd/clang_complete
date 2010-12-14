@@ -55,6 +55,8 @@ Configuration:
   	be in your python pass or you need to set
   	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
   	Default : 0
+	A patch to the llvm python bindings is also need:
+	http://lists.cs.uiuc.edu/pipermail/cfe-commits/Week-of-Mon-20101213/037284.html
     !!! This is still in development and will probably not work.
 
 Thanks to:
