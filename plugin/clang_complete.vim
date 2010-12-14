@@ -106,6 +106,27 @@ def getCurrentTranslationUnit():
 		print "LibClang - First parse: " + str(elapsed)
 	return translationUnits[vim.current.buffer.name]
 
+def getQuickFix(diagnostic):
+	filename = diagnostic.location.file.name
+	if diagnostic.severity == diagnostic.Warning:
+		type = 'W'
+	elif diagnostic.severity == diagnostic.Error:
+		type = 'E'
+	else:
+		return None
+
+				   # TODO: Get the correct buffer number.
+	return dict({ 'bufnr' : 1, #vim.eval("bufnr(" + filename + ", 1)"),
+		    'lnum' : diagnostic.location.line,
+		    'col' : diagnostic.location.column,
+		    'text' : diagnostic.spelling,
+		    'type' : type})
+
+def updateQuickFixList(tu):
+	quickFixList = filter (None, map (getQuickFix, tu.diagnostics))
+	vim.command('call setqflist(%s)' %repr(quickFixList)) 
+	vim.command('doautocmd QuickFixCmdPost make')
+
 def getDiagnosticStrings(translationUnit):
 	diagnosticString = ""
 	for diagnostic in translationUnit.diagnostics:
@@ -117,6 +138,7 @@ def getDiagnosticStrings(translationUnit):
 
 def getCurrentDiagnostics():
 	tu = getCurrentTranslationUnit()
+	updateQuickFixList(tu)
 	return getDiagnosticStrings(tu)
 	
 EOF
@@ -359,8 +381,10 @@ function s:ClangQuickFix(clang_output, tempfname)
             exe 'syntax match' . l:hlgroup . l:pat
         endfor
     endfor
-    call setqflist(l:list)
-    doautocmd QuickFixCmdPost make
+    if g:clang_use_library == 0
+        call setqflist(l:list)
+        doautocmd QuickFixCmdPost make
+    endif
     if g:clang_complete_copen == 1
         " We should get back to the original buffer
         let l:bufnr = bufnr('%')
