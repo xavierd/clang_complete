@@ -208,13 +208,11 @@ endfunction
 
 function s:CallLibClangForDiagnostics(tempfile)
     let l:escaped_tempfile = shellescape(a:tempfile)
-    let l:command = ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
-                \ . ' ' . a:tempfile
-                \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
+    let l:command = a:tempfile . ' ' . g:clang_user_options
 
 python << EOF
 index = Index.create()
-commandLine = [vim.eval("a:tempfile")]
+commandLine = vim.eval("l:command").split(" ")
 args = commandLine
 tu = index.parse(None, args)
 
