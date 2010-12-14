@@ -248,13 +248,19 @@ function s:GetKind(proto)
     return 'm'
 endfunction
 
-function s:CallLibClangForDiagnostics(tempfile)
+function s:CallLibClangForDiagnostics()
     python vim.command('let l:out = "' + getCurrentDiagnostics() + '"') 
     return split(l:out, "\n")
 endfunction
 
 function s:CallClangBinaryForDiagnostics(tempfile)
     let l:escaped_tempfile = shellescape(a:tempfile)
+    let l:buf = getline(1, '$')
+    try
+        call writefile(l:buf, a:tempfile)
+    catch /^Vim\%((\a\+)\)\=:E482/
+        return
+    endtry
 
     let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
                 \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
@@ -262,12 +268,13 @@ function s:CallClangBinaryForDiagnostics(tempfile)
                 \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
     let l:clang_output = split(system(l:command), "\n")
+    call delete(a:tempfile)
     return l:clang_output
 endfunction
 
 function s:CallClangForDiagnostics(tempfile)
     if g:clang_use_library == 1
-	return s:CallLibClangForDiagnostics(a:tempfile)
+	return s:CallLibClangForDiagnostics()
     else
 	return s:CallClangBinaryForDiagnostics(a:tempfile)
     endif
@@ -279,16 +286,8 @@ function s:DoPeriodicQuickFix()
         return
     endif
     let b:my_changedtick = b:changedtick
-    let l:buf = getline(1, '$')
     let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
-    try
-        call writefile(l:buf, l:tempfile)
-    catch /^Vim\%((\a\+)\)\=:E482/
-        return
-    endtry
     let l:clang_output = s:CallClangForDiagnostics(l:tempfile)
-    call delete(l:tempfile)
-
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
