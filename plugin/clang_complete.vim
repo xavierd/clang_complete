@@ -182,8 +182,10 @@ function s:ClangCompleteInit()
     " Load the python bindings of libclang
     if g:clang_use_library == 1
 python << EOF
-from cindex import *
+from clang.cindex import *
 import vim
+index = Index.create()
+translationUnits = dict()
 EOF
     endif
 endfunction
@@ -208,23 +210,38 @@ endfunction
 
 function s:CallLibClangForDiagnostics(tempfile)
     let l:escaped_tempfile = shellescape(a:tempfile)
-    let l:command = a:tempfile . ' ' . g:clang_user_options
+    let l:command = g:clang_user_options
 
 python << EOF
-index = Index.create()
 commandLine = vim.eval("l:command").split(" ")
 args = commandLine
-tu = index.parse(None, args)
+import time
+start = time.time()
+file = "\n".join(vim.eval("getline(1, '$')"))
+currentFile = (vim.current.buffer.name, file)
 
-if not tu:
-    print "ERROR"
+if vim.current.buffer.name in translationUnits:
+	start = time.time()
+	tu = translationUnits[vim.current.buffer.name]
+	tu.reparse([currentFile])
+	elapsed = (time.time() - start)
+	print "Reparsing" + str(elapsed)
+else:
+	start = time.time()
+	tu = index.parse(vim.current.buffer.name, args, [currentFile])
+	translationUnits[vim.current.buffer.name] = tu
+	elapsed = (time.time() - start)
+	print "First parse" + str(elapsed)
+
+tu = translationUnits[vim.current.buffer.name]
+
 diagnosticString = ""
 for diagnostic in tu.diagnostics:
 	diagnosticString += diagnostic.location.file.name + ":" + str(diagnostic.location.line) \
 	+ ":" + str(diagnostic.location.column) + ": warning: " + diagnostic.spelling + "\n"
-vim.command('let g:asoutput = "' + diagnosticString + '"') 
+vim.command('let l:asoutput = "' + diagnosticString + '"') 
 EOF
-    return split(g:asoutput, "\n")
+    return split(l:asoutput, "\n")
 endfunction
 
 function s:CallClangBinaryForDiagnostics(tempfile)
