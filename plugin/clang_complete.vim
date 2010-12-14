@@ -55,6 +55,11 @@
 "       Default: ''
 "       Example: '|| exit 0' (it will discard clang return value)
 "
+"  - g:clang_use_library:
+"  	Instead of calling the clang/clang++ tool use libclang directly. This
+"  	should improve the performance, but is still experimental.
+"  	Default : 0
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
@@ -117,6 +122,10 @@ function s:ClangCompleteInit()
 
     if !exists('g:clang_user_options')
         let g:clang_user_options = ''
+    endif
+
+    if !exists('g:clang_use_library')
+        let g:clang_use_library = 1
     endif
 
     if g:clang_complete_auto == 1
