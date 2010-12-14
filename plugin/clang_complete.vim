@@ -201,21 +201,12 @@ function s:GetKind(proto)
     return 'm'
 endfunction
 
-function s:DoPeriodicQuickFix()
-    " Don't do any superfluous reparsing.
-    if b:my_changedtick == b:changedtick
-        return
-    endif
-    let b:my_changedtick = b:changedtick
+function s:CallLibClangForDiagnostics(tempfile)
+    return s:CallClangBinaryForDiagnostics(a:tempfile)
+endfunction
 
-    let l:buf = getline(1, '$')
-    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
-    try
-        call writefile(l:buf, l:tempfile)
-    catch /^Vim\%((\a\+)\)\=:E482/
-        return
-    endtry
-    let l:escaped_tempfile = shellescape(l:tempfile)
+function s:CallClangBinaryForDiagnostics(tempfile)
+    let l:escaped_tempfile = shellescape(a:tempfile)
 
     let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
                 \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
@@ -223,7 +214,33 @@ function s:DoPeriodicQuickFix()
                 \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
     let l:clang_output = split(system(l:command), "\n")
+    return l:clang_output
+endfunction
+
+function s:CallClangForDiagnostics(tempfile)
+    if g:clang_use_library == 1
+	return s:CallLibClangForDiagnostics(a:tempfile)
+    else
+	return s:CallClangBinaryForDiagnostics(a:tempfile)
+    endif
+endfunction
+
+function s:DoPeriodicQuickFix()
+    " Don't do any superfluous reparsing.
+    if b:my_changedtick == b:changedtick
+        return
+    endif
+    let b:my_changedtick = b:changedtick
+    let l:buf = getline(1, '$')
+    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+    try
+        call writefile(l:buf, l:tempfile)
+    catch /^Vim\%((\a\+)\)\=:E482/
+        return
+    endtry
+    let l:clang_output = s:CallClangForDiagnostics(l:tempfile)
     call delete(l:tempfile)
+
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
