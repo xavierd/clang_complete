@@ -213,11 +213,13 @@ index = Index.create()
 commandLine = [vim.eval("a:tempfile")]
 args = commandLine
 tu = index.parse(None, args)
-print args
-print tu
 
 if not tu:
     print "ERROR"
+
+for diagnostic in tu.diagnostics:
+	print diagnostic
+
 EOF
 
     return s:CallClangBinaryForDiagnostics(a:tempfile)
