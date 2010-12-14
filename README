@@ -55,6 +55,7 @@ Configuration:
   	be in your python pass or you need to set
   	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
   	Default : 0
+    !!! This is still in development and will probably not work.
 
 Thanks to:
     Xaizek
