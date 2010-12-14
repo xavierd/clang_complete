@@ -179,6 +179,7 @@ function s:ClangCompleteInit()
     if g:clang_use_library == 1
 python << EOF
 from cindex import *
+import vim
 EOF
     endif
 endfunction
@@ -202,6 +203,23 @@ function s:GetKind(proto)
 endfunction
 
 function s:CallLibClangForDiagnostics(tempfile)
+    let l:escaped_tempfile = shellescape(a:tempfile)
+    let l:command = ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
+                \ . ' ' . a:tempfile
+                \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
+
+python << EOF
+index = Index.create()
+commandLine = [vim.eval("a:tempfile")]
+args = commandLine
+tu = index.parse(None, args)
+print args
+print tu
+
+if not tu:
+    print "ERROR"
+EOF
+
     return s:CallClangBinaryForDiagnostics(a:tempfile)
 endfunction
 
