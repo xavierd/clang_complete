@@ -50,8 +50,8 @@ Configuration:
     - g:clang_use_library:
 	Instead of calling the clang/clang++ tool use libclang directly. This
 	gives access to many more clang features. Furthermore it automatically
-	caches all includes in memory. Changes in the same file will therefore
-	be a lot faster to implement.
+	caches all includes in memory. Updates after changes in the same file
+	will therefore be lot faster.
   	Default : 0
 
 Thanks to:
