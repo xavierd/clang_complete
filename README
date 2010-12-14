@@ -48,18 +48,11 @@ Configuration:
         Example: '|| exit 0' (it will discard clang return value)
 
     - g:clang_use_library:
-  	Instead of calling the clang/clang++ tool use libclang directly. This
-  	should improve the performance, but is still experimental.
-  	To use this libclang.so has to be in your library path or you need to
-  	set LD_LIBRARY_PATH=/path/to/llvm/install/lib and cindex.py needs to
-  	be in your python pass or you need to set
-  	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
+	Instead of calling the clang/clang++ tool use libclang directly. This
+	gives access to many more clang features. Furthermore it automatically
+	caches all includes in memory. Changes in the same file will therefore
+	be a lot faster to implement.
   	Default : 0
-	* A patch to the llvm python bindings is also need:
-	http://lists.cs.uiuc.edu/pipermail/cfe-commits/Week-of-Mon-20101213/037284.html
-	* This currently just works for quickfix
-	
-    !!! This is still in development and will probably not work.
 
 Thanks to:
     Xaizek
@@ -75,6 +68,15 @@ Note:
  - You're free to use it, to distribute it, but please, don't modify it
  privately, others can be interested by your work. If you have a patch
  or a bug or a feature request, mail me.
+
+libclang:
+To use g:clang_use_library libclang.so has to be in your library path or you
+need to set LD_LIBRARY_PATH=/path/to/llvm/install/lib . Furthermore cindex.py
+needs to be in your python path or you need to set
+PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
+
+Currently a patch to the clang python bindings is still needed.
+http://lists.cs.uiuc.edu/pipermail/cfe-commits/Week-of-Mon-20101213/037284.html
 
 PCH:
 A PreCompiled Header file is a way to accelerate compilation, and so,
@@ -101,3 +103,5 @@ Known Issues:
  - There is no difference in clang's output between private
  methods/members and public ones. Which means that I cannot filter
  private methods on the completion list.
+
+ - g:clang_use_library works currently only for quickfixes.
