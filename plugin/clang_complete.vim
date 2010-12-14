@@ -174,6 +174,13 @@ function s:ClangCompleteInit()
             au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
         augroup end
     endif
+
+    " Load the python bindings of libclang
+    if g:clang_use_library == 1
+python << EOF
+from cindex import *
+EOF
+    endif
 endfunction
 
 function s:GetKind(proto)
