@@ -58,6 +58,10 @@
 "  - g:clang_use_library:
 "  	Instead of calling the clang/clang++ tool use libclang directly. This
 "  	should improve the performance, but is still experimental.
+"  	To use this libclang.so has to be in your library path or you need to
+"  	set LD_LIBRARY_PATH=/path/to/llvm/install/lib and cindex.py needs to
+"  	be in your python pass or you need to set
+"  	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
 "  	Default : 0
 "
 " Todo: - Fix bugs
