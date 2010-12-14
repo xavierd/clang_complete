@@ -220,13 +220,13 @@ tu = index.parse(None, args)
 
 if not tu:
     print "ERROR"
-
+diagnosticString = ""
 for diagnostic in tu.diagnostics:
-	print diagnostic
-
+	diagnosticString += diagnostic.location.file.name + ":" + str(diagnostic.location.line) \
+	+ ":" + str(diagnostic.location.column) + ": warning: " + diagnostic.spelling + "\n"
+vim.command('let g:asoutput = "' + diagnosticString + '"') 
 EOF
-
-    return s:CallClangBinaryForDiagnostics(a:tempfile)
+    return split(g:asoutput, "\n")
 endfunction
 
 function s:CallClangBinaryForDiagnostics(tempfile)
