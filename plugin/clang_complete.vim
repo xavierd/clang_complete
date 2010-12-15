@@ -128,7 +128,7 @@ def updateQuickFixList(tu):
 	#vim.command('doautocmd QuickFixCmdPost make')
 
 def highlightRange(range, hlGroup):
-	pattern = '/\%' + str(range.start.line) + 'l' + '\%' + str(range.start.column) + 'c' + '+*' \
+	pattern = '/\%' + str(range.start.line) + 'l' + '\%' + str(range.start.column) + 'c' + '.*' \
                   + '\%' + str(range.end.column) + 'c/'
 	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
 	vim.command(command)
@@ -146,10 +146,13 @@ def highlightDiagnostic(diagnostic):
 	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
 	vim.command(command)
 
-	# This still hangs libclang
-	return
-	for range in diagnostic.ranges:
-		highlightRange(range, hlGroup)
+	# Use this wired kind of iterator as the python clang libraries
+        # have a bug in the range iterator that stops us to use:
+        #
+        # | for range in diagnostic.ranges
+        #
+	for i in range(len(diagnostic.ranges)):
+		highlightRange(diagnostic.ranges[i], hlGroup)
 
 def highlightDiagnostics(tu):
 	map (highlightDiagnostic, tu.diagnostics)
