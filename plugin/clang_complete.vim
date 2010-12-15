@@ -484,7 +484,11 @@ function UpdateSnips()
         return ''
     endif
     let l:linenb = line('.')
-    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
+    if &selection == "exclusive"
+        return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>ll\<C-G>"
+    else
+        return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
+    endif
 endfunction
 
 function BeginSnips()
