@@ -127,6 +127,34 @@ def updateQuickFixList(tu):
 	vim.command('call setqflist(%s)' %repr(quickFixList)) 
 	vim.command('doautocmd QuickFixCmdPost make')
 
+def highlightRange(range, hlGroup):
+	pattern = '/\%' + str(range.start.line) + 'l' + '\%' + str(range.start.column) + 'c' + '+*' \
+                  + '\%' + str(range.end.column) + 'c/'
+	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
+	vim.command(command)
+
+def highlightDiagnostic(diagnostic):
+	if diagnostic.severity == diagnostic.Warning:
+		hlGroup = 'SpellLocal'
+	elif diagnostic.severity == diagnostic.Error:
+		hlGroup = 'SpellBad'
+	else:
+	 	return
+
+        pattern = '/\%' + str(diagnostic.location.line) + 'l\%' \
+		  + str(diagnostic.location.column) + 'c./'
+	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
+	vim.command(command)
+
+	# This still hangs libclang
+	return
+	for range in diagnostic.ranges:
+		highlightRange(range, hlGroup)
+
+def highlightDiagnostics(tu):
+	map (highlightDiagnostic, tu.diagnostics)
+
+
 def getDiagnosticStrings(translationUnit):
 	diagnosticString = ""
 	for diagnostic in translationUnit.diagnostics:
@@ -139,6 +167,7 @@ def getDiagnosticStrings(translationUnit):
 def getCurrentDiagnostics():
 	tu = getCurrentTranslationUnit()
 	updateQuickFixList(tu)
+	highlightDiagnostics(tu)
 	return getDiagnosticStrings(tu)
 	
 EOF
