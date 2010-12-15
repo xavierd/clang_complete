@@ -125,7 +125,7 @@ def getQuickFix(diagnostic):
 def updateQuickFixList(tu):
 	quickFixList = filter (None, map (getQuickFix, tu.diagnostics))
 	vim.command('call setqflist(%s)' %repr(quickFixList)) 
-	vim.command('doautocmd QuickFixCmdPost make')
+	#vim.command('doautocmd QuickFixCmdPost make')
 
 def highlightRange(range, hlGroup):
 	pattern = '/\%' + str(range.start.line) + 'l' + '\%' + str(range.start.column) + 'c' + '+*' \
@@ -154,21 +154,14 @@ def highlightDiagnostic(diagnostic):
 def highlightDiagnostics(tu):
 	map (highlightDiagnostic, tu.diagnostics)
 
+def highlightCurrentDiagnostics():
+	highlightDiagnostics(translationUnits[vim.current.buffer.name])
 
-def getDiagnosticStrings(translationUnit):
-	diagnosticString = ""
-	for diagnostic in translationUnit.diagnostics:
-		diagnosticString += diagnostic.location.file.name + ":" \
-		+ str(diagnostic.location.line) + ":" \
-		+ str(diagnostic.location.column) + ": warning: " \
-		+ diagnostic.spelling + "\n"
-	return diagnosticString
+def updateCurrentQuickFixList():
+	updateQuickFixList(translationUnits[vim.current.buffer.name])
 
-def getCurrentDiagnostics():
-	tu = getCurrentTranslationUnit()
-	updateQuickFixList(tu)
-	highlightDiagnostics(tu)
-	return getDiagnosticStrings(tu)
+def updateCurrentDiagnostics():
+	getCurrentTranslationUnit()
 	
 EOF
 
@@ -299,11 +292,6 @@ function s:GetKind(proto)
     return 'm'
 endfunction
 
-function s:CallLibClangForDiagnostics()
-    python vim.command('let l:out = "' + getCurrentDiagnostics() + '"') 
-    return split(l:out, "\n")
-endfunction
-
 function s:CallClangBinaryForDiagnostics(tempfile)
     let l:escaped_tempfile = shellescape(a:tempfile)
     let l:buf = getline(1, '$')
@@ -325,7 +313,7 @@ endfunction
 
 function s:CallClangForDiagnostics(tempfile)
     if g:clang_use_library == 1
-	return s:CallLibClangForDiagnostics()
+	python updateCurrentDiagnostics()
     else
 	return s:CallClangBinaryForDiagnostics(a:tempfile)
     endif
@@ -336,9 +324,13 @@ function s:DoPeriodicQuickFix()
     if b:my_changedtick == b:changedtick
         return
     endif
+
+    " Create tempfile name for clang/clang++ executable mode
     let b:my_changedtick = b:changedtick
     let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+
     let l:clang_output = s:CallClangForDiagnostics(l:tempfile)
+
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
@@ -346,6 +338,24 @@ function s:ClangQuickFix(clang_output, tempfname)
     " Clear the bad spell, the user may have corrected them.
     syntax clear SpellBad
     syntax clear SpellLocal
+
+    if g:clang_use_library == 0
+	s:ClangUpdateQuickFix(clang_output, tempfname)
+    else
+    	python updateCurrentQuickFixList()
+    	python highlightCurrentDiagnostics()
+    endif
+
+    if g:clang_complete_copen == 1
+        " We should get back to the original buffer
+        let l:bufnr = bufnr('%')
+        cwindow
+        let l:winbufnr = bufwinnr(l:bufnr)
+        exe l:winbufnr . 'wincmd w'
+    endif
+endfunction
+
+function s:ClangUpdateQuickFix(clang_output, tempfname)
     let l:list = []
     for l:line in a:clang_output
         let l:erridx = match(l:line, '\%(error\|warning\): ')
@@ -410,17 +420,8 @@ function s:ClangQuickFix(clang_output, tempfname)
             exe 'syntax match' . l:hlgroup . l:pat
         endfor
     endfor
-    if g:clang_use_library == 0
-        call setqflist(l:list)
-        doautocmd QuickFixCmdPost make
-    endif
-    if g:clang_complete_copen == 1
-        " We should get back to the original buffer
-        let l:bufnr = bufnr('%')
-        cwindow
-        let l:winbufnr = bufwinnr(l:bufnr)
-        exe l:winbufnr . 'wincmd w'
-    endif
+    call setqflist(l:list)
+    doautocmd QuickFixCmdPost make
 endfunction
 
 function s:DemangleProto(prototype)
