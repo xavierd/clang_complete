@@ -447,7 +447,7 @@ function ShouldComplete()
         return 0
     else
         return match(synIDattr(synID(line('.'), col('.') - 1, 0), 'name'),
-                    \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber\|cFormat')
+                    \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber\|cFormat\|doxygen')
                     \ == -1
 endfunction
 
