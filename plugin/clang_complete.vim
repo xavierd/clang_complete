@@ -165,7 +165,20 @@ def updateCurrentQuickFixList():
 
 def updateCurrentDiagnostics():
 	getCurrentTranslationUnit()
-	
+
+def completeCurrentAt(line, column):
+	if vim.current.buffer.name in translationUnits:
+		tu = translationUnits[vim.current.buffer.name]
+	else:
+		tu = getCurrentTranslationUnit()
+	file = "\n".join(vim.eval("getline(1, '$')"))
+	currentFile = (vim.current.buffer.name, file)
+	start = time.time()
+	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - Code completion time: " + str(elapsed)
+	print "\n".join(map(str, cr.results))
+
 EOF
 
 function s:ClangCompleteInit()
