@@ -446,9 +446,15 @@ function ShouldComplete()
     if (getline('.') =~ '#\s*\(include\|import\)')
         return 0
     else
-        return match(synIDattr(synID(line('.'), col('.') - 1, 0), 'name'),
-                    \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber\|cFormat\|doxygen')
-                    \ == -1
+        for l:id in synstack(line('.'), col('.') - 1)
+            if match(synIDattr(l:id, 'name'),
+                        \ '\C\<cComment\|<cString\|\<cNumber')
+                        \ != -1
+                return 0
+            endif
+        endfor
+        return 1
+    endif
 endfunction
 
 function LaunchCompletion()
