@@ -120,7 +120,11 @@ function! s:ClangCompleteInit()
     endif
 
     if !exists('g:clang_use_snipmate')
-        let g:clang_use_snipmate = exists(g:snippets_dir)
+        if g:clang_snippets == 1
+            let g:clang_use_snipmate = 0
+        else
+            let g:clang_use_snipmate = exists(g:snippets_dir)
+        endif
     endif
 
     if g:clang_complete_auto == 1
