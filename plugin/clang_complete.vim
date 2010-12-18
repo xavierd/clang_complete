@@ -119,8 +119,8 @@ function! s:ClangCompleteInit()
         let g:clang_user_options = ''
     endif
 
-    if !exists('g:clang_snipmate')
-        let g:clang_snipmate = exists(g:snippets_dir)
+    if !exists('g:clang_use_snipmate')
+        let g:clang_use_snipmate = exists(g:snippets_dir)
     endif
 
     if g:clang_complete_auto == 1
@@ -304,9 +304,9 @@ function! s:DemangleProto(prototype)
     return l:proto
 endfunction
 
-function! s:CreateSnipmateSnippet(word, proto)
+function! s:CreateSnipmateSnippet(trigger, proto)
     " Parse proto
-    let l:matches = matchlist(a:proto, '\v^.*' . a:word . '([(<])(.+)([)>])')
+    let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.+)([)>])')
     if empty(l:matches) | return | endif
 
     " Get parameters
@@ -316,7 +316,7 @@ function! s:CreateSnipmateSnippet(word, proto)
 
     " Construct snippet
     let l:tmp = 1
-    let l:snippet = a:word . l:delim_start
+    let l:snippet = a:trigger . l:delim_start
     for param in l:params
         let l:snippet .= '${' . l:tmp . ':' . param . '}'
         if l:tmp != len(l:params)
@@ -336,25 +336,16 @@ function! s:CreateSnipmateSnippet(word, proto)
     return l:snippet
 endfunction
 
-function! StartSnipmate()
-    if pumvisible() != 0
-        return
-    endif
+function! TriggerSnipmate()
     augroup ClangComplete
         au! CursorMovedI <buffer>
     augroup end
 
-    " There's probably a better way to do this.
-
-    " Get snippet trigger into register y and snippet number into register z
-    call feedkeys("\<Esc>2b\"yywwx\"zdl", 't')
-
-    " Check if there are overloads for that trigger
-    call feedkeys(":if SnippetsCount('cpp', '\<C-R>y') == 1\<CR>")
-    call feedkeys("call feedkeys(\"a\\<Tab>\")\<CR>")
-    call feedkeys("else\<CR>")
-    call feedkeys("call feedkeys(\"a\\<Tab>\<C-R>z\\<CR>\", 't')\<CR>")
-    call feedkeys("endif\<CR>")
+    if pumvisible() != 0
+        return
+    endif
+    
+    call feedkeys("\<Tab>")
 endfunction
 
 let b:col = 0
@@ -410,7 +401,7 @@ function! ClangComplete(findstart, base)
             return {}
         endif
 
-        if g:clang_snipmate == 1
+        if g:clang_use_snipmate == 1
             " Quick & Easy way to prevent snippets to be added twice
             " Ideally we should modify snipmate to be smarter about this
             call ReloadSnippets('cpp')
@@ -486,6 +477,14 @@ function! ClangComplete(findstart, base)
                 continue
             endif
 
+            if g:clang_use_snipmate == 1
+                let l:word = substitute(l:proto, '\v^.*\V' . l:word, l:word, '')
+                let l:word = substitute(l:word, ' ', '_', 'g')
+                let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
+                call MakeSnip('cpp', l:wabbr, l:snippet, l:proto)
+                call MakeSnip('cpp', l:word,  l:snippet, l:proto)
+            endif
+
             let l:item = {
                         \ 'word': l:word,
                         \ 'abbr': l:wabbr,
@@ -494,17 +493,11 @@ function! ClangComplete(findstart, base)
                         \ 'dup': 1,
                         \ 'kind': l:kind }
 
-            if g:clang_snipmate == 1
-                let l:snippet = s:CreateSnipmateSnippet(l:word, l:proto)
-                let l:item['word'] = l:wabbr . '-' . (SnippetsCount('cpp', l:wabbr) + 1)
-                call MakeSnip('cpp', l:wabbr, l:snippet, l:proto)
-            endif
-
             call add(l:res, l:item)
         endwhile
-        if g:clang_snipmate == 1
+        if g:clang_use_snipmate == 1
             augroup ClangComplete
-                au CursorMovedI <buffer> call StartSnipmate()
+                au CursorMovedI <buffer> call TriggerSnipmate()
             augroup end
         endif
         if g:clang_snippets == 1
