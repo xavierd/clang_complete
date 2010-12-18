@@ -478,7 +478,10 @@ function! ClangComplete(findstart, base)
             endif
 
             if g:clang_use_snipmate == 1
+                " Remove return type
                 let l:word = substitute(l:proto, '\v^.*\V' . l:word, l:word, '')
+                " Remove const functions (if any)
+                let l:word = substitute(l:word, '\v\) *const *$', ')', '')
                 let l:word = substitute(l:word, ' ', '_', 'g')
                 let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
                 call MakeSnip('cpp', l:wabbr, l:snippet, l:proto)
