@@ -521,8 +521,7 @@ function! ShouldComplete()
         return 0
     else
         for l:id in synstack(line('.'), col('.') - 1)
-            if match(synIDattr(l:id, 'name'),
-                        \ '\C\<cComment\|<cString\|\<cNumber')
+            if match(synIDattr(l:id, 'name'), '\CComment\|String\|Number')
                         \ != -1
                 return 0
             endif
