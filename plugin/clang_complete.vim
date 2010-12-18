@@ -307,10 +307,10 @@ endfunction
 function! s:CreateSnipmateSnippet(trigger, proto)
     " Remove return type
     let l:proto = substitute(a:proto, '\v^.*\V' . a:trigger, a:trigger, '')
-    
+
     " Try to parse parameters
     let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.*)([)>])')
-    
+
     " Check if it's a type without template params
     if empty(l:matches)
         return l:proto . ' ${1:obj};${2}'
@@ -351,7 +351,7 @@ function! TriggerSnipmate()
     if pumvisible() != 0
         return
     endif
-    
+
     call feedkeys("\<Tab>")
 endfunction
 
