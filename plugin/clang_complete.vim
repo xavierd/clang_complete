@@ -67,7 +67,7 @@ let b:clang_user_options = ''
 let b:my_changedtick = 0
 let b:clang_type_complete = 0
 
-function s:ClangCompleteInit()
+function! s:ClangCompleteInit()
     let l:local_conf = findfile('.clang_complete', '.;')
     let b:clang_user_options = ''
     if l:local_conf != ''
@@ -119,6 +119,10 @@ function s:ClangCompleteInit()
         let g:clang_user_options = ''
     endif
 
+    if !exists('g:clang_snipmate')
+        let g:clang_snipmate = exists(g:snippets_dir)
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -167,7 +171,7 @@ function s:ClangCompleteInit()
     endif
 endfunction
 
-function s:GetKind(proto)
+function! s:GetKind(proto)
     if a:proto == ''
         return 't'
     endif
@@ -185,7 +189,7 @@ function s:GetKind(proto)
     return 'm'
 endfunction
 
-function s:DoPeriodicQuickFix()
+function! s:DoPeriodicQuickFix()
     " Don't do any superfluous reparsing.
     if b:my_changedtick == b:changedtick
         return
@@ -211,7 +215,7 @@ function s:DoPeriodicQuickFix()
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
-function s:ClangQuickFix(clang_output, tempfname)
+function! s:ClangQuickFix(clang_output, tempfname)
     " Clear the bad spell, the user may have corrected them.
     syntax clear SpellBad
     syntax clear SpellLocal
@@ -290,7 +294,7 @@ function s:ClangQuickFix(clang_output, tempfname)
     endif
 endfunction
 
-function s:DemangleProto(prototype)
+function! s:DemangleProto(prototype)
     let l:proto = substitute(a:prototype, '[#', '', 'g')
     let l:proto = substitute(l:proto, '#]', ' ', 'g')
     let l:proto = substitute(l:proto, '#>', '', 'g')
@@ -300,8 +304,61 @@ function s:DemangleProto(prototype)
     return l:proto
 endfunction
 
+function! s:CreateSnipmateSnippet(word, proto)
+    " Parse proto
+    let l:matches = matchlist(a:proto, '\v^.*' . a:word . '([(<])(.+)([)>])')
+    if empty(l:matches) | return | endif
+
+    " Get parameters
+    let l:delim_start = l:matches[1]
+    let l:params = split(l:matches[2], '\v\s*,\s*')
+    let l:delim_end = l:matches[3]
+
+    " Construct snippet
+    let l:tmp = 1
+    let l:snippet = a:word . l:delim_start
+    for param in l:params
+        let l:snippet .= '${' . l:tmp . ':' . param . '}'
+        if l:tmp != len(l:params)
+            let l:snippet .= ', '
+        endif
+        let l:tmp += 1
+    endfor
+    let l:snippet .= l:delim_end
+    if l:delim_start == '('
+        " Function
+        let l:snippet .= '${' . l:tmp . ':;}${' . (l:tmp+1) . '}'
+    else
+        " Template
+        let l:snippet .= ' ${' . l:tmp . ':obj};${' . (l:tmp+1) . '}'
+    endif
+
+    return l:snippet
+endfunction
+
+function! StartSnipmate()
+    if pumvisible() != 0
+        return
+    endif
+    augroup ClangComplete
+        au! CursorMovedI <buffer>
+    augroup end
+
+    " There's probably a better way to do this.
+
+    " Get snippet trigger into register y and snippet number into register z
+    call feedkeys("\<Esc>2b\"yywwx\"zdl", 't')
+
+    " Check if there are overloads for that trigger
+    call feedkeys(":if SnippetsCount('cpp', '\<C-R>y') == 1\<CR>")
+    call feedkeys("call feedkeys(\"a\\<Tab>\")\<CR>")
+    call feedkeys("else\<CR>")
+    call feedkeys("call feedkeys(\"a\\<Tab>\<C-R>z\\<CR>\", 't')\<CR>")
+    call feedkeys("endif\<CR>")
+endfunction
+
 let b:col = 0
-function ClangComplete(findstart, base)
+function! ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
         let l:start = col('.') - 1
@@ -351,6 +408,12 @@ function ClangComplete(findstart, base)
         endif
         if l:clang_output == []
             return {}
+        endif
+
+        if g:clang_snipmate == 1
+            " Quick & Easy way to prevent snippets to be added twice
+            " Ideally we should modify snipmate to be smarter about this
+            call ReloadSnippets('cpp')
         endif
 
         let l:res = []
@@ -431,8 +494,19 @@ function ClangComplete(findstart, base)
                         \ 'dup': 1,
                         \ 'kind': l:kind }
 
+            if g:clang_snipmate == 1
+                let l:snippet = s:CreateSnipmateSnippet(l:word, l:proto)
+                let l:item['word'] = l:wabbr . '-' . (SnippetsCount('cpp', l:wabbr) + 1)
+                call MakeSnip('cpp', l:wabbr, l:snippet, l:proto)
+            endif
+
             call add(l:res, l:item)
         endwhile
+        if g:clang_snipmate == 1
+            augroup ClangComplete
+                au CursorMovedI <buffer> call StartSnipmate()
+            augroup end
+        endif
         if g:clang_snippets == 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
@@ -442,7 +516,7 @@ function ClangComplete(findstart, base)
     endif
 endfunction
 
-function ShouldComplete()
+function! ShouldComplete()
     if (getline('.') =~ '#\s*\(include\|import\)')
         return 0
     else
@@ -457,7 +531,7 @@ function ShouldComplete()
     endif
 endfunction
 
-function LaunchCompletion()
+function! LaunchCompletion()
     if ShouldComplete()
         return "\<C-X>\<C-U>"
     else
@@ -465,25 +539,25 @@ function LaunchCompletion()
     endif
 endfunction
 
-function CompleteDot()
+function! CompleteDot()
     return '.' . LaunchCompletion()
 endfunction
 
-function CompleteArrow()
+function! CompleteArrow()
     if getline('.')[col('.') - 2] != '-'
         return '>'
     endif
     return '>' . LaunchCompletion()
 endfunction
 
-function CompleteColon()
+function! CompleteColon()
     if getline('.')[col('.') - 2] != ':'
         return ':'
     endif
     return ':' . LaunchCompletion()
 endfunction
 
-function UpdateSnips()
+function! UpdateSnips()
     let l:line = getline('.')
     let l:pattern = '<#[^#]*#>'
     if match(l:line, l:pattern) == -1
@@ -497,7 +571,7 @@ function UpdateSnips()
     endif
 endfunction
 
-function BeginSnips()
+function! BeginSnips()
     if pumvisible() != 0
         return ''
     endif
@@ -516,7 +590,7 @@ function BeginSnips()
 endfunction
 
 " May be used in a mapping to update the quickfix window.
-function g:ClangUpdateQuickFix()
+function! g:ClangUpdateQuickFix()
     call s:DoPeriodicQuickFix()
     return ''
 endfunction
