@@ -305,9 +305,16 @@ function! s:DemangleProto(prototype)
 endfunction
 
 function! s:CreateSnipmateSnippet(trigger, proto)
-    " Parse proto
-    let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.+)([)>])')
-    if empty(l:matches) | return | endif
+    " Remove return type
+    let l:proto = substitute(a:proto, '\v^.*\V' . a:trigger, a:trigger, '')
+    
+    " Try to parse parameters
+    let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.*)([)>])')
+    
+    " Check if it's a type without template params
+    if empty(l:matches)
+        return l:proto . ' ${1:obj};${2}'
+    endif
 
     " Get parameters
     let l:delim_start = l:matches[1]
@@ -485,7 +492,9 @@ function! ClangComplete(findstart, base)
                 let l:word = substitute(l:word, ' ', '_', 'g')
                 let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
                 call MakeSnip('cpp', l:wabbr, l:snippet, l:proto)
-                call MakeSnip('cpp', l:word,  l:snippet, l:proto)
+                if l:word != l:wabbr
+                    call MakeSnip('cpp', l:word,  l:snippet, l:proto)
+                endif
             endif
 
             let l:item = {
