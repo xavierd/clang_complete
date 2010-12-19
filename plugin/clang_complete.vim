@@ -566,6 +566,9 @@ function! ShouldComplete()
     if (getline('.') =~ '#\s*\(include\|import\)')
         return 0
     else
+        if col('.') == 1
+            return 1
+        endif
         for l:id in synstack(line('.'), col('.') - 1)
             if match(synIDattr(l:id, 'name'), '\CComment\|String\|Number')
                         \ != -1
