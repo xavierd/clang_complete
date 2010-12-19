@@ -415,7 +415,7 @@ function! ClangComplete(findstart, base)
         if g:clang_use_snipmate == 1
             " Quick & Easy way to prevent snippets to be added twice
             " Ideally we should modify snipmate to be smarter about this
-            call ReloadSnippets('cpp')
+            call ReloadSnippets(&filetype)
         endif
 
         let l:res = []
@@ -495,9 +495,9 @@ function! ClangComplete(findstart, base)
                 let l:word = substitute(l:word, '\v\) *const *$', ')', '')
                 let l:word = substitute(l:word, ' ', '_', 'g')
                 let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
-                call MakeSnip('cpp', l:wabbr, l:snippet, l:proto)
+                call MakeSnip(&filetype, l:wabbr, l:snippet, l:proto)
                 if l:word != l:wabbr
-                    call MakeSnip('cpp', l:word,  l:snippet, l:proto)
+                    call MakeSnip(&filetype, l:word,  l:snippet, l:proto)
                 endif
             endif
 
