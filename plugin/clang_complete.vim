@@ -66,6 +66,7 @@ let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
 let b:clang_type_complete = 0
+let b:snipmate_snippets = {}
 
 function! s:ClangCompleteInit()
     let l:local_conf = findfile('.clang_complete', '.;')
@@ -309,14 +310,13 @@ function! s:DemangleProto(prototype)
 endfunction
 
 function! s:CreateSnipmateSnippet(trigger, proto)
-    " Remove return type
-    let l:proto = substitute(a:proto, '\v^.*\V' . a:trigger, a:trigger, '')
-
     " Try to parse parameters
     let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.*)([)>])')
 
     " Check if it's a type without template params
     if empty(l:matches)
+        " Clean up prototype (remove return type and const)
+        let l:proto = substitute(a:proto, '\v^.*(\V' . a:trigger . '\v.{-})( *const *)?$', '\1', '')
         return l:proto . ' ${1:obj};${2}'
     endif
 
@@ -348,15 +348,49 @@ function! s:CreateSnipmateSnippet(trigger, proto)
 endfunction
 
 function! TriggerSnipmate()
-    augroup ClangComplete
-        au! CursorMovedI <buffer>
-    augroup end
-
+    " Dont bother doing anything until we're sure the user exited the menu
     if pumvisible() != 0
         return
     endif
 
-    call feedkeys("\<Tab>")
+    " Check if the user really did chose an entry for the menu or just typed someting inexistant
+    let l:col  = col('.')
+    let l:line = getline('.')
+    let l:word = strpart(l:line, b:col - 1, l:col - b:col)
+    let l:trigger = matchstr(l:word, '\v^[^(<]+')
+    if !has_key(b:snipmate_snippets, l:trigger)
+        return
+    endif
+
+
+    " Ok we'll trigger snipmate now, stop monitoring
+    augroup ClangComplete
+        au! CursorMovedI <buffer>
+    augroup end
+
+    " Rewrite line with snipmate's snippet trigger
+    let l:corrected_line = strpart(l:line, 0, b:col + len(l:trigger) - 1) . strpart(l:line, l:col - 1)
+    call setline('.', l:corrected_line)
+
+    " Move cursor to where we want (there's probably a simpler way than this)
+    call feedkeys("\<Esc>", 't')
+    call cursor(0, b:col + len(l:trigger))
+    call feedkeys('a', 't')
+
+    " If we are already in a snipmate snippet, well not much we can do until snipmate supports nested snippets
+    if exists('g:snipPos')
+        return
+    endif
+
+    " Trigger snipmate
+    call feedkeys("\<Tab>", 't')
+    if len(b:snipmate_snippets[l:trigger]) > 1
+        let l:index = index(b:snipmate_snippets[l:trigger], l:word) + 1
+        if l:index == -1
+            echoe 'clang_complete snipmate error'
+        endif
+        call feedkeys(l:index . "\<CR>", 't')
+    endif
 endfunction
 
 let b:col = 0
@@ -416,6 +450,7 @@ function! ClangComplete(findstart, base)
             " Quick & Easy way to prevent snippets to be added twice
             " Ideally we should modify snipmate to be smarter about this
             call ReloadSnippets(&filetype)
+            let b:snipmate_snippets = {}
         endif
 
         let l:res = []
@@ -489,16 +524,18 @@ function! ClangComplete(findstart, base)
             endif
 
             if g:clang_use_snipmate == 1
-                " Remove return type
-                let l:word = substitute(l:proto, '\v^.*\V' . l:word, l:word, '')
-                " Remove const functions (if any)
-                let l:word = substitute(l:word, '\v\) *const *$', ')', '')
-                let l:word = substitute(l:word, ' ', '_', 'g')
+                " Clean up prototype (remove return type and const)
+                let l:word = substitute(l:proto, '\v^.*(\V' . l:word . '\v.{-})( *const *)?$', '\1', '')
+
+                " Create snipmate's snippet
                 let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
                 call MakeSnip(&filetype, l:wabbr, l:snippet, l:proto)
-                if l:word != l:wabbr
-                    call MakeSnip(&filetype, l:word,  l:snippet, l:proto)
+
+                " Store which overload we are going to complete
+                if !has_key(b:snipmate_snippets, l:wabbr)
+                    let b:snipmate_snippets[l:wabbr] = []
                 endif
+                let b:snipmate_snippets[l:wabbr] += [l:word]
             endif
 
             let l:item = {
