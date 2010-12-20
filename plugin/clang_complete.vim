@@ -464,7 +464,7 @@ function! ClangComplete(findstart, base)
                 let l:value = l:line[12:]
 
                 if l:value =~ 'Pattern'
-                    if g:clang_snippets != 1
+                    if g:clang_snippets != 1 && g:clang_use_snipmate != 1
                         continue
                     endif
 
