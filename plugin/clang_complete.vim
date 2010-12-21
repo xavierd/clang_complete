@@ -55,6 +55,15 @@
 "       Default: ''
 "       Example: '|| exit 0' (it will discard clang return value)
 "
+"  - g:clang_use_library:
+"  	Instead of calling the clang/clang++ tool use libclang directly. This
+"  	should improve the performance, but is still experimental.
+"  	To use this libclang.so has to be in your library path or you need to
+"  	set LD_LIBRARY_PATH=/path/to/llvm/install/lib and cindex.py needs to
+"  	be in your python pass or you need to set
+"  	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
+"  	Default : 0
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
@@ -66,6 +75,111 @@ let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
 let b:clang_type_complete = 0
+
+python << EOF
+from clang.cindex import *
+import vim
+import time
+
+def initClangComplete():
+	global index
+	index = Index.create()
+	global translationUnits
+	translationUnits = dict()
+
+def getCurrentTranslationUnit():
+	args = vim.eval("g:clang_user_options").split(" ")
+	file = "\n".join(vim.eval("getline(1, '$')"))
+	currentFile = (vim.current.buffer.name, file)
+
+	if vim.current.buffer.name in translationUnits:
+		start = time.time()
+		tu = translationUnits[vim.current.buffer.name]
+		tu.reparse([currentFile])
+		elapsed = (time.time() - start)
+		print "LibClang - Reparsing: " + str(elapsed)
+	else:
+		start = time.time()
+		tu = index.parse(vim.current.buffer.name, args, [currentFile])
+		translationUnits[vim.current.buffer.name] = tu
+		elapsed = (time.time() - start)
+		print "LibClang - First parse: " + str(elapsed)
+	return translationUnits[vim.current.buffer.name]
+
+def getQuickFix(diagnostic):
+	filename = diagnostic.location.file.name
+	if diagnostic.severity == diagnostic.Warning:
+		type = 'W'
+	elif diagnostic.severity == diagnostic.Error:
+		type = 'E'
+	else:
+		return None
+
+				   # TODO: Get the correct buffer number.
+	return dict({ 'bufnr' : 1, #vim.eval("bufnr(" + filename + ", 1)"),
+		    'lnum' : diagnostic.location.line,
+		    'col' : diagnostic.location.column,
+		    'text' : diagnostic.spelling,
+		    'type' : type})
+
+def updateQuickFixList(tu):
+	quickFixList = filter (None, map (getQuickFix, tu.diagnostics))
+	vim.command('call setqflist(%s)' %repr(quickFixList)) 
+	#vim.command('doautocmd QuickFixCmdPost make')
+
+def highlightRange(range, hlGroup):
+	pattern = '/\%' + str(range.start.line) + 'l' + '\%' + str(range.start.column) + 'c' + '.*' \
+                  + '\%' + str(range.end.column) + 'c/'
+	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
+	vim.command(command)
+
+def highlightDiagnostic(diagnostic):
+	if diagnostic.severity == diagnostic.Warning:
+		hlGroup = 'SpellLocal'
+	elif diagnostic.severity == diagnostic.Error:
+		hlGroup = 'SpellBad'
+	else:
+	 	return
+
+        pattern = '/\%' + str(diagnostic.location.line) + 'l\%' \
+		  + str(diagnostic.location.column) + 'c./'
+	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
+	vim.command(command)
+
+	# Use this wired kind of iterator as the python clang libraries
+        # have a bug in the range iterator that stops us to use:
+        #
+        # | for range in diagnostic.ranges
+        #
+	for i in range(len(diagnostic.ranges)):
+		highlightRange(diagnostic.ranges[i], hlGroup)
+
+def highlightDiagnostics(tu):
+	map (highlightDiagnostic, tu.diagnostics)
+
+def highlightCurrentDiagnostics():
+	highlightDiagnostics(translationUnits[vim.current.buffer.name])
+
+def updateCurrentQuickFixList():
+	updateQuickFixList(translationUnits[vim.current.buffer.name])
+
+def updateCurrentDiagnostics():
+	getCurrentTranslationUnit()
+
+def completeCurrentAt(line, column):
+	if vim.current.buffer.name in translationUnits:
+		tu = translationUnits[vim.current.buffer.name]
+	else:
+		tu = getCurrentTranslationUnit()
+	file = "\n".join(vim.eval("getline(1, '$')"))
+	currentFile = (vim.current.buffer.name, file)
+	start = time.time()
+	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - Code completion time: " + str(elapsed)
+	print "\n".join(map(str, cr.results))
+
+EOF
 
 function s:ClangCompleteInit()
     let l:local_conf = findfile('.clang_complete', '.;')
@@ -119,6 +233,10 @@ function s:ClangCompleteInit()
         let g:clang_user_options = ''
     endif
 
+    if !exists('g:clang_use_library')
+        let g:clang_use_library = 1
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -165,6 +283,11 @@ function s:ClangCompleteInit()
             au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
         augroup end
     endif
+
+    " Load the python bindings of libclang
+    if g:clang_use_library == 1
+      py initClangComplete()
+    endif
 endfunction
 
 function s:GetKind(proto)
@@ -185,21 +308,14 @@ function s:GetKind(proto)
     return 'm'
 endfunction
 
-function s:DoPeriodicQuickFix()
-    " Don't do any superfluous reparsing.
-    if b:my_changedtick == b:changedtick
-        return
-    endif
-    let b:my_changedtick = b:changedtick
-
+function s:CallClangBinaryForDiagnostics(tempfile)
+    let l:escaped_tempfile = shellescape(a:tempfile)
     let l:buf = getline(1, '$')
-    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
     try
-        call writefile(l:buf, l:tempfile)
+        call writefile(l:buf, a:tempfile)
     catch /^Vim\%((\a\+)\)\=:E482/
         return
     endtry
-    let l:escaped_tempfile = shellescape(l:tempfile)
 
     let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
                 \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
@@ -207,7 +323,30 @@ function s:DoPeriodicQuickFix()
                 \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
     let l:clang_output = split(system(l:command), "\n")
-    call delete(l:tempfile)
+    call delete(a:tempfile)
+    return l:clang_output
+endfunction
+
+function s:CallClangForDiagnostics(tempfile)
+    if g:clang_use_library == 1
+	python updateCurrentDiagnostics()
+    else
+	return s:CallClangBinaryForDiagnostics(a:tempfile)
+    endif
+endfunction
+
+function s:DoPeriodicQuickFix()
+    " Don't do any superfluous reparsing.
+    if b:my_changedtick == b:changedtick
+        return
+    endif
+
+    " Create tempfile name for clang/clang++ executable mode
+    let b:my_changedtick = b:changedtick
+    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+
+    let l:clang_output = s:CallClangForDiagnostics(l:tempfile)
+
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
@@ -215,6 +354,24 @@ function s:ClangQuickFix(clang_output, tempfname)
     " Clear the bad spell, the user may have corrected them.
     syntax clear SpellBad
     syntax clear SpellLocal
+
+    if g:clang_use_library == 0
+	s:ClangUpdateQuickFix(clang_output, tempfname)
+    else
+    	python updateCurrentQuickFixList()
+    	python highlightCurrentDiagnostics()
+    endif
+
+    if g:clang_complete_copen == 1
+        " We should get back to the original buffer
+        let l:bufnr = bufnr('%')
+        cwindow
+        let l:winbufnr = bufwinnr(l:bufnr)
+        exe l:winbufnr . 'wincmd w'
+    endif
+endfunction
+
+function s:ClangUpdateQuickFix(clang_output, tempfname)
     let l:list = []
     for l:line in a:clang_output
         let l:erridx = match(l:line, '\%(error\|warning\): ')
@@ -281,13 +438,6 @@ function s:ClangQuickFix(clang_output, tempfname)
     endfor
     call setqflist(l:list)
     doautocmd QuickFixCmdPost make
-    if g:clang_complete_copen == 1
-        " We should get back to the original buffer
-        let l:bufnr = bufnr('%')
-        cwindow
-        let l:winbufnr = bufwinnr(l:bufnr)
-        exe l:winbufnr . 'wincmd w'
-    endif
 endfunction
 
 function s:DemangleProto(prototype)
