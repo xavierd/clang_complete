@@ -75,6 +75,7 @@ let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
 let b:clang_type_complete = 0
+let b:snipmate_snippets = {}
 
 python << EOF
 from clang.cindex import *
@@ -243,7 +244,7 @@ def getCurrentCompletions():
 	return map(formatResult, sortedResult)
 EOF
 
-function s:ClangCompleteInit()
+function! s:ClangCompleteInit()
     let l:local_conf = findfile('.clang_complete', '.;')
     let b:clang_user_options = ''
     if l:local_conf != ''
@@ -299,6 +300,14 @@ function s:ClangCompleteInit()
         let g:clang_use_library = 1
     endif
 
+    if !exists('g:clang_use_snipmate')
+        if g:clang_snippets == 1
+            let g:clang_use_snipmate = 0
+        else
+            let g:clang_use_snipmate = exists('g:snippets_dir')
+        endif
+    endif
+
     if g:clang_complete_auto == 1
         inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
         inoremap <expr> <buffer> . CompleteDot()
@@ -352,7 +361,7 @@ function s:ClangCompleteInit()
     endif
 endfunction
 
-function s:GetKind(proto)
+function! s:GetKind(proto)
     if a:proto == ''
         return 't'
     endif
@@ -402,6 +411,7 @@ function s:DoPeriodicQuickFix()
     if b:my_changedtick == b:changedtick
         return
     endif
+    let b:my_changedtick = b:changedtick
 
     " Create tempfile name for clang/clang++ executable mode
     let b:my_changedtick = b:changedtick
@@ -412,13 +422,26 @@ function s:DoPeriodicQuickFix()
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
-function s:ClangQuickFix(clang_output, tempfname)
+function! s:ClangQuickFix(clang_output, tempfname)
     " Clear the bad spell, the user may have corrected them.
     syntax clear SpellBad
     syntax clear SpellLocal
 
     if g:clang_use_library == 0
-	call s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
+	let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
+
+    	if g:clang_complete_copen == 1
+            " Workaround:
+            " http://vim.1045645.n5.nabble.com/setqflist-inconsistency-td1211423.html
+            " 
+            " TODO: move to a generic location such that libclang takes also
+            " advantage of this.
+            if l:list == []
+                cclose
+            else
+                copen
+            endif
+    	endif
     else
     	python updateCurrentQuickFixList()
     	python highlightCurrentDiagnostics()
@@ -427,7 +450,6 @@ function s:ClangQuickFix(clang_output, tempfname)
     if g:clang_complete_copen == 1
         " We should get back to the original buffer
         let l:bufnr = bufnr('%')
-        cwindow
         let l:winbufnr = bufwinnr(l:bufnr)
         exe l:winbufnr . 'wincmd w'
     endif
@@ -500,9 +522,10 @@ function s:ClangUpdateQuickFix(clang_output, tempfname)
     endfor
     call setqflist(l:list)
     doautocmd QuickFixCmdPost make
+    return l:list
 endfunction
 
-function s:DemangleProto(prototype)
+function! s:DemangleProto(prototype)
     let l:proto = substitute(a:prototype, '[#', '', 'g')
     let l:proto = substitute(l:proto, '#]', ' ', 'g')
     let l:proto = substitute(l:proto, '#>', '', 'g')
@@ -510,6 +533,90 @@ function s:DemangleProto(prototype)
     let l:proto = substitute(l:proto, '{#.*#}', '', 'g')
 
     return l:proto
+endfunction
+
+function! s:CreateSnipmateSnippet(trigger, proto)
+    " Try to parse parameters
+    let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.*)([)>])')
+
+    " Check if it's a type without template params
+    if empty(l:matches)
+        " Clean up prototype (remove return type and const)
+        let l:proto = substitute(a:proto, '\v^.*(\V' . a:trigger . '\v.{-})( *const *)?$', '\1', '')
+        return l:proto . ' ${1:obj};${2}'
+    endif
+
+    " Get parameters
+    let l:delim_start = l:matches[1]
+    let l:params = split(l:matches[2], '\v\s*,\s*')
+    let l:delim_end = l:matches[3]
+
+    " Construct snippet
+    let l:tmp = 1
+    let l:snippet = a:trigger . l:delim_start
+    for param in l:params
+        let l:snippet .= '${' . l:tmp . ':' . param . '}'
+        if l:tmp != len(l:params)
+            let l:snippet .= ', '
+        endif
+        let l:tmp += 1
+    endfor
+    let l:snippet .= l:delim_end
+    if l:delim_start == '('
+        " Function
+        let l:snippet .= '${' . l:tmp . ':;}${' . (l:tmp+1) . '}'
+    else
+        " Template
+        let l:snippet .= ' ${' . l:tmp . ':obj};${' . (l:tmp+1) . '}'
+    endif
+
+    return l:snippet
+endfunction
+
+function! TriggerSnipmate()
+    " Dont bother doing anything until we're sure the user exited the menu
+    if pumvisible() != 0
+        return
+    endif
+
+    " Check if the user really did chose an entry for the menu or just typed someting inexistant
+    let l:col  = col('.')
+    let l:line = getline('.')
+    let l:word = strpart(l:line, b:col - 1, l:col - b:col)
+    let l:trigger = matchstr(l:word, '\v^[^(<]+')
+    if !has_key(b:snipmate_snippets, l:trigger)
+        return
+    endif
+
+
+    " Ok we'll trigger snipmate now, stop monitoring
+    augroup ClangComplete
+        au! CursorMovedI <buffer>
+    augroup end
+
+    " Rewrite line with snipmate's snippet trigger
+    let l:corrected_line = strpart(l:line, 0, b:col + len(l:trigger) - 1) . strpart(l:line, l:col - 1)
+    call setline('.', l:corrected_line)
+
+    " Move cursor to where we want (there's probably a simpler way than this)
+    call feedkeys("\<Esc>", 't')
+    call cursor(0, b:col + len(l:trigger))
+    call feedkeys('a', 't')
+
+    " If we are already in a snipmate snippet, well not much we can do until snipmate supports nested snippets
+    if exists('g:snipPos')
+        return
+    endif
+
+    " Trigger snipmate
+    call feedkeys("\<Tab>", 't')
+    if len(b:snipmate_snippets[l:trigger]) > 1
+        let l:index = index(b:snipmate_snippets[l:trigger], l:word) + 1
+        if l:index == -1
+            echoe 'clang_complete snipmate error'
+        endif
+        call feedkeys(l:index . "\<CR>", 't')
+    endif
 endfunction
 
 let b:col = 0
@@ -540,6 +647,13 @@ function s:ClangCompleteBinary(base)
         return {}
     endif
 
+    if g:clang_use_snipmate == 1
+        " Quick & Easy way to prevent snippets to be added twice
+        " Ideally we should modify snipmate to be smarter about this
+        call ReloadSnippets(&filetype)
+        let b:snipmate_snippets = {}
+    endif
+
     let l:res = []
     "for l:line in l:clang_output
     while !empty(l:clang_output)
@@ -551,7 +665,7 @@ function s:ClangCompleteBinary(base)
             let l:value = l:line[12:]
 
             if l:value =~ 'Pattern'
-                if g:clang_snippets != 1
+                if g:clang_snippets != 1 && g:clang_use_snipmate != 1
                     continue
                 endif
 
@@ -610,6 +724,21 @@ function s:ClangCompleteBinary(base)
             continue
         endif
 
+        if g:clang_use_snipmate == 1
+            " Clean up prototype (remove return type and const)
+            let l:word = substitute(l:proto, '\v^.*(\V' . l:word . '\v.{-})( *const *)?$', '\1', '')
+
+            " Create snipmate's snippet
+            let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
+            call MakeSnip(&filetype, l:wabbr, l:snippet, l:proto)
+
+            " Store which overload we are going to complete
+            if !has_key(b:snipmate_snippets, l:wabbr)
+                let b:snipmate_snippets[l:wabbr] = []
+            endif
+            let b:snipmate_snippets[l:wabbr] += [l:word]
+        endif
+
         let l:item = {
                     \ 'word': l:word,
                     \ 'abbr': l:wabbr,
@@ -623,7 +752,7 @@ function s:ClangCompleteBinary(base)
     return l:res
 endfunction
 
-function ClangComplete(findstart, base)
+function! ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
         let l:start = col('.') - 1
@@ -664,52 +793,68 @@ function ClangComplete(findstart, base)
     endif
 endfunction
 
-function ShouldComplete()
+function! ShouldComplete()
     if (getline('.') =~ '#\s*\(include\|import\)')
         return 0
     else
-        return match(synIDattr(synID(line('.'), col('.') - 1, 0), 'name'),
-                    \'\C\<cComment\|\<cCppString\|\<cString\|\<cNumber\|cFormat')
-                    \ == -1
+        if col('.') == 1
+            return 1
+        endif
+        for l:id in synstack(line('.'), col('.') - 1)
+            if match(synIDattr(l:id, 'name'), '\CComment\|String\|Number')
+                        \ != -1
+                return 0
+            endif
+        endfor
+        return 1
+    endif
 endfunction
 
-function LaunchCompletion()
+function! LaunchCompletion()
     if ShouldComplete()
-        return "\<C-X>\<C-U>"
+        if match(&completeopt, "longest") != -1
+            return "\<C-X>\<C-U>"
+        else
+            return "\<C-X>\<C-U>\<C-P>"
+        endif
     else
         return ''
     endif
 endfunction
 
-function CompleteDot()
+function! CompleteDot()
     return '.' . LaunchCompletion()
 endfunction
 
-function CompleteArrow()
+function! CompleteArrow()
     if getline('.')[col('.') - 2] != '-'
         return '>'
     endif
     return '>' . LaunchCompletion()
 endfunction
 
-function CompleteColon()
+function! CompleteColon()
     if getline('.')[col('.') - 2] != ':'
         return ':'
     endif
     return ':' . LaunchCompletion()
 endfunction
 
-function UpdateSnips()
+function! UpdateSnips()
     let l:line = getline('.')
     let l:pattern = '<#[^#]*#>'
     if match(l:line, l:pattern) == -1
         return ''
     endif
     let l:linenb = line('.')
-    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
+    if &selection == "exclusive"
+        return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>ll\<C-G>"
+    else
+        return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
+    endif
 endfunction
 
-function BeginSnips()
+function! BeginSnips()
     if pumvisible() != 0
         return ''
     endif
@@ -728,7 +873,7 @@ function BeginSnips()
 endfunction
 
 " May be used in a mapping to update the quickfix window.
-function g:ClangUpdateQuickFix()
+function! g:ClangUpdateQuickFix()
     call s:DoPeriodicQuickFix()
     return ''
 endfunction
