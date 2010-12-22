@@ -293,7 +293,14 @@ function! s:ClangQuickFix(clang_output, tempfname)
     if g:clang_complete_copen == 1
         " We should get back to the original buffer
         let l:bufnr = bufnr('%')
-        cwindow
+
+        " Workaround:
+        " http://vim.1045645.n5.nabble.com/setqflist-inconsistency-td1211423.html
+        if l:list == []
+            cclose
+        else
+            copen
+        endif
         let l:winbufnr = bufwinnr(l:bufnr)
         exe l:winbufnr . 'wincmd w'
     endif
