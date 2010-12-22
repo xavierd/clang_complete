@@ -93,31 +93,40 @@ def getCurrentFile():
 	file = "\n".join(vim.eval("getline(1, '$')"))
 	return (vim.current.buffer.name, file)
 
-def getCurrentTranslationUnit():
+def getCurrentTranslationUnit(update = False):
 	args = vim.eval("g:clang_user_options").split(" ")
 	currentFile = getCurrentFile()
+	fileName = vim.current.buffer.name
 
-	if vim.current.buffer.name in translationUnits:
-		start = time.time()
-		tu = translationUnits[vim.current.buffer.name]
-		tu.reparse([currentFile])
-		elapsed = (time.time() - start)
-		print "LibClang - Reparsing: " + str(elapsed)
-	else:
-		start = time.time()
-		tu = index.parse(vim.current.buffer.name, args, [currentFile])
-		if tu == None:
-			print "Cannot parse this source file using those arguments:" \
-			      + " ".join(args)
-			return None
-		# Reparse to initialize the PCH cache even for auto completion
-		# This should be actually be done by index.parse, however it is
-		# not. So we need to reparse ourselves.
-		tu.reparse([currentFile])
-		translationUnits[vim.current.buffer.name] = tu
-		elapsed = (time.time() - start)
-		print "LibClang - First parse: " + str(elapsed)
-	return translationUnits[vim.current.buffer.name]
+	if fileName in translationUnits:
+		tu = translationUnits[fileName]
+		if update:
+			start = time.time()
+			tu.reparse([currentFile])
+			elapsed = (time.time() - start)
+			print "LibClang - Reparsing: " + str(elapsed)
+		return tu
+	
+	start = time.time()
+	tu = index.parse(fileName, args, [currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - First parse: " + str(elapsed)
+
+	if tu == None:
+		print "Cannot parse this source file. The following arguments " \
+		      + "are used for clang: " + " ".join(args)
+		return None
+
+	translationUnits[fileName] = tu
+
+	# Reparse to initialize the PCH cache even for auto completion
+	# This should be done by index.parse(), however it is not.
+	# So we need to reparse ourselves.
+	start = time.time()
+	tu.reparse([currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
+	return tu
 
 def getQuickFix(diagnostic):
 	filename = diagnostic.location.file.name
@@ -179,16 +188,11 @@ def updateCurrentQuickFixList():
 		updateQuickFixList(translationUnits[vim.current.buffer.name])
 
 def updateCurrentDiagnostics():
-	getCurrentTranslationUnit()
+	getCurrentTranslationUnit(update = True)
 
 def getCurrentCompletionResults(line, column):
-	if vim.current.buffer.name in translationUnits:
-		tu = translationUnits[vim.current.buffer.name]
-	else:
-		tu = getCurrentTranslationUnit()
-
+	tu = getCurrentTranslationUnit()
 	currentFile = getCurrentFile()
-
 	start = time.time()
 	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
 	elapsed = (time.time() - start)
