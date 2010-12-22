@@ -101,6 +101,14 @@ def getCurrentTranslationUnit():
 	else:
 		start = time.time()
 		tu = index.parse(vim.current.buffer.name, args, [currentFile])
+		if tu == None:
+			print "Cannot parse this source file using those arguments:" \
+			      + " ".join(args)
+			return None
+		# Reparse to initialize the PCH cache even for auto completion
+		# This should be actually be done by index.parse, however it is
+		# not. So we need to reparse ourselves.
+		tu.reparse([currentFile])
 		translationUnits[vim.current.buffer.name] = tu
 		elapsed = (time.time() - start)
 		print "LibClang - First parse: " + str(elapsed)
@@ -158,10 +166,12 @@ def highlightDiagnostics(tu):
 	map (highlightDiagnostic, tu.diagnostics)
 
 def highlightCurrentDiagnostics():
-	highlightDiagnostics(translationUnits[vim.current.buffer.name])
+	if vim.current.buffer.name in translationUnits:
+		highlightDiagnostics(translationUnits[vim.current.buffer.name])
 
 def updateCurrentQuickFixList():
-	updateQuickFixList(translationUnits[vim.current.buffer.name])
+	if vim.current.buffer.name in translationUnits:
+		updateQuickFixList(translationUnits[vim.current.buffer.name])
 
 def updateCurrentDiagnostics():
 	getCurrentTranslationUnit()
@@ -191,7 +201,7 @@ def formatChunkForWord(chunk):
 def formatResult(result):
 	completion = dict()
 
-	abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
+        abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
 	info = filter(lambda x: not x.isKindInformative(), result.string)
 	word = filter(lambda x: not x.isKindResultType(), info)
 	result = filter(lambda x: x.isKindResultType(), info)
@@ -214,7 +224,11 @@ def getCurrentCompletions():
 	line = int(vim.eval("line('.')"))
 	column = int(vim.eval("b:col"))
 	cr = getCurrentCompletionResults(line, column)
-	return map(formatResult, cr.results)
+
+	getPriority = lambda x: x.string.priority
+	
+	sortedResult = sorted(cr.results, key = getPriority)
+	return map(formatResult, sortedResult)
 EOF
 
 function s:ClangCompleteInit()
