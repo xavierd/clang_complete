@@ -166,7 +166,7 @@ def updateCurrentQuickFixList():
 def updateCurrentDiagnostics():
 	getCurrentTranslationUnit()
 
-def completeCurrentAt(line, column):
+def getCurrentCompletionResults(line, column):
 	if vim.current.buffer.name in translationUnits:
 		tu = translationUnits[vim.current.buffer.name]
 	else:
@@ -177,9 +177,15 @@ def completeCurrentAt(line, column):
 	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
 	elapsed = (time.time() - start)
 	print "LibClang - Code completion time: " + str(elapsed)
-	print "\n".join(map(str, cr.results))
+	return cr
+
+def completeCurrentAt(line, column):
+	print "\n".join(map(str, getCurrentCompletionResults().results))
 
 def getCurrentCompletions():
+	line = int(vim.eval("line('.')"))
+	column = int(vim.eval("b:col"))
+	cr = getCurrentCompletionResults(line, column)
 	completion = dict({ 'word' : "addNewBlock(<#llvm::BasicBlock *BB#>, <#llvm::BasicBlock *DomBB#>)",
 		            'abbr' : "addNewBlock",
 		            'menu' : "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)",
