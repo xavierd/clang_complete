@@ -581,7 +581,11 @@ endfunction
 
 function! LaunchCompletion()
     if ShouldComplete()
-        return "\<C-X>\<C-U>"
+        if match(&completeopt, "longest") != -1
+            return "\<C-X>\<C-U>"
+        else
+            return "\<C-X>\<C-U>\<C-P>"
+        endif
     else
         return ''
     endif
