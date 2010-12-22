@@ -191,7 +191,7 @@ def formatChunkForWord(chunk):
 def formatResult(result):
 	completion = dict()
 
-	abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
+        abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
 	info = filter(lambda x: not x.isKindInformative(), result.string)
 	word = filter(lambda x: not x.isKindResultType(), info)
 	result = filter(lambda x: x.isKindResultType(), info)
@@ -214,7 +214,11 @@ def getCurrentCompletions():
 	line = int(vim.eval("line('.')"))
 	column = int(vim.eval("b:col"))
 	cr = getCurrentCompletionResults(line, column)
-	return map(formatResult, cr.results)
+
+	getPriority = lambda x: x.string.priority
+	
+	sortedResult = sorted(cr.results, key = getPriority)
+	return map(formatResult, sortedResult)
 EOF
 
 function s:ClangCompleteInit()
