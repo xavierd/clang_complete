@@ -87,10 +87,15 @@ def initClangComplete():
 	global translationUnits
 	translationUnits = dict()
 
+# Get a tuple (fileName, fileContent) for the file opened in the current
+# vim buffer. The fileContent contains the unsafed buffer content.
+def getCurrentFile():
+	file = "\n".join(vim.eval("getline(1, '$')"))
+	return (vim.current.buffer.name, file)
+
 def getCurrentTranslationUnit():
 	args = vim.eval("g:clang_user_options").split(" ")
-	file = "\n".join(vim.eval("getline(1, '$')"))
-	currentFile = (vim.current.buffer.name, file)
+	currentFile = getCurrentFile()
 
 	if vim.current.buffer.name in translationUnits:
 		start = time.time()
@@ -181,8 +186,9 @@ def getCurrentCompletionResults(line, column):
 		tu = translationUnits[vim.current.buffer.name]
 	else:
 		tu = getCurrentTranslationUnit()
-	file = "\n".join(vim.eval("getline(1, '$')"))
-	currentFile = (vim.current.buffer.name, file)
+
+	currentFile = getCurrentFile()
+
 	start = time.time()
 	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
 	elapsed = (time.time() - start)
