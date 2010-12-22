@@ -166,7 +166,7 @@ def updateCurrentQuickFixList():
 def updateCurrentDiagnostics():
 	getCurrentTranslationUnit()
 
-def completeCurrentAt(line, column):
+def getCurrentCompletionResults(line, column):
 	if vim.current.buffer.name in translationUnits:
 		tu = translationUnits[vim.current.buffer.name]
 	else:
@@ -177,8 +177,44 @@ def completeCurrentAt(line, column):
 	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
 	elapsed = (time.time() - start)
 	print "LibClang - Code completion time: " + str(elapsed)
-	print "\n".join(map(str, cr.results))
+	return cr
 
+def completeCurrentAt(line, column):
+	print "\n".join(map(str, getCurrentCompletionResults().results))
+
+def formatChunkForWord(chunk):
+	if chunk.isKindPlaceHolder():
+		return "<#" + chunk.spelling + "#>"
+	else:
+		return chunk.spelling
+
+def formatResult(result):
+	completion = dict()
+
+	abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
+	info = filter(lambda x: not x.isKindInformative(), result.string)
+	word = filter(lambda x: not x.isKindResultType(), info)
+	result = filter(lambda x: x.isKindResultType(), info)
+	if len(result) > 0:
+		resultStr = result[0].spelling
+	else:
+		resultStr = ""
+	info = resultStr + " " + "".join(map(lambda x: x.spelling, word))
+	word = "".join(map(formatChunkForWord, word))
+
+	completion['word'] = word
+	completion['abbr'] = abbr
+	completion['menu'] = info
+	completion['info'] = info
+	completion['dup'] = 1
+	completion['kind'] = 'f'
+	return completion	
+
+def getCurrentCompletions():
+	line = int(vim.eval("line('.')"))
+	column = int(vim.eval("b:col"))
+	cr = getCurrentCompletionResults(line, column)
+	return map(formatResult, cr.results)
 EOF
 
 function s:ClangCompleteInit()
@@ -356,7 +392,7 @@ function s:ClangQuickFix(clang_output, tempfname)
     syntax clear SpellLocal
 
     if g:clang_use_library == 0
-	s:ClangUpdateQuickFix(clang_output, tempfname)
+	call s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
     else
     	python updateCurrentQuickFixList()
     	python highlightCurrentDiagnostics()
@@ -451,6 +487,116 @@ function s:DemangleProto(prototype)
 endfunction
 
 let b:col = 0
+
+function s:ClangCompleteBinary(base)
+    let l:buf = getline(1, '$')
+    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+    try
+        call writefile(l:buf, l:tempfile)
+    catch /^Vim\%((\a\+)\)\=:E482/
+        return {}
+    endtry
+    let l:escaped_tempfile = shellescape(l:tempfile)
+
+    let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+                \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
+                \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
+                \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
+                \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
+    let l:clang_output = split(system(l:command), "\n")
+    call delete(l:tempfile)
+
+    call s:ClangQuickFix(l:clang_output, l:tempfile)
+    if v:shell_error
+        return {}
+    endif
+    if l:clang_output == []
+        return {}
+    endif
+
+    let l:res = []
+    "for l:line in l:clang_output
+    while !empty(l:clang_output)
+        let l:line = l:clang_output[0]
+        let l:clang_output = l:clang_output[1:]
+
+        if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
+
+            let l:value = l:line[12:]
+
+            if l:value =~ 'Pattern'
+                if g:clang_snippets != 1
+                    continue
+                endif
+
+                let l:value = l:value[10:]
+            endif
+
+            if l:value !~ '^' . a:base
+                continue
+            endif
+
+            let l:colonidx = stridx(l:value, ' : ')
+            if l:colonidx == -1
+                let l:wabbr = s:DemangleProto(l:value)
+                let l:word = l:value
+                let l:proto = l:value
+            else
+                let l:word = l:value[:l:colonidx - 1]
+                " WTF is that?
+                if l:word =~ '(Hidden)'
+                    let l:word = l:word[:-10]
+                endif
+                let l:wabbr = l:word
+                let l:proto = l:value[l:colonidx + 3:]
+            endif
+
+            let l:kind = s:GetKind(l:proto)
+            if l:kind == 't' && b:clang_complete_type == 0
+                continue
+            endif
+
+            if g:clang_snippets == 1
+                let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
+                if l:word =~ '{#.*#}'
+                    let l:next_line = substitute(l:line, '{#\(.*\)#}', '\1', '')
+                    let l:clang_output = [l:next_line] + l:clang_output
+                    let l:word = substitute(l:word, '{#.*#}', '', 'g')
+                endif
+            else
+                let l:word = l:wabbr
+            endif
+            let l:proto = s:DemangleProto(l:proto)
+
+        elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
+                    \ && g:clang_snippets == 1
+
+            let l:value = l:line[10:]
+            if match(l:value, '<#') == -1
+                continue
+            endif
+            let l:word = substitute(l:value, '.*<#', '<#', 'g')
+            let l:word = substitute(l:word, '#>.*', '#>', 'g')
+            let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
+            let l:proto = s:DemangleProto(l:value)
+            let l:kind = ''
+        else
+            continue
+        endif
+
+        let l:item = {
+                    \ 'word': l:word,
+                    \ 'abbr': l:wabbr,
+                    \ 'menu': l:proto,
+                    \ 'info': l:proto,
+                    \ 'dup': 1,
+                    \ 'kind': l:kind }
+
+        call add(l:res, l:item)
+    endwhile
+    return l:res
+endfunction
+
 function ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
@@ -478,111 +624,11 @@ function ClangComplete(findstart, base)
         let b:col = l:start + 1
         return l:start
     else
-        let l:buf = getline(1, '$')
-        let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
-        try
-            call writefile(l:buf, l:tempfile)
-        catch /^Vim\%((\a\+)\)\=:E482/
-            return {}
-        endtry
-        let l:escaped_tempfile = shellescape(l:tempfile)
-
-        let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
-                    \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
-                    \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
-                    \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
-                    \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
-        let l:clang_output = split(system(l:command), "\n")
-        call delete(l:tempfile)
-
-        call s:ClangQuickFix(l:clang_output, l:tempfile)
-        if v:shell_error
-            return {}
-        endif
-        if l:clang_output == []
-            return {}
-        endif
-
-        let l:res = []
-        "for l:line in l:clang_output
-        while !empty(l:clang_output)
-            let l:line = l:clang_output[0]
-            let l:clang_output = l:clang_output[1:]
-
-            if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
-
-                let l:value = l:line[12:]
-
-                if l:value =~ 'Pattern'
-                    if g:clang_snippets != 1
-                        continue
-                    endif
-
-                    let l:value = l:value[10:]
-                endif
-
-                if l:value !~ '^' . a:base
-                    continue
-                endif
-
-                let l:colonidx = stridx(l:value, ' : ')
-                if l:colonidx == -1
-                    let l:wabbr = s:DemangleProto(l:value)
-                    let l:word = l:value
-                    let l:proto = l:value
-                else
-                    let l:word = l:value[:l:colonidx - 1]
-                    " WTF is that?
-                    if l:word =~ '(Hidden)'
-                        let l:word = l:word[:-10]
-                    endif
-                    let l:wabbr = l:word
-                    let l:proto = l:value[l:colonidx + 3:]
-                endif
-
-                let l:kind = s:GetKind(l:proto)
-                if l:kind == 't' && b:clang_complete_type == 0
-                    continue
-                endif
-
-                if g:clang_snippets == 1
-                    let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
-                    if l:word =~ '{#.*#}'
-                        let l:next_line = substitute(l:line, '{#\(.*\)#}', '\1', '')
-                        let l:clang_output = [l:next_line] + l:clang_output
-                        let l:word = substitute(l:word, '{#.*#}', '', 'g')
-                    endif
-                else
-                    let l:word = l:wabbr
-                endif
-                let l:proto = s:DemangleProto(l:proto)
-
-            elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
-                        \ && g:clang_snippets == 1
-
-                let l:value = l:line[10:]
-                if match(l:value, '<#') == -1
-                    continue
-                endif
-                let l:word = substitute(l:value, '.*<#', '<#', 'g')
-                let l:word = substitute(l:word, '#>.*', '#>', 'g')
-                let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
-                let l:proto = s:DemangleProto(l:value)
-                let l:kind = ''
-            else
-                continue
-            endif
-
-            let l:item = {
-                        \ 'word': l:word,
-                        \ 'abbr': l:wabbr,
-                        \ 'menu': l:proto,
-                        \ 'info': l:proto,
-                        \ 'dup': 1,
-                        \ 'kind': l:kind }
-
-            call add(l:res, l:item)
-        endwhile
+	if g:clang_use_library == 1
+	    python vim.command('let l:res = ' + str(getCurrentCompletions()) + '') 
+	else
+	    let l:res = s:ClangCompleteBinary(a:base)
+	endif
         if g:clang_snippets == 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
