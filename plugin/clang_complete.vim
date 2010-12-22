@@ -182,12 +182,30 @@ def getCurrentCompletionResults(line, column):
 def completeCurrentAt(line, column):
 	print "\n".join(map(str, getCurrentCompletionResults().results))
 
+def formatChunkForWord(chunk):
+	if chunk.isKindPlaceHolder():
+		return "<#" + chunk.spelling + "#>"
+	else:
+		return chunk.spelling
+
 def formatResult(result):
 	completion = dict()
-	completion['word'] = "addNewBlock(<#llvm::BasicBlock *BB#>, <#llvm::BasicBlock *DomBB#>)"
-	completion['abbr'] = "addNewBlock"
-	completion['menu'] = "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)"
-	completion['info'] = "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)"
+
+	abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
+	info = filter(lambda x: not x.isKindInformative(), result.string)
+	word = filter(lambda x: not x.isKindResultType(), info)
+	result = filter(lambda x: x.isKindResultType(), info)
+	if len(result) > 0:
+		resultStr = result[0].spelling
+	else:
+		resultStr = ""
+	info = resultStr + " " + "".join(map(lambda x: x.spelling, word))
+	word = "".join(map(formatChunkForWord, word))
+
+	completion['word'] = word
+	completion['abbr'] = abbr
+	completion['menu'] = info
+	completion['info'] = info
 	completion['dup'] = 1
 	completion['kind'] = 'f'
 	return completion	
