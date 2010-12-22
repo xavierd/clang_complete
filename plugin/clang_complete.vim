@@ -102,8 +102,13 @@ def getCurrentTranslationUnit():
 		start = time.time()
 		tu = index.parse(vim.current.buffer.name, args, [currentFile])
 		if tu == None:
-			print "Cannot parse this source file"
+			print "Cannot parse this source file using those arguments:" \
+			      + " ".join(args)
 			return None
+		# Reparse to initialize the PCH cache even for auto completion
+		# This should be actually be done by index.parse, however it is
+		# not. So we need to reparse ourselves.
+		tu.reparse([currentFile])
 		translationUnits[vim.current.buffer.name] = tu
 		elapsed = (time.time() - start)
 		print "LibClang - First parse: " + str(elapsed)
