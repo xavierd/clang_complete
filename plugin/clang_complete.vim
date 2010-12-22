@@ -145,10 +145,8 @@ def getQuickFix(diagnostic):
 		    'text' : diagnostic.spelling,
 		    'type' : type})
 
-def updateQuickFixList(tu):
-	quickFixList = filter (None, map (getQuickFix, tu.diagnostics))
-	vim.command('call setqflist(%s)' %repr(quickFixList)) 
-	#vim.command('doautocmd QuickFixCmdPost make')
+def getQuickFixList(tu):
+	return filter (None, map (getQuickFix, tu.diagnostics))
 
 def highlightRange(range, hlGroup):
 	pattern = '/\%' + str(range.start.line) + 'l' + '\%' \
@@ -185,9 +183,10 @@ def highlightCurrentDiagnostics():
 	if vim.current.buffer.name in translationUnits:
 		highlightDiagnostics(translationUnits[vim.current.buffer.name])
 
-def updateCurrentQuickFixList():
+def getCurrentQuickFixList():
 	if vim.current.buffer.name in translationUnits:
-		updateQuickFixList(translationUnits[vim.current.buffer.name])
+		return getQuickFixList(translationUnits[vim.current.buffer.name])
+	return []
 
 def updateCurrentDiagnostics():
 	getCurrentTranslationUnit(update = True)
@@ -429,30 +428,28 @@ function! s:ClangQuickFix(clang_output, tempfname)
 
     if g:clang_use_library == 0
 	let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
-
-    	if g:clang_complete_copen == 1
-            " Workaround:
-            " http://vim.1045645.n5.nabble.com/setqflist-inconsistency-td1211423.html
-            " 
-            " TODO: move to a generic location such that libclang takes also
-            " advantage of this.
-            if l:list == []
-                cclose
-            else
-                copen
-            endif
-    	endif
     else
-    	python updateCurrentQuickFixList()
+	python vim.command('let l:list = ' + str(getCurrentQuickFixList())) 
     	python highlightCurrentDiagnostics()
     endif
 
     if g:clang_complete_copen == 1
         " We should get back to the original buffer
         let l:bufnr = bufnr('%')
+
+        " Workaround:
+        " http://vim.1045645.n5.nabble.com/setqflist-inconsistency-td1211423.html
+        if l:list == []
+            cclose
+        else
+            copen
+        endif
+
         let l:winbufnr = bufwinnr(l:bufnr)
         exe l:winbufnr . 'wincmd w'
     endif
+    call setqflist(l:list)
+    doautocmd QuickFixCmdPost make
 endfunction
 
 function s:ClangUpdateQuickFix(clang_output, tempfname)
@@ -520,8 +517,6 @@ function s:ClangUpdateQuickFix(clang_output, tempfname)
             exe 'syntax match' . l:hlgroup . l:pat
         endfor
     endfor
-    call setqflist(l:list)
-    doautocmd QuickFixCmdPost make
     return l:list
 endfunction
 
