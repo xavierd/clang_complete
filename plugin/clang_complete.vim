@@ -150,7 +150,8 @@ def updateQuickFixList(tu):
 	#vim.command('doautocmd QuickFixCmdPost make')
 
 def highlightRange(range, hlGroup):
-	pattern = '/\%' + str(range.start.line) + 'l' + '\%' + str(range.start.column) + 'c' + '.*' \
+	pattern = '/\%' + str(range.start.line) + 'l' + '\%' \
+		  + str(range.start.column) + 'c' + '.*' \
                   + '\%' + str(range.end.column) + 'c/'
 	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
 	vim.command(command)
@@ -194,7 +195,8 @@ def getCurrentCompletionResults(line, column):
 	tu = getCurrentTranslationUnit()
 	currentFile = getCurrentFile()
 	start = time.time()
-	cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
+	cr = tu.codeComplete(vim.current.buffer.name, line, column,
+			     [currentFile])
 	elapsed = (time.time() - start)
 	print "LibClang - Code completion time: " + str(elapsed)
 	return cr
