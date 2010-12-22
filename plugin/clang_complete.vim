@@ -182,17 +182,21 @@ def getCurrentCompletionResults(line, column):
 def completeCurrentAt(line, column):
 	print "\n".join(map(str, getCurrentCompletionResults().results))
 
+def formatResult(result):
+	completion = dict()
+	completion['word'] = "addNewBlock(<#llvm::BasicBlock *BB#>, <#llvm::BasicBlock *DomBB#>)"
+	completion['abbr'] = "addNewBlock"
+	completion['menu'] = "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)"
+	completion['info'] = "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)"
+	completion['dup'] = 1
+	completion['kind'] = 'f'
+	return completion	
+
 def getCurrentCompletions():
 	line = int(vim.eval("line('.')"))
 	column = int(vim.eval("b:col"))
 	cr = getCurrentCompletionResults(line, column)
-	completion = dict({ 'word' : "addNewBlock(<#llvm::BasicBlock *BB#>, <#llvm::BasicBlock *DomBB#>)",
-		            'abbr' : "addNewBlock",
-		            'menu' : "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)",
-		            'info' : "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)",
-		            'dup' : 1,
-			    'kind' : 'f'})
-	return [completion]
+	return map(formatResult, cr.results)
 EOF
 
 function s:ClangCompleteInit()
