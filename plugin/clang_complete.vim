@@ -101,6 +101,9 @@ def getCurrentTranslationUnit():
 	else:
 		start = time.time()
 		tu = index.parse(vim.current.buffer.name, args, [currentFile])
+		if tu == None:
+			print "Cannot parse this source file"
+			return None
 		translationUnits[vim.current.buffer.name] = tu
 		elapsed = (time.time() - start)
 		print "LibClang - First parse: " + str(elapsed)
@@ -158,10 +161,12 @@ def highlightDiagnostics(tu):
 	map (highlightDiagnostic, tu.diagnostics)
 
 def highlightCurrentDiagnostics():
-	highlightDiagnostics(translationUnits[vim.current.buffer.name])
+	if vim.current.buffer.name in translationUnits:
+		highlightDiagnostics(translationUnits[vim.current.buffer.name])
 
 def updateCurrentQuickFixList():
-	updateQuickFixList(translationUnits[vim.current.buffer.name])
+	if vim.current.buffer.name in translationUnits:
+		updateQuickFixList(translationUnits[vim.current.buffer.name])
 
 def updateCurrentDiagnostics():
 	getCurrentTranslationUnit()
