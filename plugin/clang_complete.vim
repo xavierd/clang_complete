@@ -356,7 +356,7 @@ function s:ClangQuickFix(clang_output, tempfname)
     syntax clear SpellLocal
 
     if g:clang_use_library == 0
-	s:ClangUpdateQuickFix(clang_output, tempfname)
+	call s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
     else
     	python updateCurrentQuickFixList()
     	python highlightCurrentDiagnostics()
