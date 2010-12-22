@@ -179,6 +179,14 @@ def completeCurrentAt(line, column):
 	print "LibClang - Code completion time: " + str(elapsed)
 	print "\n".join(map(str, cr.results))
 
+def getCurrentCompletions():
+	completion = dict({ 'word' : "addNewBlock(<#llvm::BasicBlock *BB#>, <#llvm::BasicBlock *DomBB#>)",
+		            'abbr' : "addNewBlock",
+		            'menu' : "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)",
+		            'info' : "DomTreeNode * addNewBlock(llvm::BasicBlock *BB, llvm::BasicBlock *DomBB)",
+		            'dup' : 1,
+			    'kind' : 'f'})
+	return [completion]
 EOF
 
 function s:ClangCompleteInit()
@@ -589,7 +597,7 @@ function ClangComplete(findstart, base)
         return l:start
     else
 	if g:clang_use_library == 1
-	    let l:res = s:ClangCompleteBinary(a:base)
+	    python vim.command('let l:res = ' + str(getCurrentCompletions()) + '') 
 	else
 	    let l:res = s:ClangCompleteBinary(a:base)
 	endif
