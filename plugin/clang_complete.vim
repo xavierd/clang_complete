@@ -216,12 +216,14 @@ def formatResult(result):
         abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
 	info = filter(lambda x: not x.isKindInformative(), result.string)
 	word = filter(lambda x: not x.isKindResultType(), info)
-	result = filter(lambda x: x.isKindResultType(), info)
-	if len(result) > 0:
-		resultStr = result[0].spelling
+	returnValue = filter(lambda x: x.isKindResultType(), info)
+
+	if len(returnValue) > 0:
+		returnStr = returnValue[0].spelling + " "
 	else:
-		resultStr = ""
-	info = resultStr + " " + "".join(map(lambda x: x.spelling, word))
+		returnStr = ""
+
+	info = returnStr + "".join(map(lambda x: x.spelling, word))
 	word = "".join(map(formatChunkForWord, word))
 
 	completion['word'] = word
@@ -229,7 +231,10 @@ def formatResult(result):
 	completion['menu'] = info
 	completion['info'] = info
 	completion['dup'] = 1
-	completion['kind'] = 'f'
+
+	# Replace the number that represants a specific kind with a better
+	# textual representation.
+	completion['kind'] = str(result.cursorKind)
 	return completion	
 
 def getCurrentCompletions():
