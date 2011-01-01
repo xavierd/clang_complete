@@ -128,12 +128,10 @@ function! s:ClangCompleteInit()
         endif
     endif
 
-    if g:clang_complete_auto == 1
-        inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
-        inoremap <expr> <buffer> . CompleteDot()
-        inoremap <expr> <buffer> > CompleteArrow()
-        inoremap <expr> <buffer> : CompleteColon()
-    endif
+    inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
+    inoremap <expr> <buffer> . CompleteDot()
+    inoremap <expr> <buffer> > CompleteArrow()
+    inoremap <expr> <buffer> : CompleteColon()
 
     if g:clang_snippets == 1
         noremap <expr> <buffer> <tab> UpdateSnips()
@@ -599,18 +597,21 @@ function! LaunchCompletion()
 endfunction
 
 function! CompleteDot()
-    return '.' . LaunchCompletion()
+    if g:clang_complete_auto == 1
+        return '.' . LaunchCompletion()
+    endif
+    return '.'
 endfunction
 
 function! CompleteArrow()
-    if getline('.')[col('.') - 2] != '-'
+    if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != '-'
         return '>'
     endif
     return '>' . LaunchCompletion()
 endfunction
 
 function! CompleteColon()
-    if getline('.')[col('.') - 2] != ':'
+    if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != ':'
         return ':'
     endif
     return ':' . LaunchCompletion()
