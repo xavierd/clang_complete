@@ -312,7 +312,7 @@ function! s:ClangCompleteInit()
     endif
 
     if !exists('g:clang_use_library')
-        let g:clang_use_library = 1
+        let g:clang_use_library = 0
     endif
 
     if !exists('g:clang_use_snipmate')
