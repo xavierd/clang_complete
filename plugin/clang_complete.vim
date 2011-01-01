@@ -78,9 +78,15 @@ let b:clang_type_complete = 0
 let b:snipmate_snippets = {}
 
 python << EOF
-from clang.cindex import *
+
 import vim
 import time
+
+try:
+	from clang.cindex import *
+	vim.command("let s:libclang_available = 1")
+except ImportError:
+	args = vim.command("let s:libclang_available = 0")
 
 def initClangComplete():
 	global index
@@ -232,9 +238,14 @@ def formatResult(result):
 	completion['info'] = info
 	completion['dup'] = 1
 
-	# Replace the number that represants a specific kind with a better
-	# textual representation.
-	completion['kind'] = str(result.cursorKind)
+	kind = str(result.cursorKind)
+
+	if result.kind == CursorKind.CXX_METHOD:
+		kind = 'f'
+	if result.kind == CursorKind.FUNCTION_TEMPLATE:
+		kind = 'f'
+
+	completion['kind'] = kind
 	return completion	
 
 def getCurrentCompletions():
@@ -361,7 +372,11 @@ function! s:ClangCompleteInit()
 
     " Load the python bindings of libclang
     if g:clang_use_library == 1
-      py initClangComplete()
+      if s:libclang_available == 1
+      	py initClangComplete()
+      else
+        let g:clang_use_library = 0
+      endif 
     endif
 endfunction
 
