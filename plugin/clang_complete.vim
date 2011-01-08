@@ -107,7 +107,7 @@ def getCurrentTranslationUnit(update = False):
 			elapsed = (time.time() - start)
 			print "LibClang - Reparsing: " + str(elapsed)
 		return tu
-	
+
 	start = time.time()
 	tu = index.parse(fileName, args, [currentFile])
 	elapsed = (time.time() - start)
@@ -235,7 +235,7 @@ def formatResult(result):
 	# Replace the number that represants a specific kind with a better
 	# textual representation.
 	completion['kind'] = str(result.cursorKind)
-	return completion	
+	return completion
 
 def getCurrentCompletions():
 	line = int(vim.eval("line('.')"))
@@ -243,7 +243,7 @@ def getCurrentCompletions():
 	cr = getCurrentCompletionResults(line, column)
 
 	getPriority = lambda x: x.string.priority
-	
+
 	sortedResult = sorted(cr.results, key = getPriority)
 	return map(formatResult, sortedResult)
 EOF
@@ -381,7 +381,7 @@ function! s:GetKind(proto)
     return 'm'
 endfunction
 
-function s:CallClangBinaryForDiagnostics(tempfile)
+function! s:CallClangBinaryForDiagnostics(tempfile)
     let l:escaped_tempfile = shellescape(a:tempfile)
     let l:buf = getline(1, '$')
     try
@@ -400,7 +400,7 @@ function s:CallClangBinaryForDiagnostics(tempfile)
     return l:clang_output
 endfunction
 
-function s:CallClangForDiagnostics(tempfile)
+function! s:CallClangForDiagnostics(tempfile)
     if g:clang_use_library == 1
 	python updateCurrentDiagnostics()
     else
@@ -408,7 +408,7 @@ function s:CallClangForDiagnostics(tempfile)
     endif
 endfunction
 
-function s:DoPeriodicQuickFix()
+function! s:DoPeriodicQuickFix()
     " Don't do any superfluous reparsing.
     if b:my_changedtick == b:changedtick
         return
@@ -432,7 +432,7 @@ function! s:ClangQuickFix(clang_output, tempfname)
     if g:clang_use_library == 0
 	let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
     else
-	python vim.command('let l:list = ' + str(getCurrentQuickFixList())) 
+	python vim.command('let l:list = ' + str(getCurrentQuickFixList()))
     	python highlightCurrentDiagnostics()
     endif
 
@@ -455,7 +455,7 @@ function! s:ClangQuickFix(clang_output, tempfname)
     doautocmd QuickFixCmdPost make
 endfunction
 
-function s:ClangUpdateQuickFix(clang_output, tempfname)
+function! s:ClangUpdateQuickFix(clang_output, tempfname)
     let l:list = []
     for l:line in a:clang_output
         let l:erridx = match(l:line, '\%(error\|warning\): ')
@@ -619,7 +619,7 @@ endfunction
 
 let b:col = 0
 
-function s:ClangCompleteBinary(base)
+function! s:ClangCompleteBinary(base)
     let l:buf = getline(1, '$')
     let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
     try
@@ -778,7 +778,7 @@ function! ClangComplete(findstart, base)
         return l:start
     else
 	if g:clang_use_library == 1
-	    python vim.command('let l:res = ' + str(getCurrentCompletions()) + '') 
+	    python vim.command('let l:res = ' + str(getCurrentCompletions()) + '')
 	else
 	    let l:res = s:ClangCompleteBinary(a:base)
 	endif
