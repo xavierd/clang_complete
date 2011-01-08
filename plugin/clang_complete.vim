@@ -55,6 +55,15 @@
 "       Default: ''
 "       Example: '|| exit 0' (it will discard clang return value)
 "
+"  - g:clang_use_library:
+"  	Instead of calling the clang/clang++ tool use libclang directly. This
+"  	should improve the performance, but is still experimental.
+"  	To use this libclang.so has to be in your library path or you need to
+"  	set LD_LIBRARY_PATH=/path/to/llvm/install/lib and cindex.py needs to
+"  	be in your python pass or you need to set
+"  	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
+"  	Default : 0
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
@@ -67,6 +76,177 @@ let b:clang_user_options = ''
 let b:my_changedtick = 0
 let b:clang_type_complete = 0
 let b:snipmate_snippets = {}
+
+python << EOF
+from clang.cindex import *
+import vim
+import time
+
+def initClangComplete():
+	global index
+	index = Index.create()
+	global translationUnits
+	translationUnits = dict()
+
+# Get a tuple (fileName, fileContent) for the file opened in the current
+# vim buffer. The fileContent contains the unsafed buffer content.
+def getCurrentFile():
+	file = "\n".join(vim.eval("getline(1, '$')"))
+	return (vim.current.buffer.name, file)
+
+def getCurrentTranslationUnit(update = False):
+	args = vim.eval("g:clang_user_options").split(" ")
+	currentFile = getCurrentFile()
+	fileName = vim.current.buffer.name
+
+	if fileName in translationUnits:
+		tu = translationUnits[fileName]
+		if update:
+			start = time.time()
+			tu.reparse([currentFile])
+			elapsed = (time.time() - start)
+			print "LibClang - Reparsing: " + str(elapsed)
+		return tu
+	
+	start = time.time()
+	tu = index.parse(fileName, args, [currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - First parse: " + str(elapsed)
+
+	if tu == None:
+		print "Cannot parse this source file. The following arguments " \
+		      + "are used for clang: " + " ".join(args)
+		return None
+
+	translationUnits[fileName] = tu
+
+	# Reparse to initialize the PCH cache even for auto completion
+	# This should be done by index.parse(), however it is not.
+	# So we need to reparse ourselves.
+	start = time.time()
+	tu.reparse([currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
+	return tu
+
+def getQuickFix(diagnostic):
+	filename = diagnostic.location.file.name
+	if diagnostic.severity == diagnostic.Warning:
+		type = 'W'
+	elif diagnostic.severity == diagnostic.Error:
+		type = 'E'
+	else:
+		return None
+
+				   # TODO: Get the correct buffer number.
+	return dict({ 'bufnr' : 1, #vim.eval("bufnr(" + filename + ", 1)"),
+		    'lnum' : diagnostic.location.line,
+		    'col' : diagnostic.location.column,
+		    'text' : diagnostic.spelling,
+		    'type' : type})
+
+def getQuickFixList(tu):
+	return filter (None, map (getQuickFix, tu.diagnostics))
+
+def highlightRange(range, hlGroup):
+	pattern = '/\%' + str(range.start.line) + 'l' + '\%' \
+		  + str(range.start.column) + 'c' + '.*' \
+                  + '\%' + str(range.end.column) + 'c/'
+	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
+	vim.command(command)
+
+def highlightDiagnostic(diagnostic):
+	if diagnostic.severity == diagnostic.Warning:
+		hlGroup = 'SpellLocal'
+	elif diagnostic.severity == diagnostic.Error:
+		hlGroup = 'SpellBad'
+	else:
+	 	return
+
+        pattern = '/\%' + str(diagnostic.location.line) + 'l\%' \
+		  + str(diagnostic.location.column) + 'c./'
+	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
+	vim.command(command)
+
+	# Use this wired kind of iterator as the python clang libraries
+        # have a bug in the range iterator that stops us to use:
+        #
+        # | for range in diagnostic.ranges
+        #
+	for i in range(len(diagnostic.ranges)):
+		highlightRange(diagnostic.ranges[i], hlGroup)
+
+def highlightDiagnostics(tu):
+	map (highlightDiagnostic, tu.diagnostics)
+
+def highlightCurrentDiagnostics():
+	if vim.current.buffer.name in translationUnits:
+		highlightDiagnostics(translationUnits[vim.current.buffer.name])
+
+def getCurrentQuickFixList():
+	if vim.current.buffer.name in translationUnits:
+		return getQuickFixList(translationUnits[vim.current.buffer.name])
+	return []
+
+def updateCurrentDiagnostics():
+	getCurrentTranslationUnit(update = True)
+
+def getCurrentCompletionResults(line, column):
+	tu = getCurrentTranslationUnit()
+	currentFile = getCurrentFile()
+	start = time.time()
+	cr = tu.codeComplete(vim.current.buffer.name, line, column,
+			     [currentFile])
+	elapsed = (time.time() - start)
+	print "LibClang - Code completion time: " + str(elapsed)
+	return cr
+
+def completeCurrentAt(line, column):
+	print "\n".join(map(str, getCurrentCompletionResults().results))
+
+def formatChunkForWord(chunk):
+	if chunk.isKindPlaceHolder():
+		return "<#" + chunk.spelling + "#>"
+	else:
+		return chunk.spelling
+
+def formatResult(result):
+	completion = dict()
+
+        abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
+	info = filter(lambda x: not x.isKindInformative(), result.string)
+	word = filter(lambda x: not x.isKindResultType(), info)
+	returnValue = filter(lambda x: x.isKindResultType(), info)
+
+	if len(returnValue) > 0:
+		returnStr = returnValue[0].spelling + " "
+	else:
+		returnStr = ""
+
+	info = returnStr + "".join(map(lambda x: x.spelling, word))
+	word = "".join(map(formatChunkForWord, word))
+
+	completion['word'] = word
+	completion['abbr'] = abbr
+	completion['menu'] = info
+	completion['info'] = info
+	completion['dup'] = 1
+
+	# Replace the number that represants a specific kind with a better
+	# textual representation.
+	completion['kind'] = str(result.cursorKind)
+	return completion	
+
+def getCurrentCompletions():
+	line = int(vim.eval("line('.')"))
+	column = int(vim.eval("b:col"))
+	cr = getCurrentCompletionResults(line, column)
+
+	getPriority = lambda x: x.string.priority
+	
+	sortedResult = sorted(cr.results, key = getPriority)
+	return map(formatResult, sortedResult)
+EOF
 
 function! s:ClangCompleteInit()
     let l:local_conf = findfile('.clang_complete', '.;')
@@ -118,6 +298,10 @@ function! s:ClangCompleteInit()
 
     if !exists('g:clang_user_options')
         let g:clang_user_options = ''
+    endif
+
+    if !exists('g:clang_use_library')
+        let g:clang_use_library = 1
     endif
 
     if !exists('g:clang_use_snipmate')
@@ -172,6 +356,11 @@ function! s:ClangCompleteInit()
             au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
         augroup end
     endif
+
+    " Load the python bindings of libclang
+    if g:clang_use_library == 1
+      py initClangComplete()
+    endif
 endfunction
 
 function! s:GetKind(proto)
@@ -192,21 +381,14 @@ function! s:GetKind(proto)
     return 'm'
 endfunction
 
-function! s:DoPeriodicQuickFix()
-    " Don't do any superfluous reparsing.
-    if b:my_changedtick == b:changedtick
-        return
-    endif
-    let b:my_changedtick = b:changedtick
-
+function s:CallClangBinaryForDiagnostics(tempfile)
+    let l:escaped_tempfile = shellescape(a:tempfile)
     let l:buf = getline(1, '$')
-    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
     try
-        call writefile(l:buf, l:tempfile)
+        call writefile(l:buf, a:tempfile)
     catch /^Vim\%((\a\+)\)\=:E482/
         return
     endtry
-    let l:escaped_tempfile = shellescape(l:tempfile)
 
     let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
                 \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
@@ -214,7 +396,31 @@ function! s:DoPeriodicQuickFix()
                 \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
     let l:clang_output = split(system(l:command), "\n")
-    call delete(l:tempfile)
+    call delete(a:tempfile)
+    return l:clang_output
+endfunction
+
+function s:CallClangForDiagnostics(tempfile)
+    if g:clang_use_library == 1
+	python updateCurrentDiagnostics()
+    else
+	return s:CallClangBinaryForDiagnostics(a:tempfile)
+    endif
+endfunction
+
+function s:DoPeriodicQuickFix()
+    " Don't do any superfluous reparsing.
+    if b:my_changedtick == b:changedtick
+        return
+    endif
+    let b:my_changedtick = b:changedtick
+
+    " Create tempfile name for clang/clang++ executable mode
+    let b:my_changedtick = b:changedtick
+    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+
+    let l:clang_output = s:CallClangForDiagnostics(l:tempfile)
+
     call s:ClangQuickFix(l:clang_output, l:tempfile)
 endfunction
 
@@ -222,6 +428,34 @@ function! s:ClangQuickFix(clang_output, tempfname)
     " Clear the bad spell, the user may have corrected them.
     syntax clear SpellBad
     syntax clear SpellLocal
+
+    if g:clang_use_library == 0
+	let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
+    else
+	python vim.command('let l:list = ' + str(getCurrentQuickFixList())) 
+    	python highlightCurrentDiagnostics()
+    endif
+
+    if g:clang_complete_copen == 1
+        " We should get back to the original buffer
+        let l:bufnr = bufnr('%')
+
+        " Workaround:
+        " http://vim.1045645.n5.nabble.com/setqflist-inconsistency-td1211423.html
+        if l:list == []
+            cclose
+        else
+            copen
+        endif
+
+        let l:winbufnr = bufwinnr(l:bufnr)
+        exe l:winbufnr . 'wincmd w'
+    endif
+    call setqflist(l:list)
+    doautocmd QuickFixCmdPost make
+endfunction
+
+function s:ClangUpdateQuickFix(clang_output, tempfname)
     let l:list = []
     for l:line in a:clang_output
         let l:erridx = match(l:line, '\%(error\|warning\): ')
@@ -286,22 +520,7 @@ function! s:ClangQuickFix(clang_output, tempfname)
             exe 'syntax match' . l:hlgroup . l:pat
         endfor
     endfor
-    call setqflist(l:list)
-    doautocmd QuickFixCmdPost make
-    if g:clang_complete_copen == 1
-        " We should get back to the original buffer
-        let l:bufnr = bufnr('%')
-
-        " Workaround:
-        " http://vim.1045645.n5.nabble.com/setqflist-inconsistency-td1211423.html
-        if l:list == []
-            cclose
-        else
-            copen
-        endif
-        let l:winbufnr = bufwinnr(l:bufnr)
-        exe l:winbufnr . 'wincmd w'
-    endif
+    return l:list
 endfunction
 
 function! s:DemangleProto(prototype)
@@ -399,6 +618,138 @@ function! TriggerSnipmate()
 endfunction
 
 let b:col = 0
+
+function s:ClangCompleteBinary(base)
+    let l:buf = getline(1, '$')
+    let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
+    try
+        call writefile(l:buf, l:tempfile)
+    catch /^Vim\%((\a\+)\)\=:E482/
+        return {}
+    endtry
+    let l:escaped_tempfile = shellescape(l:tempfile)
+
+    let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+                \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
+                \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
+                \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
+                \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
+    let l:clang_output = split(system(l:command), "\n")
+    call delete(l:tempfile)
+
+    call s:ClangQuickFix(l:clang_output, l:tempfile)
+    if v:shell_error
+        return {}
+    endif
+    if l:clang_output == []
+        return {}
+    endif
+
+    if g:clang_use_snipmate == 1
+        " Quick & Easy way to prevent snippets to be added twice
+        " Ideally we should modify snipmate to be smarter about this
+        call ReloadSnippets(&filetype)
+        let b:snipmate_snippets = {}
+    endif
+
+    let l:res = []
+    "for l:line in l:clang_output
+    while !empty(l:clang_output)
+        let l:line = l:clang_output[0]
+        let l:clang_output = l:clang_output[1:]
+
+        if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
+
+            let l:value = l:line[12:]
+
+            if l:value =~ 'Pattern'
+                if g:clang_snippets != 1 && g:clang_use_snipmate != 1
+                    continue
+                endif
+
+                let l:value = l:value[10:]
+            endif
+
+            if l:value !~ '^' . a:base
+                continue
+            endif
+
+            let l:colonidx = stridx(l:value, ' : ')
+            if l:colonidx == -1
+                let l:wabbr = s:DemangleProto(l:value)
+                let l:word = l:value
+                let l:proto = l:value
+            else
+                let l:word = l:value[:l:colonidx - 1]
+                " WTF is that?
+                if l:word =~ '(Hidden)'
+                    let l:word = l:word[:-10]
+                endif
+                let l:wabbr = l:word
+                let l:proto = l:value[l:colonidx + 3:]
+            endif
+
+            let l:kind = s:GetKind(l:proto)
+            if l:kind == 't' && b:clang_complete_type == 0
+                continue
+            endif
+
+            if g:clang_snippets == 1
+                let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
+                if l:word =~ '{#.*#}'
+                    let l:next_line = substitute(l:line, '{#\(.*\)#}', '\1', '')
+                    let l:clang_output = [l:next_line] + l:clang_output
+                    let l:word = substitute(l:word, '{#.*#}', '', 'g')
+                endif
+            else
+                let l:word = l:wabbr
+            endif
+            let l:proto = s:DemangleProto(l:proto)
+
+        elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
+                    \ && g:clang_snippets == 1
+
+            let l:value = l:line[10:]
+            if match(l:value, '<#') == -1
+                continue
+            endif
+            let l:word = substitute(l:value, '.*<#', '<#', 'g')
+            let l:word = substitute(l:word, '#>.*', '#>', 'g')
+            let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
+            let l:proto = s:DemangleProto(l:value)
+            let l:kind = ''
+        else
+            continue
+        endif
+
+        if g:clang_use_snipmate == 1
+            " Clean up prototype (remove return type and const)
+            let l:word = substitute(l:proto, '\v^.*(\V' . l:word . '\v.{-})( *const *)?$', '\1', '')
+
+            " Create snipmate's snippet
+            let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
+            call MakeSnip(&filetype, l:wabbr, l:snippet, l:proto)
+
+            " Store which overload we are going to complete
+            if !has_key(b:snipmate_snippets, l:wabbr)
+                let b:snipmate_snippets[l:wabbr] = []
+            endif
+            let b:snipmate_snippets[l:wabbr] += [l:word]
+        endif
+
+        let l:item = {
+                    \ 'word': l:word,
+                    \ 'abbr': l:wabbr,
+                    \ 'menu': l:proto,
+                    \ 'info': l:proto,
+                    \ 'dup': 1,
+                    \ 'kind': l:kind }
+
+        call add(l:res, l:item)
+    endwhile
+    return l:res
+endfunction
+
 function! ClangComplete(findstart, base)
     if a:findstart
         let l:line = getline('.')
@@ -426,138 +777,11 @@ function! ClangComplete(findstart, base)
         let b:col = l:start + 1
         return l:start
     else
-        let l:buf = getline(1, '$')
-        let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
-        try
-            call writefile(l:buf, l:tempfile)
-        catch /^Vim\%((\a\+)\)\=:E482/
-            return {}
-        endtry
-        let l:escaped_tempfile = shellescape(l:tempfile)
-
-        let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
-                    \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
-                    \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
-                    \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
-                    \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
-        let l:clang_output = split(system(l:command), "\n")
-        call delete(l:tempfile)
-
-        call s:ClangQuickFix(l:clang_output, l:tempfile)
-        if v:shell_error
-            return {}
-        endif
-        if l:clang_output == []
-            return {}
-        endif
-
-        if g:clang_use_snipmate == 1
-            " Quick & Easy way to prevent snippets to be added twice
-            " Ideally we should modify snipmate to be smarter about this
-            call ReloadSnippets(&filetype)
-            let b:snipmate_snippets = {}
-        endif
-
-        let l:res = []
-        "for l:line in l:clang_output
-        while !empty(l:clang_output)
-            let l:line = l:clang_output[0]
-            let l:clang_output = l:clang_output[1:]
-
-            if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
-
-                let l:value = l:line[12:]
-
-                if l:value =~ 'Pattern'
-                    if g:clang_snippets != 1 && g:clang_use_snipmate != 1
-                        continue
-                    endif
-
-                    let l:value = l:value[10:]
-                endif
-
-                if l:value !~ '^' . a:base
-                    continue
-                endif
-
-                let l:colonidx = stridx(l:value, ' : ')
-                if l:colonidx == -1
-                    let l:wabbr = s:DemangleProto(l:value)
-                    let l:word = l:value
-                    let l:proto = l:value
-                else
-                    let l:word = l:value[:l:colonidx - 1]
-                    " WTF is that?
-                    if l:word =~ '(Hidden)'
-                        let l:word = l:word[:-10]
-                    endif
-                    let l:wabbr = l:word
-                    let l:proto = l:value[l:colonidx + 3:]
-                endif
-
-                let l:kind = s:GetKind(l:proto)
-                if l:kind == 't' && b:clang_complete_type == 0
-                    continue
-                endif
-
-                if g:clang_snippets == 1
-                    let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
-                    if l:word =~ '{#.*#}'
-                        let l:next_line = substitute(l:line, '{#\(.*\)#}', '\1', '')
-                        let l:clang_output = [l:next_line] + l:clang_output
-                        let l:word = substitute(l:word, '{#.*#}', '', 'g')
-                    endif
-                else
-                    let l:word = l:wabbr
-                endif
-                let l:proto = s:DemangleProto(l:proto)
-
-            elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
-                        \ && g:clang_snippets == 1
-
-                let l:value = l:line[10:]
-                if match(l:value, '<#') == -1
-                    continue
-                endif
-                let l:word = substitute(l:value, '.*<#', '<#', 'g')
-                let l:word = substitute(l:word, '#>.*', '#>', 'g')
-                let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
-                let l:proto = s:DemangleProto(l:value)
-                let l:kind = ''
-            else
-                continue
-            endif
-
-            if g:clang_use_snipmate == 1
-                " Clean up prototype (remove return type and const)
-                let l:word = substitute(l:proto, '\v^.*(\V' . l:word . '\v.{-})( *const *)?$', '\1', '')
-
-                " Create snipmate's snippet
-                let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
-                call MakeSnip(&filetype, l:wabbr, l:snippet, l:proto)
-
-                " Store which overload we are going to complete
-                if !has_key(b:snipmate_snippets, l:wabbr)
-                    let b:snipmate_snippets[l:wabbr] = []
-                endif
-                let b:snipmate_snippets[l:wabbr] += [l:word]
-            endif
-
-            let l:item = {
-                        \ 'word': l:word,
-                        \ 'abbr': l:wabbr,
-                        \ 'menu': l:proto,
-                        \ 'info': l:proto,
-                        \ 'dup': 1,
-                        \ 'kind': l:kind }
-
-            call add(l:res, l:item)
-        endwhile
-        if g:clang_use_snipmate == 1
-            augroup ClangComplete
-                au CursorMovedI <buffer> call TriggerSnipmate()
-            augroup end
-        endif
+	if g:clang_use_library == 1
+	    python vim.command('let l:res = ' + str(getCurrentCompletions()) + '') 
+	else
+	    let l:res = s:ClangCompleteBinary(a:base)
+	endif
         if g:clang_snippets == 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
