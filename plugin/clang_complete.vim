@@ -56,13 +56,13 @@
 "       Example: '|| exit 0' (it will discard clang return value)
 "
 "  - g:clang_use_library:
-"  	Instead of calling the clang/clang++ tool use libclang directly. This
-"  	should improve the performance, but is still experimental.
-"  	To use this libclang.so has to be in your library path or you need to
-"  	set LD_LIBRARY_PATH=/path/to/llvm/install/lib and cindex.py needs to
-"  	be in your python pass or you need to set
-"  	PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
-"  	Default : 0
+"      Instead of calling the clang/clang++ tool use libclang directly. This
+"      should improve the performance, but is still experimental.
+"      To use this libclang.so has to be in your library path or you need to
+"      set LD_LIBRARY_PATH=/path/to/llvm/install/lib and cindex.py needs to
+"      be in your python pass or you need to set
+"      PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
+"      Default : 0
 "
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
@@ -77,176 +77,9 @@ let b:my_changedtick = 0
 let b:clang_type_complete = 0
 let b:snipmate_snippets = {}
 
-python << EOF
-from clang.cindex import *
-import vim
-import time
-
-def initClangComplete():
-	global index
-	index = Index.create()
-	global translationUnits
-	translationUnits = dict()
-
-# Get a tuple (fileName, fileContent) for the file opened in the current
-# vim buffer. The fileContent contains the unsafed buffer content.
-def getCurrentFile():
-	file = "\n".join(vim.eval("getline(1, '$')"))
-	return (vim.current.buffer.name, file)
-
-def getCurrentTranslationUnit(update = False):
-	args = vim.eval("g:clang_user_options").split(" ")
-	currentFile = getCurrentFile()
-	fileName = vim.current.buffer.name
-
-	if fileName in translationUnits:
-		tu = translationUnits[fileName]
-		if update:
-			start = time.time()
-			tu.reparse([currentFile])
-			elapsed = (time.time() - start)
-			print "LibClang - Reparsing: " + str(elapsed)
-		return tu
-
-	start = time.time()
-	tu = index.parse(fileName, args, [currentFile])
-	elapsed = (time.time() - start)
-	print "LibClang - First parse: " + str(elapsed)
-
-	if tu == None:
-		print "Cannot parse this source file. The following arguments " \
-		      + "are used for clang: " + " ".join(args)
-		return None
-
-	translationUnits[fileName] = tu
-
-	# Reparse to initialize the PCH cache even for auto completion
-	# This should be done by index.parse(), however it is not.
-	# So we need to reparse ourselves.
-	start = time.time()
-	tu.reparse([currentFile])
-	elapsed = (time.time() - start)
-	print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
-	return tu
-
-def getQuickFix(diagnostic):
-	filename = diagnostic.location.file.name
-	if diagnostic.severity == diagnostic.Warning:
-		type = 'W'
-	elif diagnostic.severity == diagnostic.Error:
-		type = 'E'
-	else:
-		return None
-
-				   # TODO: Get the correct buffer number.
-	return dict({ 'bufnr' : 1, #vim.eval("bufnr(" + filename + ", 1)"),
-		    'lnum' : diagnostic.location.line,
-		    'col' : diagnostic.location.column,
-		    'text' : diagnostic.spelling,
-		    'type' : type})
-
-def getQuickFixList(tu):
-	return filter (None, map (getQuickFix, tu.diagnostics))
-
-def highlightRange(range, hlGroup):
-	pattern = '/\%' + str(range.start.line) + 'l' + '\%' \
-		  + str(range.start.column) + 'c' + '.*' \
-                  + '\%' + str(range.end.column) + 'c/'
-	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
-	vim.command(command)
-
-def highlightDiagnostic(diagnostic):
-	if diagnostic.severity == diagnostic.Warning:
-		hlGroup = 'SpellLocal'
-	elif diagnostic.severity == diagnostic.Error:
-		hlGroup = 'SpellBad'
-	else:
-	 	return
-
-        pattern = '/\%' + str(diagnostic.location.line) + 'l\%' \
-		  + str(diagnostic.location.column) + 'c./'
-	command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
-	vim.command(command)
-
-	# Use this wired kind of iterator as the python clang libraries
-        # have a bug in the range iterator that stops us to use:
-        #
-        # | for range in diagnostic.ranges
-        #
-	for i in range(len(diagnostic.ranges)):
-		highlightRange(diagnostic.ranges[i], hlGroup)
-
-def highlightDiagnostics(tu):
-	map (highlightDiagnostic, tu.diagnostics)
-
-def highlightCurrentDiagnostics():
-	if vim.current.buffer.name in translationUnits:
-		highlightDiagnostics(translationUnits[vim.current.buffer.name])
-
-def getCurrentQuickFixList():
-	if vim.current.buffer.name in translationUnits:
-		return getQuickFixList(translationUnits[vim.current.buffer.name])
-	return []
-
-def updateCurrentDiagnostics():
-	getCurrentTranslationUnit(update = True)
-
-def getCurrentCompletionResults(line, column):
-	tu = getCurrentTranslationUnit()
-	currentFile = getCurrentFile()
-	start = time.time()
-	cr = tu.codeComplete(vim.current.buffer.name, line, column,
-			     [currentFile])
-	elapsed = (time.time() - start)
-	print "LibClang - Code completion time: " + str(elapsed)
-	return cr
-
-def completeCurrentAt(line, column):
-	print "\n".join(map(str, getCurrentCompletionResults().results))
-
-def formatChunkForWord(chunk):
-	if chunk.isKindPlaceHolder():
-		return "<#" + chunk.spelling + "#>"
-	else:
-		return chunk.spelling
-
-def formatResult(result):
-	completion = dict()
-
-        abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
-	info = filter(lambda x: not x.isKindInformative(), result.string)
-	word = filter(lambda x: not x.isKindResultType(), info)
-	returnValue = filter(lambda x: x.isKindResultType(), info)
-
-	if len(returnValue) > 0:
-		returnStr = returnValue[0].spelling + " "
-	else:
-		returnStr = ""
-
-	info = returnStr + "".join(map(lambda x: x.spelling, word))
-	word = "".join(map(formatChunkForWord, word))
-
-	completion['word'] = word
-	completion['abbr'] = abbr
-	completion['menu'] = info
-	completion['info'] = info
-	completion['dup'] = 1
-
-	# Replace the number that represants a specific kind with a better
-	# textual representation.
-	completion['kind'] = str(result.cursorKind)
-	return completion
-
-def getCurrentCompletions():
-	line = int(vim.eval("line('.')"))
-	column = int(vim.eval("b:col"))
-	cr = getCurrentCompletionResults(line, column)
-
-	getPriority = lambda x: x.string.priority
-
-	sortedResult = sorted(cr.results, key = getPriority)
-	return map(formatResult, sortedResult)
-EOF
+if has('python')
+    pyfile libclang.py
+endif
 
 function! s:ClangCompleteInit()
     let l:local_conf = findfile('.clang_complete', '.;')
@@ -301,7 +134,7 @@ function! s:ClangCompleteInit()
     endif
 
     if !exists('g:clang_use_library')
-        let g:clang_use_library = 1
+        let g:clang_use_library = has('python')
     endif
 
     if !exists('g:clang_use_snipmate')
@@ -359,7 +192,7 @@ function! s:ClangCompleteInit()
 
     " Load the python bindings of libclang
     if g:clang_use_library == 1
-      py initClangComplete()
+        py initClangComplete()
     endif
 endfunction
 
@@ -402,9 +235,9 @@ endfunction
 
 function! s:CallClangForDiagnostics(tempfile)
     if g:clang_use_library == 1
-	python updateCurrentDiagnostics()
+        python updateCurrentDiagnostics()
     else
-	return s:CallClangBinaryForDiagnostics(a:tempfile)
+        return s:CallClangBinaryForDiagnostics(a:tempfile)
     endif
 endfunction
 
@@ -430,10 +263,10 @@ function! s:ClangQuickFix(clang_output, tempfname)
     syntax clear SpellLocal
 
     if g:clang_use_library == 0
-	let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
+        let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
     else
-	python vim.command('let l:list = ' + str(getCurrentQuickFixList()))
-    	python highlightCurrentDiagnostics()
+        python vim.command('let l:list = ' + str(getCurrentQuickFixList()))
+        python highlightCurrentDiagnostics()
     endif
 
     if g:clang_complete_copen == 1
@@ -777,11 +610,11 @@ function! ClangComplete(findstart, base)
         let b:col = l:start + 1
         return l:start
     else
-	if g:clang_use_library == 1
-	    python vim.command('let l:res = ' + str(getCurrentCompletions()) + '')
-	else
-	    let l:res = s:ClangCompleteBinary(a:base)
-	endif
+        if g:clang_use_library == 1
+            python vim.command('let l:res = ' + str(getCurrentCompletions()) + '')
+        else
+            let l:res = s:ClangCompleteBinary(a:base)
+        endif
         if g:clang_snippets == 1
             augroup ClangComplete
                 au CursorMovedI <buffer> call BeginSnips()
