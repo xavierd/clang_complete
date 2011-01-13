@@ -101,7 +101,7 @@ def getCurrentFile():
 	return (vim.current.buffer.name, file)
 
 def getCurrentTranslationUnit(update = False):
-	args = vim.eval("g:clang_user_options").split(" ")
+	args = vim.eval("b:clang_user_options").split(" ")
 	currentFile = getCurrentFile()
 	fileName = vim.current.buffer.name
 
