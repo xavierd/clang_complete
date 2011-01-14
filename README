@@ -74,15 +74,6 @@ Note:
  privately, others can be interested by your work. If you have a patch
  or a bug or a feature request, mail me.
 
-libclang:
-To use g:clang_use_library libclang.so has to be in your library path or you
-need to set LD_LIBRARY_PATH=/path/to/llvm/install/lib . Furthermore cindex.py
-needs to be in your python path or you need to set
-PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
-
-Currently a patch to the clang python bindings is still needed.
-http://lists.cs.uiuc.edu/pipermail/cfe-commits/Week-of-Mon-20101213/037284.html
-
 PCH:
 A PreCompiled Header file is a way to accelerate compilation, and so,
 may accelerate the completion. Here is how to create the <vector> pch,
