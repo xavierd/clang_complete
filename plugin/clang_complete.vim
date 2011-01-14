@@ -77,12 +77,9 @@ let b:my_changedtick = 0
 let b:clang_type_complete = 0
 let b:snipmate_snippets = {}
 
-if has('python')
-  python import sys
-  exe 'python sys.path.append("' . expand('<sfile>:p:h') . '")'
-  exe 'python sys.argv=["' . g:clang_library_path . '"]'
-  exe 'pyfile ' . expand('<sfile>:h') . '/libclang.py'
-endif
+" Store plugin path, as this is available only when sourcing the file,
+" not during a function call.
+let s:plugin_path = expand('<sfile>:p:h')
 
 function! s:ClangCompleteInit()
   let l:local_conf = findfile('.clang_complete', '.;')
@@ -137,7 +134,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_use_library')
-    let g:clang_use_library = has('python')
+    let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
   endif
 
   if !exists('g:clang_use_library')
@@ -199,8 +196,29 @@ function! s:ClangCompleteInit()
 
   " Load the python bindings of libclang
   if g:clang_use_library == 1
-    py initClangComplete()
+    if !has('python')
+      echo "clang_complete: No python support available."
+      echo "Cannot use clang library, using executable"
+      echo "Compile vim with python support to use libclang"
+      return
+    else
+      exe s:initClangCompletePython()
+    endif
   endif
+endfunction
+
+function! s:initClangCompletePython()
+  python import sys
+
+  " Only add library path if available. Otherwise we expect libclang to
+  " already be in the system search path.
+  if exists('g:clang_library_path')
+    exe 'python sys.path.append("' . g:clang_library_path. '")'
+  endif
+
+  exe 'python sys.path.append("' . s:plugin_path . '")'
+  exe 'pyfile ' . s:plugin_path . '/libclang.py'
+  py initClangComplete()
 endfunction
 
 function! s:GetKind(proto)
