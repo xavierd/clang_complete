@@ -61,7 +61,9 @@
 "      Don't forget to set g:clang_library_path.
 "
 "  - g:clang_library_path:
-"      Absolute path to libclang.[dll/so/dylib]
+"      If libclang.[dll/so/dylib] is not in your library search path, set
+"      this to the absolute path where libclang is available.
+"
 "      Default : ''
 "
 " Todo: - Fix bugs

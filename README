@@ -54,6 +54,11 @@ Configuration:
 	will therefore be a lot faster.
   	Default : 0
 
+    - g:clang_library_path:
+	If libclang.[dll/so/dylib] is not in your library search path, set
+	this to the absolute path where libclang is available.
+	Default : ''
+
 Thanks to:
     Xaizek
 
