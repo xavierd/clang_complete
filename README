@@ -54,6 +54,11 @@ Configuration:
 	will therefore be a lot faster.
   	Default : 0
 
+    - g:clang_library_path:
+	If libclang.[dll/so/dylib] is not in your library search path, set
+	this to the absolute path where libclang is available.
+	Default : ''
+
 Thanks to:
     Xaizek
 
@@ -69,18 +74,13 @@ Note:
  privately, others can be interested by your work. If you have a patch
  or a bug or a feature request, mail me.
 
-libclang:
-To use g:clang_use_library libclang.so has to be in your library path or you
-need to set LD_LIBRARY_PATH=/path/to/llvm/install/lib . Furthermore cindex.py
-needs to be in your python path or you need to set
-PYTHONPATH=/path/to/llvm/source/tools/clang/bindings/python/clang
-
-Currently a patch to the clang python bindings is still needed.
-http://lists.cs.uiuc.edu/pipermail/cfe-commits/Week-of-Mon-20101213/037284.html
-
 PCH:
-A PreCompiled Header file is a way to accelerate compilation, and so,
-may accelerate the completion. Here is how to create the <vector> pch,
+In case you can not or you do not want to install libclang, a precompiled header
+file is another way to accelerate compilation, and so, to accelerate the
+completion. It is however more complicated to install and is still slower
+than the use of libclang.
+
+Here is how to create the <vector> pch,
 on linux (OSX users may use -fnext-runtime instead of -fgnu-runtime):
 
 clang -x c++-header /path/to/c++/vector -fno-exceptions -fgnu-runtime -o vector.pch
@@ -103,5 +103,3 @@ Known Issues:
  - There is no difference in clang's output between private
  methods/members and public ones. Which means that I cannot filter
  private methods on the completion list.
-
- - g:clang_use_library works currently only for quickfixes.
