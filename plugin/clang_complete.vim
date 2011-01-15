@@ -135,7 +135,9 @@ function! s:ClangCompleteInit()
   endif
 
   " Only use libclang if the user clearly show intent to do so for now
-  let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
+  if !exists('g:clang_use_library')
+    let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
+  endif
 
   if !exists('g:clang_use_snipmate')
     if g:clang_snippets == 1
