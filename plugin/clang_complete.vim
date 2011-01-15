@@ -64,7 +64,6 @@
 "      If libclang.[dll/so/dylib] is not in your library search path, set
 "      this to the absolute path where libclang is available.
 "
-"      Default : ''
 "
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
@@ -135,13 +134,8 @@ function! s:ClangCompleteInit()
     let g:clang_user_options = ''
   endif
 
-  if !exists('g:clang_use_library')
-    let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
-  endif
-
-  if !exists('g:clang_use_library')
-    let g:clang_library_path = ''
-  endif
+  " Only use libclang if the user clearly show intent to do so for now
+  let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
 
   if !exists('g:clang_use_snipmate')
     if g:clang_snippets == 1
@@ -198,13 +192,13 @@ function! s:ClangCompleteInit()
 
   " Load the python bindings of libclang
   if g:clang_use_library == 1
-    if !has('python')
+    if has('python')
+      exe s:initClangCompletePython()
+    else
       echo "clang_complete: No python support available."
       echo "Cannot use clang library, using executable"
       echo "Compile vim with python support to use libclang"
       return
-    else
-      exe s:initClangCompletePython()
     endif
   endif
 endfunction
@@ -220,7 +214,7 @@ function! s:initClangCompletePython()
 
   exe 'python sys.path.append("' . s:plugin_path . '")'
   exe 'pyfile ' . s:plugin_path . '/libclang.py'
-  py initClangComplete()
+  python initClangComplete()
 endfunction
 
 function! s:GetKind(proto)
