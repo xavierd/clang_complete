@@ -208,10 +208,13 @@ endfunction
 function! s:initClangCompletePython()
   python import sys
 
-  " Only add library path if available. Otherwise we expect libclang to
-  " already be in the system search path.
   if exists('g:clang_library_path')
-    exe 'python sys.argv=["' . g:clang_library_path . '"]'
+    " Load the library from the given library path.
+    exe 'python sys.argv = ["' . g:clang_library_path . '"]'
+  else
+    " By setting argv[0] to '' force the python bindings to load the library
+    " from the normal system search path.
+    python sys.argv[0] = ''
   endif
 
   exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
