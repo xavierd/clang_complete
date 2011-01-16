@@ -214,7 +214,7 @@ function! s:initClangCompletePython()
     exe 'python sys.argv=["' . g:clang_library_path . '"]'
   endif
 
-  exe 'python sys.path.append("' . s:plugin_path . '")'
+  exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
   exe 'pyfile ' . s:plugin_path . '/libclang.py'
   python initClangComplete()
 endfunction
