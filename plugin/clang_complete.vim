@@ -64,7 +64,6 @@
 "      If libclang.[dll/so/dylib] is not in your library search path, set
 "      this to the absolute path where libclang is available.
 "
-"      Default : ''
 "
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
@@ -81,7 +80,7 @@ let b:snipmate_snippets = {}
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
-let s:plugin_path = expand('<sfile>:p:h')
+let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
 function! s:ClangCompleteInit()
   let l:local_conf = findfile('.clang_complete', '.;')
@@ -135,12 +134,9 @@ function! s:ClangCompleteInit()
     let g:clang_user_options = ''
   endif
 
+  " Only use libclang if the user clearly show intent to do so for now
   if !exists('g:clang_use_library')
     let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
-  endif
-
-  if !exists('g:clang_use_library')
-    let g:clang_library_path = ''
   endif
 
   if !exists('g:clang_use_snipmate')
@@ -198,13 +194,13 @@ function! s:ClangCompleteInit()
 
   " Load the python bindings of libclang
   if g:clang_use_library == 1
-    if !has('python')
+    if has('python')
+      exe s:initClangCompletePython()
+    else
       echo "clang_complete: No python support available."
       echo "Cannot use clang library, using executable"
       echo "Compile vim with python support to use libclang"
       return
-    else
-      exe s:initClangCompletePython()
     endif
   endif
 endfunction
@@ -212,15 +208,18 @@ endfunction
 function! s:initClangCompletePython()
   python import sys
 
-  " Only add library path if available. Otherwise we expect libclang to
-  " already be in the system search path.
   if exists('g:clang_library_path')
-    exe 'python sys.path.append("' . g:clang_library_path. '")'
+    " Load the library from the given library path.
+    exe 'python sys.argv = ["' . escape(g:clang_library_path, '\') . '"]'
+  else
+    " By setting argv[0] to '' force the python bindings to load the library
+    " from the normal system search path.
+    python sys.argv[0] = ''
   endif
 
-  exe 'python sys.path.append("' . s:plugin_path . '")'
+  exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
   exe 'pyfile ' . s:plugin_path . '/libclang.py'
-  py initClangComplete()
+  python initClangComplete()
 endfunction
 
 function! s:GetKind(proto)
