@@ -209,6 +209,7 @@ function! s:ClangCompleteInit()
       echoe "clang_complete: No python support available."
       echoe "Cannot use clang library, using executable"
       echoe "Compile vim with python support to use libclang"
+      let g:clang_use_library = 0
       return
     endif
   endif
