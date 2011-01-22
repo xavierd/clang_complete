@@ -59,10 +59,12 @@
 "       Instead of calling the clang/clang++ tool use libclang directly. This
 "       should improve the performance, but is still experimental.
 "       Don't forget to set g:clang_library_path.
+"       Default: has('python') && exists('g:clang_library_path')
 "
 "  - g:clang_library_path:
 "       If libclang.[dll/so/dylib] is not in your library search path, set
 "       this to the absolute path where libclang is available.
+"       Default: variable doesn't exists
 "
 "  - g:clang_debug:
 "       Output debugging informations, like timeing output of completion.
