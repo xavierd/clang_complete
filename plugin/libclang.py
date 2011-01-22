@@ -1,6 +1,7 @@
 from clang.cindex import *
 import vim
 import time
+import re
 
 def initClangComplete():
   global index
@@ -170,12 +171,14 @@ def formatResult(result):
   completion['kind'] = str(result.cursorKind)
   return completion
 
-def getCurrentCompletions():
+def getCurrentCompletions(base):
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
   cr = getCurrentCompletionResults(line, column)
 
-  getPriority = lambda x: x.string.priority
+  regexp = re.compile("^" + base)
+  filteredResult = filter(lambda x: regexp.match(x.string[0].spelling), cr.results)
 
-  sortedResult = sorted(cr.results, key = getPriority)
+  getPriority = lambda x: x.string.priority
+  sortedResult = sorted(filteredResult, key = getPriority)
   return map(formatResult, sortedResult)

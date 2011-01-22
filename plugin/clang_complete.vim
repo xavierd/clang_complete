@@ -650,7 +650,8 @@ function! ClangComplete(findstart, base)
       let l:time_start = reltime()
     endif
     if g:clang_use_library == 1
-      python vim.command('let l:res = ' + str(getCurrentCompletions()) + '')
+      python vim.command('let l:res = '
+                  \ + str(getCurrentCompletions(vim.eval("a:base"))) + '')
     else
       let l:res = s:ClangCompleteBinary(a:base)
     endif
