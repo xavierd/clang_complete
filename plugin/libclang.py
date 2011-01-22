@@ -15,7 +15,7 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 def getCurrentTranslationUnit(update = False):
-  userOptionsGlobal = vim.eval("g:clang_user_options").split(" ") 
+  userOptionsGlobal = vim.eval("g:clang_user_options").split(" ")
   userOptionsLocal = vim.eval("b:clang_user_options").split(" ")
   args = userOptionsGlobal + userOptionsLocal
 
@@ -25,16 +25,20 @@ def getCurrentTranslationUnit(update = False):
   if fileName in translationUnits:
     tu = translationUnits[fileName]
     if update:
-      start = time.time()
+      if debug:
+        start = time.time()
       tu.reparse([currentFile])
-      elapsed = (time.time() - start)
-      print "LibClang - Reparsing: " + str(elapsed)
+      if debug:
+        elapsed = (time.time() - start)
+        print "LibClang - Reparsing: " + str(elapsed)
     return tu
 
-  start = time.time()
+  if debug:
+    start = time.time()
   tu = index.parse(fileName, args, [currentFile])
-  elapsed = (time.time() - start)
-  print "LibClang - First parse: " + str(elapsed)
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - First parse: " + str(elapsed)
 
   if tu == None:
     print "Cannot parse this source file. The following arguments " \
@@ -46,10 +50,12 @@ def getCurrentTranslationUnit(update = False):
   # Reparse to initialize the PCH cache even for auto completion
   # This should be done by index.parse(), however it is not.
   # So we need to reparse ourselves.
-  start = time.time()
+  if debug:
+    start = time.time()
   tu.reparse([currentFile])
-  elapsed = (time.time() - start)
-  print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
   return tu
 
 def getQuickFix(diagnostic):
@@ -115,12 +121,17 @@ def updateCurrentDiagnostics():
   getCurrentTranslationUnit(update = True)
 
 def getCurrentCompletionResults(line, column):
+  global debug
+  debug = vim.eval("g:clang_debug") == "1"
+
   tu = getCurrentTranslationUnit()
   currentFile = getCurrentFile()
-  start = time.time()
+  if debug:
+    start = time.time()
   cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
-  elapsed = (time.time() - start)
-  print "LibClang - Code completion time: " + str(elapsed)
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - Code completion time: " + str(elapsed)
   return cr
 
 def completeCurrentAt(line, column):

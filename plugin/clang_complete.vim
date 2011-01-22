@@ -56,14 +56,17 @@
 "       Example: '|| exit 0' (it will discard clang return value)
 "
 "  - g:clang_use_library:
-"      Instead of calling the clang/clang++ tool use libclang directly. This
-"      should improve the performance, but is still experimental.
-"      Don't forget to set g:clang_library_path.
+"       Instead of calling the clang/clang++ tool use libclang directly. This
+"       should improve the performance, but is still experimental.
+"       Don't forget to set g:clang_library_path.
 "
 "  - g:clang_library_path:
-"      If libclang.[dll/so/dylib] is not in your library search path, set
-"      this to the absolute path where libclang is available.
+"       If libclang.[dll/so/dylib] is not in your library search path, set
+"       this to the absolute path where libclang is available.
 "
+"  - g:clang_debug:
+"       Output debugging informations, like timeing output of completion.
+"       Default: 0
 "
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
@@ -145,6 +148,10 @@ function! s:ClangCompleteInit()
     else
       let g:clang_use_snipmate = exists('g:snippets_dir')
     endif
+  endif
+
+  if !exists('g:clang_debug')
+    let g:clang_debug = 0
   endif
 
   inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
@@ -636,6 +643,9 @@ function! ClangComplete(findstart, base)
     let b:col = l:start + 1
     return l:start
   else
+    if g:clang_debug == 1
+      let l:time_start = reltime()
+    endif
     if g:clang_use_library == 1
       python vim.command('let l:res = ' + str(getCurrentCompletions()) + '')
     else
@@ -645,6 +655,9 @@ function! ClangComplete(findstart, base)
       augroup ClangComplete
         au CursorMovedI <buffer> call BeginSnips()
       augroup end
+    endif
+    if g:clang_debug == 1
+      echo 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
     endif
     return l:res
   endif
