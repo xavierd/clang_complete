@@ -36,7 +36,7 @@ def getCurrentTranslationUnit(update = False):
 
   if debug:
     start = time.time()
-  tu = index.parse(fileName, args, [currentFile])
+  tu = index.parse(fileName, args, [currentFile], 0x14)
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First parse: " + str(elapsed)
