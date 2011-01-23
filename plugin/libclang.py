@@ -122,9 +122,6 @@ def updateCurrentDiagnostics():
   getCurrentTranslationUnit(update = True)
 
 def getCurrentCompletionResults(line, column):
-  global debug
-  debug = vim.eval("g:clang_debug") == "1"
-
   tu = getCurrentTranslationUnit()
   currentFile = getCurrentFile()
   if debug:
@@ -172,6 +169,8 @@ def formatResult(result):
   return completion
 
 def getCurrentCompletions(base):
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
   cr = getCurrentCompletionResults(line, column)
