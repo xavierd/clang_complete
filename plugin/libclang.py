@@ -171,6 +171,7 @@ def formatResult(result):
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
+  priority = vim.eval("g:clang_sort_algo") == 'priority'
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
   cr = getCurrentCompletionResults(line, column)
@@ -179,5 +180,6 @@ def getCurrentCompletions(base):
   filteredResult = filter(lambda x: regexp.match(x.string[0].spelling), cr.results)
 
   getPriority = lambda x: x.string.priority
-  sortedResult = sorted(filteredResult, key = getPriority)
+  getAbbrevation = lambda x: filter(lambda y: y.isKindTypedText(), x.string)[0].spelling.lower()
+  sortedResult = sorted(filteredResult, key = getPriority if priority else getAbbrevation)
   return map(formatResult, sortedResult)

@@ -66,6 +66,11 @@
 "       this to the absolute path where libclang is available.
 "       Default: variable doesn't exists
 "
+"  - g:clang_sort_algo:
+"       How results are sorted (alpha, priority).
+"       Currently only works with libclang.
+"       Default: 'alpha'
+"
 "  - g:clang_debug:
 "       Output debugging informations, like timeing output of completion.
 "       Default: 0
@@ -154,6 +159,10 @@ function! s:ClangCompleteInit()
 
   if !exists('g:clang_debug')
     let g:clang_debug = 0
+  endif
+
+  if !exists('g:clang_sort_algo')
+    let g:clang_sort_algo = 'alpha'
   endif
 
   inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
