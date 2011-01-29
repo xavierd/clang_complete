@@ -218,8 +218,8 @@ class Diagnostic(object):
                 return int(_clang_getDiagnosticNumRanges(self.diag))
 
             def __getitem__(self, key):
-		if (key >= len(self)):
-			raise IndexError
+                if (key >= len(self)):
+                    raise IndexError
                 return _clang_getDiagnosticRange(self.diag, key)
 
         return RangeIterator(self)
@@ -798,70 +798,20 @@ class CodeCompletionResults(ClangObject):
 
         return DiagnosticsItr(self)
 
-
-class Index(ClangObject):
-    """
-    The Index type provides the primary interface to the Clang CIndex library,
-    primarily by providing an interface for reading and parsing translation
-    units.
-    """
-
-    @staticmethod
-    def create(excludeDecls=False):
-        """
-        Create a new Index.
-        Parameters:
-        excludeDecls -- Exclude local declarations from translation units.
-        """
-        return Index(Index_create(excludeDecls, 0))
-
-    def __del__(self):
-        Index_dispose(self)
-
-    def read(self, path):
-        """Load the translation unit from the given AST file."""
-        ptr = TranslationUnit_read(self, path)
-        return TranslationUnit(ptr) if ptr else None
-
-    def parse(self, path, args = [], unsaved_files = [], options = 0):
-        """
-        Load the translation unit from the given source code file by running
-        clang and generating the AST before loading. Additional command line
-        parameters can be passed to clang via the args parameter.
-
-        In-memory contents for files can be provided by passing a list of pairs
-        to as unsaved_files, the first item should be the filenames to be mapped
-        and the second should be the contents to be substituted for the
-        file. The contents may be passed as strings or file objects.
-        """
-        arg_array = 0
-        if len(args):
-            arg_array = (c_char_p * len(args))(* args)
-        unsaved_files_array = 0
-        if len(unsaved_files):
-            unsaved_files_array = (_CXUnsavedFile * len(unsaved_files))()
-            for i,(name,value) in enumerate(unsaved_files):
-                if not isinstance(value, str):
-                    # FIXME: It would be great to support an efficient version
-                    # of this, one day.
-                    value = value.read()
-                    print value
-                if not isinstance(value, str):
-                    raise TypeError,'Unexpected unsaved file contents.'
-                unsaved_files_array[i].name = name
-                unsaved_files_array[i].contents = value
-                unsaved_files_array[i].length = len(value)
-        ptr = TranslationUnit_parse(self, path, arg_array, len(args),
-                                    unsaved_files_array, len(unsaved_files),
-                                    options)
-        return TranslationUnit(ptr) if ptr else None
-
-
 class TranslationUnit(ClangObject):
     """
     The TranslationUnit class represents a source code translation unit and
     provides read-only access to its top-level declarations.
     """
+
+    # enum CXTranslationUnit_Flags
+    Nothing = 0x0
+    DetailedPreprocessingRecord = 0x01
+    Incomplete = 0x02
+    PrecompiledPreamble = 0x04
+    CacheCompletionResults = 0x08
+    CXXPrecompiledPreamble = 0x10
+    CXXChainedPCH = 0x20
 
     def __init__(self, ptr):
         ClangObject.__init__(self, ptr)
@@ -918,7 +868,7 @@ class TranslationUnit(ClangObject):
 
         return DiagIterator(self)
 
-    def reparse(self, unsaved_files = [], options = 0):
+    def reparse(self, unsaved_files = [], options = Nothing):
         """
         Reparse an already parsed translation unit.
 
@@ -974,6 +924,62 @@ class TranslationUnit(ClangObject):
                                            options)
         return CodeCompletionResults(ptr) if ptr else None
 
+class Index(ClangObject):
+    """
+    The Index type provides the primary interface to the Clang CIndex library,
+    primarily by providing an interface for reading and parsing translation
+    units.
+    """
+
+    @staticmethod
+    def create(excludeDecls=False):
+        """
+        Create a new Index.
+        Parameters:
+        excludeDecls -- Exclude local declarations from translation units.
+        """
+        return Index(Index_create(excludeDecls, 0))
+
+    def __del__(self):
+        Index_dispose(self)
+
+    def read(self, path):
+        """Load the translation unit from the given AST file."""
+        ptr = TranslationUnit_read(self, path)
+        return TranslationUnit(ptr) if ptr else None
+
+    def parse(self, path, args = [], unsaved_files = [], options = TranslationUnit.Nothing):
+        """
+        Load the translation unit from the given source code file by running
+        clang and generating the AST before loading. Additional command line
+        parameters can be passed to clang via the args parameter.
+
+        In-memory contents for files can be provided by passing a list of pairs
+        to as unsaved_files, the first item should be the filenames to be mapped
+        and the second should be the contents to be substituted for the
+        file. The contents may be passed as strings or file objects.
+        """
+        arg_array = 0
+        if len(args):
+            arg_array = (c_char_p * len(args))(* args)
+        unsaved_files_array = 0
+        if len(unsaved_files):
+            unsaved_files_array = (_CXUnsavedFile * len(unsaved_files))()
+            for i,(name,value) in enumerate(unsaved_files):
+                if not isinstance(value, str):
+                    # FIXME: It would be great to support an efficient version
+                    # of this, one day.
+                    value = value.read()
+                    print value
+                if not isinstance(value, str):
+                    raise TypeError,'Unexpected unsaved file contents.'
+                unsaved_files_array[i].name = name
+                unsaved_files_array[i].contents = value
+                unsaved_files_array[i].length = len(value)
+        ptr = TranslationUnit_parse(self, path, arg_array, len(args),
+                                    unsaved_files_array, len(unsaved_files),
+                                    options)
+        return TranslationUnit(ptr) if ptr else None
 
 class File(ClangObject):
     """

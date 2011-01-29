@@ -36,7 +36,8 @@ def getCurrentTranslationUnit(update = False):
 
   if debug:
     start = time.time()
-  tu = index.parse(fileName, args, [currentFile], 0x14)
+  flags = TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble # | TranslationUnit.CacheCompletionResults
+  tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First parse: " + str(elapsed)
