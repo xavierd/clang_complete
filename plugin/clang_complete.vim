@@ -69,7 +69,7 @@
 "  - g:clang_sort_algo:
 "       How results are sorted (alpha, priority).
 "       Currently only works with libclang.
-"       Default: 'alpha'
+"       Default: 'priority'
 "
 "  - g:clang_debug:
 "       Output debugging informations, like timeing output of completion.
@@ -162,7 +162,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_sort_algo')
-    let g:clang_sort_algo = 'alpha'
+    let g:clang_sort_algo = 'priority'
   endif
 
   inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
