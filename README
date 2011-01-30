@@ -70,9 +70,9 @@ Note:
  - If you find that completion is slow, please read the PCH section
  below.
 
- - You're free to use it, to distribute it, but please, don't modify it
- privately, others can be interested by your work. If you have a patch
- or a bug or a feature request, mail me.
+ - The LICENSE file does not cover the files that come from the LLVM
+ project, namely, cindex.py and __init__.py, which are covered by the
+ LLVM license.
 
 PCH:
 In case you can not or you do not want to install libclang, a precompiled header
