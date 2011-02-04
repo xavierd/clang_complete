@@ -69,8 +69,7 @@ def getQuickFix(diagnostic):
   else:
     return None
 
-  # TODO: Get the correct buffer number.
-  return dict({ 'bufnr' : 1, #vim.eval("bufnr(" + filename + ", 1)"),
+  return dict({ 'bufnr' : int(vim.eval("bufnr('" + filename + "', 1)")),
     'lnum' : diagnostic.location.line,
     'col' : diagnostic.location.column,
     'text' : diagnostic.spelling,
@@ -120,6 +119,8 @@ def getCurrentQuickFixList():
   return []
 
 def updateCurrentDiagnostics():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
   getCurrentTranslationUnit(update = True)
 
 def getCurrentCompletionResults(line, column):
