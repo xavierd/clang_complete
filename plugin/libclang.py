@@ -178,7 +178,10 @@ def getCurrentCompletions(base):
   cr = getCurrentCompletionResults(line, column)
 
   regexp = re.compile("^" + base)
-  filteredResult = filter(lambda x: regexp.match(x.string[0].spelling), cr.results)
+
+  def match(item):
+      return any(regexp.match(x.spelling) for x in item.string if x.isKindTypedText())
+  filteredResult = filter(match, cr.results)
 
   getPriority = lambda x: x.string.priority
   getAbbrevation = lambda x: filter(lambda y: y.isKindTypedText(), x.string)[0].spelling.lower()
