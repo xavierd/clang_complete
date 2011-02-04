@@ -157,6 +157,14 @@ function! s:ClangCompleteInit()
     endif
   endif
 
+  if !exists('g:clang_use_ultisnips')
+    let g:clang_use_ultisnips = 0
+    if g:clang_snippets == 0 && has("python")
+      python import sys
+      python "UltiSnips" in sys.modules and vim.command("let g:clang_use_ultisnips=1")
+    endif
+  endif
+
   if !exists('g:clang_debug')
     let g:clang_debug = 0
   endif
@@ -669,6 +677,10 @@ function! ClangComplete(findstart, base)
         au CursorMovedI <buffer> call BeginSnips()
       augroup end
     endif
+    " This only works when using the python library
+    if g:clang_use_ultisnips == 1 && g:clang_use_library == 1
+        call clang_complete#Map()
+    endif
     if g:clang_debug == 1
       echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
     endif
@@ -763,5 +775,60 @@ function! g:ClangUpdateQuickFix()
   call s:DoPeriodicQuickFix()
   return ''
 endfunction
+
+
+" Borrowed from cocoa.vim
+fun! clang_complete#Map()
+  ino <silent> <buffer> <space> <c-r>=clang_complete#Trigger(' ')<cr>
+  if !exists('g:SuperTabMappingForward') " Only map tab if not using supertab.
+        \ || (g:SuperTabMappingForward != '<tab>' && g:SuperTabMappingForward != '<tab>')
+    ino <silent> <buffer> <tab> <c-r>=clang_complete#Trigger("\t")<cr>
+  endif
+  ino <silent> <buffer> <return> <c-r>=clang_complete#Trigger("\n")<cr>
+  let s:start = col('.')
+  " Completion menu can only be detected when the popup menu is visible, so
+  " 'menuone' needs to be temporarily set:
+  let s:cot = &cot
+  set cot+=menuone
+endf
+
+fun! clang_complete#Unmap()
+  call s:UnmapKey('<space>')
+  call s:UnmapKey('<tab>')
+  call s:UnmapKey('<return>')
+endf
+
+fun s:UnmapKey(key)
+  if maparg(a:key, 'i') =~? '^<C-R>=clang_complete#Trigger('
+    sil exe 'iunmap <buffer> '.a:key
+  endif
+endf
+
+fun! clang_complete#Trigger(key)
+  call clang_complete#Unmap()
+  if pumvisible()
+    call s:ResetOptions()
+    if g:clang_use_ultisnips == 1
+      call s:complete_ultisnips()
+    endif
+    return ''
+  endif
+  call s:ResetOptions()
+  return a:key
+endf
+
+fun s:ResetOptions()
+  let &cot = s:cot
+  unl s:start s:cot
+endf
+
+fun s:complete_ultisnips()
+  " Try every snippet until one matches the trigger
+  python << EOF
+for trig, snip in snippets.items():
+  if UltiSnips_Manager.expand_anon(snip, trig, options="i"):
+    break
+EOF
+    endf
 
 " vim: set ts=2 sts=2 sw=2 expandtab :

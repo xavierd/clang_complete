@@ -3,6 +3,10 @@ import vim
 import time
 import re
 
+snippets = {}
+use_clang_snippets = False
+use_ultisnips = False
+
 def initClangComplete():
   global index
   index = Index.create()
@@ -137,11 +141,30 @@ def getCurrentCompletionResults(line, column):
 def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
-def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder():
-    return "<#" + chunk.spelling + "#>"
-  else:
-    return chunk.spelling
+def formatForSnippet(chunks):
+  def formatChunkForWord(chunk):
+    if chunk.isKindPlaceHolder():
+      return "<#" + chunk.spelling + "#>"
+    else:
+      return chunk.spelling
+  return "".join(map(formatChunkForWord, chunks))
+
+def formatForUltiSnips(chunks):
+  i = 1;
+  out_word = []
+  snip = []
+  for chunk in chunks:
+    out_word.append(chunk.spelling)
+    if chunk.isKindPlaceHolder():
+      snip.append("${%d:%s}" % (i, chunk.spelling))
+      i += 1
+    else:
+      snip.append(chunk.spelling)
+  snip.append("$0")
+  word = "".join(out_word)
+  snippets[word] = "".join(snip)
+  return word
+
 
 def formatResult(result):
   completion = dict()
@@ -157,8 +180,10 @@ def formatResult(result):
     returnStr = ""
 
   info = returnStr + "".join(map(lambda x: x.spelling, word))
-  if snippets:
-    word = "".join(map(formatChunkForWord, word))
+  if use_clang_snippets:
+    word = formatForSnippet(word)
+  elif use_ultisnips:
+    word = formatForUltiSnips(word)
   else:
     word = abbr
 
@@ -174,10 +199,13 @@ def formatResult(result):
   return completion
 
 def getCurrentCompletions(base):
+  global snippets, use_clang_snippets, use_ultisnips
   global debug
+  snippets = {} # clear list of snippets
+  use_clang_snippets = int(vim.eval("g:clang_snippets")) == 1
+  use_ultisnips = int(vim.eval("g:clang_use_ultisnips")) == 1
+
   debug = int(vim.eval("g:clang_debug")) == 1
-  global snippets
-  snippets = int(vim.eval("g:clang_snippets")) == 1
   priority = vim.eval("g:clang_sort_algo") == 'priority'
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
