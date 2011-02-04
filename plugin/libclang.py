@@ -194,3 +194,5 @@ def getAbbr(strings):
     return ""
   else:
     return tmplst[0].spelling
+
+# vim: set ts=2 sts=2 sw=2 expandtab :
