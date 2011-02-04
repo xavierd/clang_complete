@@ -145,7 +145,7 @@ def formatChunkForWord(chunk):
 def formatResult(result):
   completion = dict()
 
-  abbr = filter(lambda x: x.isKindTypedText(), result.string)[0].spelling
+  abbr = getAbbr(result.string)
   info = filter(lambda x: not x.isKindInformative(), result.string)
   word = filter(lambda x: not x.isKindResultType(), info)
   returnValue = filter(lambda x: x.isKindResultType(), info)
@@ -178,9 +178,16 @@ def getCurrentCompletions(base):
   cr = getCurrentCompletionResults(line, column)
 
   regexp = re.compile("^" + base)
-  filteredResult = filter(lambda x: regexp.match(x.string[0].spelling), cr.results)
+  filteredResult = filter(lambda x: regexp.match(getAbbr(x.string)), cr.results)
 
   getPriority = lambda x: x.string.priority
   getAbbrevation = lambda x: filter(lambda y: y.isKindTypedText(), x.string)[0].spelling.lower()
   sortedResult = sorted(filteredResult, key = getPriority if priority else getAbbrevation)
   return map(formatResult, sortedResult)
+
+def getAbbr(strings):
+  tmplst = filter(lambda x: x.isKindTypedText(), strings)
+  if len(tmplst) == 0:
+    return ""
+  else:
+    return tmplst[0].spelling
