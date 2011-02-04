@@ -137,7 +137,7 @@ def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
 def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder():
+  if chunk.isKindPlaceHolder() and snippets:
     return "<#" + chunk.spelling + "#>"
   else:
     return chunk.spelling
@@ -172,6 +172,8 @@ def formatResult(result):
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
+  global snippets
+  snippets = int(vim.eval("g:clang_snippets")) == 1
   priority = vim.eval("g:clang_sort_algo") == 'priority'
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
