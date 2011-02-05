@@ -138,7 +138,7 @@ def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
 def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder() and snippets:
+  if chunk.isKindPlaceHolder():
     return "<#" + chunk.spelling + "#>"
   else:
     return chunk.spelling
@@ -157,7 +157,10 @@ def formatResult(result):
     returnStr = ""
 
   info = returnStr + "".join(map(lambda x: x.spelling, word))
-  word = "".join(map(formatChunkForWord, word))
+  if snippets:
+    word = "".join(map(formatChunkForWord, word))
+  else:
+    word = abbr
 
   completion['word'] = word
   completion['abbr'] = abbr
@@ -184,7 +187,7 @@ def getCurrentCompletions(base):
   filteredResult = filter(lambda x: regexp.match(getAbbr(x.string)), cr.results)
 
   getPriority = lambda x: x.string.priority
-  getAbbrevation = lambda x: filter(lambda y: y.isKindTypedText(), x.string)[0].spelling.lower()
+  getAbbrevation = lambda x: getAbbr(x.string).lower()
   sortedResult = sorted(filteredResult, key = getPriority if priority else getAbbrevation)
   return map(formatResult, sortedResult)
 
