@@ -53,7 +53,6 @@ def getCurrentTranslationUnit(update = False):
   if debug:
     start = time.time()
   try:
-    #os.chdir(new_cwd)
     vim.command('cd ' + new_cwd)
     #vim.command('cd base')
     #print vim.eval('getcwd()')
@@ -61,9 +60,7 @@ def getCurrentTranslationUnit(update = False):
     tu = index.parse(fileName, args, [currentFile], flags)
     tu.cwd = new_cwd
   finally:
-    #os.chdir(old_cwd)
     vim.command('cd ' + old_cwd)
-    pass
 
   if debug:
     elapsed = (time.time() - start)
