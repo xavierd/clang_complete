@@ -470,6 +470,21 @@ function! s:CreateSnipmateSnippet(trigger, proto)
   return l:snippet
 endfunction
 
+function! s:AddSnipmateSnippet(word, trigger, proto)
+  " Clean up prototype (remove return type and const)
+  let l:word = substitute(a:proto, '\v^.*(\V' . a:word . '\v.{-})( *const *)?$', '\1', '')
+
+  " Create snipmate's snippet
+  let l:snippet = s:CreateSnipmateSnippet(a:trigger, a:proto)
+  call MakeSnip(&filetype, a:trigger, l:snippet, a:proto)
+
+  " Store which overload we are going to complete
+  if !has_key(b:snipmate_snippets, a:trigger)
+    let b:snipmate_snippets[a:trigger] = []
+  endif
+  let b:snipmate_snippets[a:trigger] += [l:word]
+endfunction
+
 function! TriggerSnipmate()
   " Dont bother doing anything until we're sure the user exited the menu
   if pumvisible() != 0
@@ -544,13 +559,6 @@ function! s:ClangCompleteBinary(base)
     return {}
   endif
 
-  if g:clang_use_snipmate == 1
-    " Quick & Easy way to prevent snippets to be added twice
-    " Ideally we should modify snipmate to be smarter about this
-    call ReloadSnippets(&filetype)
-    let b:snipmate_snippets = {}
-  endif
-
   let l:res = []
   "for l:line in l:clang_output
   while !empty(l:clang_output)
@@ -622,18 +630,8 @@ function! s:ClangCompleteBinary(base)
     endif
 
     if g:clang_use_snipmate == 1
-      " Clean up prototype (remove return type and const)
-      let l:word = substitute(l:proto, '\v^.*(\V' . l:word . '\v.{-})( *const *)?$', '\1', '')
-
-      " Create snipmate's snippet
-      let l:snippet = s:CreateSnipmateSnippet(l:wabbr, l:proto)
-      call MakeSnip(&filetype, l:wabbr, l:snippet, l:proto)
-
-      " Store which overload we are going to complete
-      if !has_key(b:snipmate_snippets, l:wabbr)
-        let b:snipmate_snippets[l:wabbr] = []
-      endif
-      let b:snipmate_snippets[l:wabbr] += [l:word]
+      call s:AddSnipmateSnippet(l:word, l:wabbr, l:proto)
+      let l:word = l:wabbr
     endif
 
     let l:item = {
@@ -679,6 +677,14 @@ function! ClangComplete(findstart, base)
     if g:clang_debug == 1
       let l:time_start = reltime()
     endif
+
+    if g:clang_use_snipmate == 1
+      " Quick & Easy way to prevent snippets to be added twice
+      " Ideally we should modify snipmate to be smarter about this
+      call ReloadSnippets(&filetype)
+      let b:snipmate_snippets = {}
+    endif
+
     if g:clang_use_library == 1
       python vim.command('let l:res = '
                   \ + str(getCurrentCompletions(vim.eval("a:base"))) + '')

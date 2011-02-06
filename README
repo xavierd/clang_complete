@@ -74,6 +74,17 @@ Note:
  project, namely, cindex.py and __init__.py, which are covered by the
  LLVM license.
 
+ - Because libclang provides a lot of information about completion, there
+ are some additional kinds of completion along with standard ones (see
+ ':help complete-items' for details):
+ '+' - constructor
+ '~' - destructor
+ 'e' - enumerator constant
+ 'a' - parameter ('a' from "argument") of a function, method or template
+ 'u' - unknown or buildin type (int, float, ...)
+ 'n' - namespace or its alias
+ 'p' - template ('p' from "pattern")
+
 PCH:
 In case you can not or you do not want to install libclang, a precompiled header
 file is another way to accelerate compilation, and so, to accelerate the
