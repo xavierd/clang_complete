@@ -45,7 +45,7 @@
 "  - g:clang_exec:
 "       Name or path of clang executable.
 "       Note: Use this if clang has a non-standard name, or isn't in the
-"       path.
+"       path. Not used if |g:clang_use_library| is set.
 "       Default: 'clang'
 "
 "  - g:clang_user_options:
@@ -54,6 +54,21 @@
 "       returned by clang: on error, the completion is not shown.
 "       Default: ''
 "       Example: '|| exit 0' (it will discard clang return value)
+"
+"  - g:clang_per_file_user_options:
+"       Can be set to a function that is called with the name of the current
+"       buffer. This should return a list of additional flags for this file.
+"       Useful if compilation flags differ on a per-file or per-directory
+"       base. Works only if |g:clang_use_library| is set.
+"       Default: Not set.
+"       Example:
+"       fu! g:clang_per_file_user_options(path)
+"         if a:path =~ 'clang'
+"           return '-I/Users/thakis/src/llvm-rw/tools/clang/include'
+"         else
+"           return ''
+"         endif
+"       endfu
 "
 "  - g:clang_use_library:
 "       Instead of calling the clang/clang++ tool use libclang directly. This
@@ -142,6 +157,12 @@ function! s:ClangCompleteInit()
 
   if !exists('g:clang_user_options')
     let g:clang_user_options = ''
+  endif
+
+  if !exists('*g:clang_per_file_user_options')
+    function g:clang_per_file_user_options(path)
+      return ''
+    endfunction
   endif
 
   " Only use libclang if the user clearly show intent to do so for now

@@ -16,12 +16,14 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 def getCurrentTranslationUnit(update = False):
-  userOptionsGlobal = vim.eval("g:clang_user_options").split(" ")
-  userOptionsLocal = vim.eval("b:clang_user_options").split(" ")
-  args = userOptionsGlobal + userOptionsLocal
-
   currentFile = getCurrentFile()
   fileName = vim.current.buffer.name
+
+  userOptionsGlobal = vim.eval("g:clang_user_options").split(" ")
+  userOptionsLocal = vim.eval("b:clang_user_options").split(" ")
+  userOptionsPerFile = vim.eval(
+      "g:clang_per_file_user_options('%s')" % fileName).split(" ")
+  args = userOptionsGlobal + userOptionsLocal + userOptionsPerFile
 
   if fileName in translationUnits:
     tu = translationUnits[fileName]
