@@ -61,7 +61,12 @@ def getCurrentTranslationUnit(update = False):
   return tu
 
 def getQuickFix(diagnostic):
-  filename = diagnostic.location.file.name
+  # Some diagnostics have no file, e.g. "too many errors emitted, stopping now"
+  if diagnostic.location.file:
+    filename = diagnostic.location.file.name
+  else:
+    filename = ""
+
   if diagnostic.severity == diagnostic.Warning:
     type = 'W'
   elif diagnostic.severity == diagnostic.Error:
