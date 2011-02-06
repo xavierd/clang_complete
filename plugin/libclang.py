@@ -34,6 +34,29 @@ def getCurrentTranslationUnit(update = False):
       "g:clang_per_file_user_options('%s')" % fileName).split(" ")
   args = userOptionsGlobal + userOptionsLocal + userOptionsPerFile
 
+  # Filter out options that -cc1 doesn't understand.
+  args0 = args
+  args = []
+  i = 0
+  while i < len(args0):
+    arg = args0[i]
+    if (arg.startswith('-I') or arg.startswith('-D') or arg.startswith('-W') or
+        arg.startswith('-F') or arg.startswith('-O') or arg.startswith('-f') or
+        arg.startswith('-m')):
+      args.append(arg)
+
+    if arg == '-isysroot':
+      args.append(arg)
+      args.append(userOptionsPerFile[i + 1])
+      i += 1
+    if arg == '-arch':
+      args.append(arg)
+      args.append(userOptionsPerFile[i + 1])
+      i += 1
+    i += 1
+
+  #vim.command('echoe "' + ' '.join(args) + '"')
+
   if fileName in translationUnits:
     tu = translationUnits[fileName]
     if update:
