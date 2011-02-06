@@ -138,7 +138,7 @@ def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
 def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder():
+  if chunk.isKindPlaceHolder() and snippets:
     return "<#" + chunk.spelling + "#>"
   else:
     return chunk.spelling
