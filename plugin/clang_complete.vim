@@ -57,16 +57,20 @@
 "
 "  - g:clang_per_file_user_options:
 "       Can be set to a function that is called with the name of the current
-"       buffer. This should return a list of additional flags for this file.
-"       Useful if compilation flags differ on a per-file or per-directory
-"       base. Works only if |g:clang_use_library| is set.
+"       buffer. This should return a dictionary that can contain the following
+"       keys:
+"         'flags': list of additional flags for this file.  Useful if
+"                  compilation flags differ on a per-file or per-directory
+"                  base.
+"         'cwd': The working directory the compile job should be executed in.
+"       Works only if |g:clang_use_library| is set.
 "       Default: Not set.
 "       Example:
 "       fu! g:clang_per_file_user_options(path)
-"         if a:path =~ 'clang'
-"           return '-I/Users/thakis/src/llvm-rw/tools/clang/include'
+"         if a:path =~? 'subfolder'
+"           return { 'flags': '-I/Users/thakis/src/myproject/subfolder/include' }
 "         else
-"           return ''
+"           return {}
 "         endif
 "       endfu
 "
