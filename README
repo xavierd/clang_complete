@@ -85,6 +85,11 @@ Note:
  'n' - namespace or its alias
  'p' - template ('p' from "pattern")
 
+ - If you get following error message while trying to complete anything:
+ "E121: Undefined variable: b:should_overload"
+ it means that your version of Vim is too old (this is an old bug and it has
+ been fixed with one of patches for Vim 7.2) and you need to update it.
+
 PCH:
 In case you can not or you do not want to install libclang, a precompiled header
 file is another way to accelerate compilation, and so, to accelerate the
