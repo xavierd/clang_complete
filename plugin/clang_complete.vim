@@ -37,9 +37,9 @@
 "       Default: 0
 "
 "  - g:clang_snippets_engine:
-"       the snippets engine (clang, snipmate, ultisnips... see the snippets
-"       subdirectory).
-"       Default: 'clang'
+"       the snippets engine (clang_complete, snipmate, ultisnips... see the
+"       snippets subdirectory).
+"       Default: 'clang_complete'
 "
 "  - g:clang_exec:
 "       Name or path of clang executable.
@@ -131,7 +131,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_snippets_engine')
-    let g:clang_snippets_engine = 'clang'
+    let g:clang_snippets_engine = 'clang_complete'
   endif
 
   if !exists('g:clang_exec')
