@@ -531,7 +531,7 @@ function! ClangComplete(findstart, base)
 
     if g:clang_snippets == 1
       for item in l:res
-        call eval('snippets#' . g:clang_snippets_engine . "#add_snippet('" . item['word'] . "', '" . item['info'] . "')")
+        let item['word'] = eval('snippets#' . g:clang_snippets_engine . "#add_snippet('" . item['word'] . "', '" . item['info'] . "')")
       endfor
       augroup ClangComplete
         au CursorMovedI <buffer> call s:TriggerSnippet()

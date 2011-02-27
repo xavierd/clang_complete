@@ -1,46 +1,28 @@
-let b:snipmate_snippets = {}
+" clang_complete snipmate's snippet generator
+" Author: Philippe Vaucher
 
 function! snippets#snipmate#init()
   call snippets#snipmate#reset()
 endfunction
 
-function! snippets#snipmate#add_snippet(word, proto)
-  " Clean up prototype (remove return type and const)
-  let l:word = substitute(a:proto, '\v^.*(\V' . a:word . '\v.{-})( *const *)?$', '\1', '')
-
-  " Figure out trigger
-  let l:trigger = substitute(a:word, '<#\([^#]*\)#>', '\1', 'g')
-
-  " Create snipmate's snippet
-  let l:snippet = s:CreateSnipmateSnippet(l:trigger, a:proto)
-  call MakeSnip(&filetype, l:trigger, l:snippet, a:proto)
-
-  " Store which overload we are going to complete
-  if !has_key(b:snipmate_snippets, l:trigger)
-    let b:snipmate_snippets[l:trigger] = []
+function! snippets#snipmate#add_snippet(keyword, proto)
+  " If we are already in a snipmate snippet, well not much we can do until snipmate supports nested snippets
+  if exists('g:snipPos')
+    return a:keyword
   endif
-  let b:snipmate_snippets[l:trigger] += [l:word]
+
+  " Construct a snippet id
+  let l:snippet_id = substitute(a:proto, '\v^.*(\V' . a:keyword . '\v.{-})( *const *)?$', '\1', '')
+  let l:snippet_id = substitute(l:snippet_id, ' ', '_', 'g')
+
+  " Create the snippet
+  let l:snippet = s:CreateSnipmateSnippet(a:keyword, a:proto)
+  call MakeSnip(&filetype, l:snippet_id, l:snippet, a:proto)
+
+  return l:snippet_id
 endfunction
 
 function! snippets#snipmate#trigger()
-  " Check if the user really did chose an entry for the menu or just typed someting inexistant
-  let l:col  = col('.')
-  let l:line = getline('.')
-  let l:word = strpart(l:line, b:col - 1, l:col - b:col)
-  let l:trigger = matchstr(l:word, '\v^[^(<]+')
-  if !has_key(b:snipmate_snippets, l:trigger)
-    return
-  endif
-
-  " Rewrite line with snipmate's snippet trigger
-  let l:corrected_line = strpart(l:line, 0, b:col + len(l:trigger) - 1) . strpart(l:line, l:col - 1)
-  call setline('.', l:corrected_line)
-
-  " Move cursor to where we want (there's probably a simpler way than this)
-  call feedkeys("\<Esc>", 't')
-  call cursor(0, b:col + len(l:trigger))
-  call feedkeys('a', 't')
-
   " If we are already in a snipmate snippet, well not much we can do until snipmate supports nested snippets
   if exists('g:snipPos')
     return
@@ -48,21 +30,12 @@ function! snippets#snipmate#trigger()
 
   " Trigger snipmate
   call feedkeys("\<Tab>", 't')
-  if len(b:snipmate_snippets[l:trigger]) > 1
-    let l:index = index(b:snipmate_snippets[l:trigger], l:word) + 1
-    if l:index == -1
-      echoe 'clang_complete snipmate error'
-    endif
-    sleep 2
-    call feedkeys(l:index . "\<CR>", 't')
-  endif
 endfunction
 
 function! snippets#snipmate#reset()
   " Quick & Easy way to prevent snippets to be added twice
   " Ideally we should modify snipmate to be smarter about this
   call ReloadSnippets(&filetype)
-  let b:snipmate_snippets = {}
 endfunction
 
 

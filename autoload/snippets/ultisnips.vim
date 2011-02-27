@@ -1,27 +1,26 @@
+" clang_complete ultisnips's snippet generator
+" Author: Philippe Vaucher
 
-" Prepare the snippet engine
 function! snippets#ultisnips#init()
+  call snippets#ultisnips#reset()
 endfunction
 
-" Add a snippet to be triggered
-function! snippets#ultisnips#add_snippet(word, proto)
-  " Clean up prototype (remove return type and const)
-  let l:word = substitute(a:proto, '\v^.*(\V' . a:word . '\v.{-})( *const *)?$', '\1', '')
-
-  " Figure out trigger
-  let l:trigger = substitute(a:word, '<#\([^#]*\)#>', '\1', 'g')
+function! snippets#ultisnips#add_snippet(keyword, proto)
+  " Construct a snippet id
+  let l:snippet_id = substitute(a:proto, '\v^.*(\V' . a:keyword . '\v.{-})( *const *)?$', '\1', '')
+  let l:snippet_id = substitute(l:snippet_id, ' ', '_', 'g')
 
   " Create ultisnips's snippet
-  let l:snippet = s:CreateUltiSnipsSnippet(l:trigger, a:proto)
-  call UltiSnips_AddSnippet(a:word, l:snippet, a:proto, '!i', &filetype)
+  let l:snippet = s:CreateUltiSnipsSnippet(a:keyword, a:proto)
+  call UltiSnips_AddSnippet(l:snippet_id, l:snippet, a:proto, 'i', &filetype)
+
+  return l:snippet_id
 endfunction
 
-" Trigger the snippet
 function! snippets#ultisnips#trigger()
   call UltiSnips_ExpandSnippet()
 endfunction
 
-" Remove all snippets
 function! snippets#ultisnips#reset()
   UltiSnipsReset
 endfunction
