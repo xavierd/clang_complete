@@ -161,7 +161,12 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> : CompleteColon()
 
   if g:clang_snippets == 1
-    call eval('snippets#' . g:clang_snippets_engine . '#init()')
+    try
+      call eval('snippets#' . g:clang_snippets_engine . '#init()')
+    catch /^Vim\%((\a\+)\)\=:E117/
+      echom "Snippets engine " . g:clang_snippets_engine . " not found."
+      let g:clang_snippets = 0
+    endtry
   endif
 
   " Disable every autocmd that could have been set.
