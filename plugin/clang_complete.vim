@@ -428,19 +428,15 @@ function! s:ClangCompleteBinary(base)
     return []
   endif
 
+  let l:filter_str = "v:val =~ '^COMPLETION: " . a:base . "\\|^OVERLOAD: '"
+  call filter(l:clang_output, l:filter_str)
+
   let l:res = []
-  "for l:line in l:clang_output
-  while !empty(l:clang_output)
-    let l:line = l:clang_output[0]
-    let l:clang_output = l:clang_output[1:]
+  for l:line in l:clang_output
 
     if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
 
       let l:value = l:line[12:]
-
-      if l:value !~ '^' . a:base
-        continue
-      endif
 
       let l:colonidx = stridx(l:value, ' : ')
       if l:colonidx == -1
@@ -489,7 +485,7 @@ function! s:ClangCompleteBinary(base)
           \ 'kind': l:kind }
 
     call add(l:res, l:item)
-  endwhile
+  endfor
   return l:res
 endfunction
 
