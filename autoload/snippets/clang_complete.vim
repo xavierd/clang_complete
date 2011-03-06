@@ -11,9 +11,17 @@ endfunction
 " We want to generate a format like [#std::basic_string<char> &#]append(<#const std::basic_string<char> &__str#>, <#size_type __pos#>, <#size_type __n#>)
 function! snippets#clang_complete#add_snippet(keyword, proto)
   let l:snippet_id = substitute(a:proto, '\v^.*(\V' . a:keyword . '\v.{-})( *const *)?$', '\1', '')
+  let l:snippet_id = substitute(l:snippet_id, '<', '<<#', 'g')
+  let l:snippet_id = substitute(l:snippet_id, '>', '#>>', 'g')
+  let l:snippet_id = substitute(l:snippet_id, ',', '#>,<#', 'g')
+
+  " A function with no arguments shouldn't have snippets for the
+  " argument list.
+  if match(l:snippet_id, '()') != -1
+    return l:snippet_id
+  endif
   let l:snippet_id = substitute(l:snippet_id, '(', '(<#', 'g')
   let l:snippet_id = substitute(l:snippet_id, ')', '#>)', 'g')
-  let l:snippet_id = substitute(l:snippet_id, ',', '#>,<#', 'g')
   return l:snippet_id
 endfunction
 
