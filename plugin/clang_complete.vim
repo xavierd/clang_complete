@@ -422,10 +422,10 @@ function! s:ClangCompleteBinary(base)
 
   call s:ClangQuickFix(l:clang_output, l:tempfile)
   if v:shell_error
-    return {}
+    return []
   endif
   if l:clang_output == []
-    return {}
+    return []
   endif
 
   let l:res = []
