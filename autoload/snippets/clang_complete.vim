@@ -13,7 +13,7 @@ function! snippets#clang_complete#add_snippet(keyword, proto)
   let l:snippet_id = substitute(a:proto, '\v^.*(\V' . a:keyword . '\v.{-})( *const *)?$', '\1', '')
   let l:snippet_id = substitute(l:snippet_id, '<', '<<#', 'g')
   let l:snippet_id = substitute(l:snippet_id, '>', '#>>', 'g')
-  let l:snippet_id = substitute(l:snippet_id, ',', '#>,<#', 'g')
+  let l:snippet_id = substitute(l:snippet_id, ',', '#>, <#', 'g')
 
   " A function with no arguments shouldn't have snippets for the
   " argument list.
