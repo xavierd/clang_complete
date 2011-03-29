@@ -93,7 +93,7 @@ let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 function! s:ClangCompleteInit()
   let l:local_conf = findfile('.clang_complete', '.;')
   let b:clang_user_options = ''
-  if l:local_conf != ''
+  if l:local_conf != '' && filereadable(l:local_conf)
     let l:opts = readfile(l:local_conf)
     for l:opt in l:opts
       " Better handling of absolute path
