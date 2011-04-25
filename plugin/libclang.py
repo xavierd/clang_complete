@@ -143,10 +143,7 @@ def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
 def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder() and snippets:
-    return "<#" + chunk.spelling + "#>"
-  else:
-    return chunk.spelling
+  return chunk.spelling
 
 def formatResult(result):
   completion = dict()
@@ -161,16 +158,8 @@ def formatResult(result):
   else:
     returnStr = ""
 
-  if kinds[result.cursorKind] == 'f' and usesnipmate:
-    vim.eval("s:AddSnipmateSnippet('" + abbr + "', '" \
-        + abbr + "', '" \
-        + "".join(map(formatChunkForWord, word)) + "')")
-
   info = returnStr + "".join(map(lambda x: x.spelling, word))
-  if snippets:
-    word = "".join(map(formatChunkForWord, word))
-  else:
-    word = abbr
+  word = abbr
 
   completion['word'] = word
   completion['abbr'] = abbr
@@ -187,10 +176,6 @@ def formatResult(result):
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  global snippets
-  snippets = int(vim.eval("g:clang_snippets")) == 1
-  global usesnipmate
-  usesnipmate = int(vim.eval("g:clang_use_snipmate")) == 1
   priority = vim.eval("g:clang_sort_algo") == 'priority'
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
