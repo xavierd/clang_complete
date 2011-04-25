@@ -39,7 +39,7 @@ function! UpdateSnips()
   let l:line = getline('.')
   let l:pattern = '<#[^#]*#>'
   if match(l:line, l:pattern) == -1
-    return ''
+    return "\<c-i>"
   endif
   let l:linenb = line('.')
   if &selection == "exclusive"
