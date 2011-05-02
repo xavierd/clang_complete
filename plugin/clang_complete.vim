@@ -70,6 +70,14 @@
 "       Currently only works with libclang.
 "       Default: 'priority'
 "
+"  - g:clang_complete_macros:
+"       If clang should complete preprocessor macros and constants.
+"       Default: 0
+"
+"  - g:clang_complete_patterns:
+"       If clang should complete code patterns, i.e loop constructs etc.
+"       Defaut: 0
+"
 "  - g:clang_debug:
 "       Output debugging informations, like timeing output of completion.
 "       Default: 0
@@ -147,6 +155,14 @@ function! s:ClangCompleteInit()
     let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
   endif
 
+  if !exists('g:clang_complete_macros')
+    let g:clang_complete_macros = 0
+  endif
+
+  if !exists('g:clang_complete_patterns')
+    let g:clang_complete_patterns = 0
+  endif
+
   if !exists('g:clang_debug')
     let g:clang_debug = 0
   endif
@@ -191,6 +207,16 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '-header'
   endif
 
+  if g:clang_complete_macros == 1
+    let b:clang_parameters .= ' -code-completion-macros'
+    let g:clang_complete_lib_flags = 1
+  endif
+
+  if g:clang_complete_patterns == 1
+    let b:clang_parameters .= ' -code-completion-patterns'
+    let g:clang_complete_lib_flags += 2
+  endif
+
   setlocal completefunc=ClangComplete
   setlocal omnifunc=ClangComplete
 
@@ -228,7 +254,7 @@ function! s:initClangCompletePython()
 
   exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
   exe 'pyfile ' . s:plugin_path . '/libclang.py'
-  python initClangComplete()
+  python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
 endfunction
 
 function! s:GetKind(proto)
