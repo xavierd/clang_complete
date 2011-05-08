@@ -22,7 +22,7 @@ function! snippets#ultisnips#trigger()
 endfunction
 
 function! snippets#ultisnips#reset()
-  UltiSnipsReset
+  python UltiSnips_Manager.reset()
 endfunction
 
 
