@@ -84,7 +84,7 @@
 "       - -code-completion-macros -code-completion-patterns
 "
 
-au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
+au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
 
 let b:clang_parameters = ''
 let b:clang_user_options = ''
@@ -164,10 +164,12 @@ function! s:ClangCompleteInit()
     let g:clang_sort_algo = 'priority'
   endif
 
-  inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
-  inoremap <expr> <buffer> . CompleteDot()
-  inoremap <expr> <buffer> > CompleteArrow()
-  inoremap <expr> <buffer> : CompleteColon()
+  inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
+  inoremap <expr> <buffer> . <SID>CompleteDot()
+  inoremap <expr> <buffer> > <SID>CompleteArrow()
+  inoremap <expr> <buffer> : <SID>CompleteColon()
+  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelection()
+  inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelection()
 
   if g:clang_snippets == 1
     try
@@ -205,7 +207,7 @@ function! s:ClangCompleteInit()
 
   if g:clang_periodic_quickfix == 1
     augroup ClangComplete
-      au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+      au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
     augroup end
   endif
 
@@ -544,8 +546,9 @@ function! ClangComplete(findstart, base)
         let item['word'] = eval('snippets#' . g:clang_snippets_engine . "#add_snippet('" . item['word'] . "', '" . item['info'] . "')")
       endfor
       augroup ClangComplete
-        au CursorMovedI <buffer> call s:TriggerSnippet()
+        au CursorMovedI <buffer> call <SID>TriggerSnippet()
       augroup end
+      let b:snippet_chosen = 0
     endif
   endif
 
@@ -556,13 +559,21 @@ function! ClangComplete(findstart, base)
 endif
 endfunction
 
+function! s:HandlePossibleSelection()
+  if pumvisible()
+    let b:snippet_chosen = 1
+    return "\<C-Y>"
+  end
+  return "\<CR>"
+endfunction
+
 function! s:TriggerSnippet()
   " Dont bother doing anything until we're sure the user exited the menu
-  if pumvisible() != 0
+  if !b:snippet_chosen
     return
   endif
 
-  " Stop monitoring if we successfully triggered a snippet
+  " Stop monitoring as we'll trigger a snippet
   augroup ClangComplete
     au! CursorMovedI <buffer>
   augroup end
@@ -571,7 +582,7 @@ function! s:TriggerSnippet()
   call eval('snippets#' . g:clang_snippets_engine . '#trigger()')
 endfunction
 
-function! ShouldComplete()
+function! s:ShouldComplete()
   if (getline('.') =~ '#\s*\(include\|import\)')
     return 0
   else
@@ -588,9 +599,9 @@ function! ShouldComplete()
   endif
 endfunction
 
-function! LaunchCompletion()
+function! s:LaunchCompletion()
   let l:result = ""
-  if ShouldComplete()
+  if s:ShouldComplete()
     if match(&completeopt, 'longest') != -1
       let l:result = "\<C-X>\<C-U>"
     else
@@ -603,25 +614,25 @@ function! LaunchCompletion()
   return l:result
 endfunction
 
-function! CompleteDot()
+function! s:CompleteDot()
   if g:clang_complete_auto == 1
-    return '.' . LaunchCompletion()
+    return '.' . s:LaunchCompletion()
   endif
   return '.'
 endfunction
 
-function! CompleteArrow()
+function! s:CompleteArrow()
   if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != '-'
     return '>'
   endif
-  return '>' . LaunchCompletion()
+  return '>' . s:LaunchCompletion()
 endfunction
 
-function! CompleteColon()
+function! s:CompleteColon()
   if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != ':'
     return ':'
   endif
-  return ':' . LaunchCompletion()
+  return ':' . s:LaunchCompletion()
 endfunction
 
 " May be used in a mapping to update the quickfix window.
