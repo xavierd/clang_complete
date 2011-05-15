@@ -207,6 +207,8 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '-header'
   endif
 
+  let g:clang_complete_lib_flags = 0
+
   if g:clang_complete_macros == 1
     let b:clang_parameters .= ' -code-completion-macros'
     let g:clang_complete_lib_flags = 1
