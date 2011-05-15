@@ -186,7 +186,11 @@ def getCurrentCompletions(base):
 
   getPriority = lambda x: x.string.priority
   getAbbrevation = lambda x: getAbbr(x.string).lower()
-  sortedResult = sorted(filteredResult, key = getPriority if priority else getAbbrevation)
+  if priority:
+    key = getPriority
+  else:
+    key = getAbbrevation
+  sortedResult = sorted(filteredResult, None, key)
   return map(formatResult, sortedResult)
 
 def getAbbr(strings):
