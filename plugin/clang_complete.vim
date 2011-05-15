@@ -12,6 +12,11 @@
 "                currently correctly handled.
 "
 " Options:
+"  - g:clang_auto_select:
+"       if equal to 1, automatically select the first entry in the popup
+"       menu
+"       Default: 0
+"
 "  - g:clang_complete_auto:
 "       if equal to 1, automatically complete after ->, ., ::
 "       Default: 1
@@ -108,6 +113,10 @@ function! s:ClangCompleteInit()
       endif
       let b:clang_user_options .= ' ' . l:opt
     endfor
+  endif
+
+  if !exists('g:clang_auto_select')
+    let g:clang_auto_select = 0
   endif
 
   if !exists('g:clang_complete_auto')
@@ -580,15 +589,18 @@ function! ShouldComplete()
 endfunction
 
 function! LaunchCompletion()
+  let l:result = ""
   if ShouldComplete()
     if match(&completeopt, 'longest') != -1
-      return "\<C-X>\<C-U>"
+      let l:result = "\<C-X>\<C-U>"
     else
-      return "\<C-X>\<C-U>\<C-P>"
+      let l:result = "\<C-X>\<C-U>\<C-P>"
     endif
-  else
-    return ''
+    if g:clang_auto_select == 1
+      let l:result .= "\<Down>"
+    endif
   endif
+  return l:result
 endfunction
 
 function! CompleteDot()
