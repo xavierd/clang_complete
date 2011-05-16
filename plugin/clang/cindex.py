@@ -72,7 +72,7 @@ def get_cindex_library():
     import platform
     name = platform.system()
     path = sys.argv[0]
-    if path == '':
+    if path != '':
         path += '/'
     if name == 'Darwin':
         path += 'libclang.dylib'
