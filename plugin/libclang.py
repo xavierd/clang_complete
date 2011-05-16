@@ -3,11 +3,13 @@ import vim
 import time
 import re
 
-def initClangComplete():
+def initClangComplete(clang_complete_flags):
   global index
   index = Index.create()
   global translationUnits
   translationUnits = dict()
+  global complete_flags
+  complete_flags = int(clang_complete_flags)
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -133,7 +135,8 @@ def getCurrentCompletionResults(line, column):
   currentFile = getCurrentFile()
   if debug:
     start = time.time()
-  cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
+  cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile],
+      complete_flags)
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - Code completion time: " + str(elapsed)
@@ -186,7 +189,11 @@ def getCurrentCompletions(base):
 
   getPriority = lambda x: x.string.priority
   getAbbrevation = lambda x: getAbbr(x.string).lower()
-  sortedResult = sorted(filteredResult, key = getPriority if priority else getAbbrevation)
+  if priority:
+    key = getPriority
+  else:
+    key = getAbbrevation
+  sortedResult = sorted(filteredResult, None, key)
   return map(formatResult, sortedResult)
 
 def getAbbr(strings):

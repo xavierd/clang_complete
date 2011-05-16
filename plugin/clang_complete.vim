@@ -12,6 +12,11 @@
 "                currently correctly handled.
 "
 " Options:
+"  - g:clang_auto_select:
+"       if equal to 1, automatically select the first entry in the popup
+"       menu
+"       Default: 0
+"
 "  - g:clang_complete_auto:
 "       if equal to 1, automatically complete after ->, ., ::
 "       Default: 1
@@ -70,6 +75,14 @@
 "       Currently only works with libclang.
 "       Default: 'priority'
 "
+"  - g:clang_complete_macros:
+"       If clang should complete preprocessor macros and constants.
+"       Default: 0
+"
+"  - g:clang_complete_patterns:
+"       If clang should complete code patterns, i.e loop constructs etc.
+"       Defaut: 0
+"
 "  - g:clang_debug:
 "       Output debugging informations, like timeing output of completion.
 "       Default: 0
@@ -79,7 +92,7 @@
 "       - -code-completion-macros -code-completion-patterns
 "
 
-au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
+au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
 
 let b:clang_parameters = ''
 let b:clang_user_options = ''
@@ -108,6 +121,10 @@ function! s:ClangCompleteInit()
       endif
       let b:clang_user_options .= ' ' . l:opt
     endfor
+  endif
+
+  if !exists('g:clang_auto_select')
+    let g:clang_auto_select = 0
   endif
 
   if !exists('g:clang_complete_auto')
@@ -147,6 +164,14 @@ function! s:ClangCompleteInit()
     let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
   endif
 
+  if !exists('g:clang_complete_macros')
+    let g:clang_complete_macros = 0
+  endif
+
+  if !exists('g:clang_complete_patterns')
+    let g:clang_complete_patterns = 0
+  endif
+
   if !exists('g:clang_debug')
     let g:clang_debug = 0
   endif
@@ -155,10 +180,12 @@ function! s:ClangCompleteInit()
     let g:clang_sort_algo = 'priority'
   endif
 
-  inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
-  inoremap <expr> <buffer> . CompleteDot()
-  inoremap <expr> <buffer> > CompleteArrow()
-  inoremap <expr> <buffer> : CompleteColon()
+  inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
+  inoremap <expr> <buffer> . <SID>CompleteDot()
+  inoremap <expr> <buffer> > <SID>CompleteArrow()
+  inoremap <expr> <buffer> : <SID>CompleteColon()
+  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelection()
+  inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelection()
 
   if g:clang_snippets == 1
     try
@@ -191,12 +218,24 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '-header'
   endif
 
+  let g:clang_complete_lib_flags = 0
+
+  if g:clang_complete_macros == 1
+    let b:clang_parameters .= ' -code-completion-macros'
+    let g:clang_complete_lib_flags = 1
+  endif
+
+  if g:clang_complete_patterns == 1
+    let b:clang_parameters .= ' -code-completion-patterns'
+    let g:clang_complete_lib_flags += 2
+  endif
+
   setlocal completefunc=ClangComplete
   setlocal omnifunc=ClangComplete
 
   if g:clang_periodic_quickfix == 1
     augroup ClangComplete
-      au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+      au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
     augroup end
   endif
 
@@ -228,7 +267,7 @@ function! s:initClangCompletePython()
 
   exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
   exe 'pyfile ' . s:plugin_path . '/libclang.py'
-  python initClangComplete()
+  python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
 endfunction
 
 function! s:GetKind(proto)
@@ -535,8 +574,9 @@ function! ClangComplete(findstart, base)
         let item['word'] = eval('snippets#' . g:clang_snippets_engine . "#add_snippet('" . item['word'] . "', '" . item['info'] . "')")
       endfor
       augroup ClangComplete
-        au CursorMovedI <buffer> call s:TriggerSnippet()
+        au CursorMovedI <buffer> call <SID>TriggerSnippet()
       augroup end
+      let b:snippet_chosen = 0
     endif
   endif
 
@@ -547,13 +587,21 @@ function! ClangComplete(findstart, base)
 endif
 endfunction
 
+function! s:HandlePossibleSelection()
+  if pumvisible()
+    let b:snippet_chosen = 1
+    return "\<C-Y>"
+  end
+  return "\<CR>"
+endfunction
+
 function! s:TriggerSnippet()
   " Dont bother doing anything until we're sure the user exited the menu
-  if pumvisible() != 0
+  if !b:snippet_chosen
     return
   endif
 
-  " Stop monitoring if we successfully triggered a snippet
+  " Stop monitoring as we'll trigger a snippet
   augroup ClangComplete
     au! CursorMovedI <buffer>
   augroup end
@@ -562,7 +610,7 @@ function! s:TriggerSnippet()
   call eval('snippets#' . g:clang_snippets_engine . '#trigger()')
 endfunction
 
-function! ShouldComplete()
+function! s:ShouldComplete()
   if (getline('.') =~ '#\s*\(include\|import\)')
     return 0
   else
@@ -579,37 +627,40 @@ function! ShouldComplete()
   endif
 endfunction
 
-function! LaunchCompletion()
-  if ShouldComplete()
+function! s:LaunchCompletion()
+  let l:result = ""
+  if s:ShouldComplete()
     if match(&completeopt, 'longest') != -1
-      return "\<C-X>\<C-U>"
+      let l:result = "\<C-X>\<C-U>"
     else
-      return "\<C-X>\<C-U>\<C-P>"
+      let l:result = "\<C-X>\<C-U>\<C-P>"
     endif
-  else
-    return ''
+    if g:clang_auto_select == 1
+      let l:result .= "\<Down>"
+    endif
   endif
+  return l:result
 endfunction
 
-function! CompleteDot()
+function! s:CompleteDot()
   if g:clang_complete_auto == 1
-    return '.' . LaunchCompletion()
+    return '.' . s:LaunchCompletion()
   endif
   return '.'
 endfunction
 
-function! CompleteArrow()
+function! s:CompleteArrow()
   if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != '-'
     return '>'
   endif
-  return '>' . LaunchCompletion()
+  return '>' . s:LaunchCompletion()
 endfunction
 
-function! CompleteColon()
+function! s:CompleteColon()
   if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != ':'
     return ':'
   endif
-  return ':' . LaunchCompletion()
+  return ':' . s:LaunchCompletion()
 endfunction
 
 " May be used in a mapping to update the quickfix window.

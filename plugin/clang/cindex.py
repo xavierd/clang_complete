@@ -71,7 +71,9 @@ def get_cindex_library():
     # CIndex library. It could be on path or elsewhere, or versioned, etc.
     import platform
     name = platform.system()
-    path = '' if sys.argv[0] == '' else (sys.argv[0] + '/')
+    path = sys.argv[0]
+    if path != '':
+        path += '/'
     if name == 'Darwin':
         path += 'libclang.dylib'
     elif name == 'Windows':
@@ -114,7 +116,10 @@ class SourceLocation(Structure):
         if self._data is None:
             f, l, c, o = c_object_p(), c_uint(), c_uint(), c_uint()
             SourceLocation_loc(self, byref(f), byref(l), byref(c), byref(o))
-            f = File(f) if f else None
+            if f:
+                f = File(f)
+            else:
+                f = None
             self._data = (f, int(l.value), int(c.value), int(c.value))
         return self._data
 
@@ -139,8 +144,12 @@ class SourceLocation(Structure):
         return self._get_instantiation()[3]
 
     def __repr__(self):
+        if self.file:
+            filename = self.file.name
+        else:
+            filename = None
         return "<SourceLocation file %r, line %r, column %r>" % (
-            self.file.name if self.file else None, self.line, self.column)
+            filename, self.line, self.column)
 
 class SourceRange(Structure):
     """
@@ -922,7 +931,10 @@ class TranslationUnit(ClangObject):
                                            unsaved_files_array,
                                            len(unsaved_files),
                                            options)
-        return CodeCompletionResults(ptr) if ptr else None
+        if ptr:
+            return CodeCompletionResults(ptr)
+
+        return None
 
 class Index(ClangObject):
     """
@@ -946,7 +958,9 @@ class Index(ClangObject):
     def read(self, path):
         """Load the translation unit from the given AST file."""
         ptr = TranslationUnit_read(self, path)
-        return TranslationUnit(ptr) if ptr else None
+        if ptr:
+            return TranslationUnit(ptr)
+        return None
 
     def parse(self, path, args = [], unsaved_files = [], options = TranslationUnit.Nothing):
         """
@@ -979,7 +993,9 @@ class Index(ClangObject):
         ptr = TranslationUnit_parse(self, path, arg_array, len(args),
                                     unsaved_files_array, len(unsaved_files),
                                     options)
-        return TranslationUnit(ptr) if ptr else None
+        if ptr:
+            return TranslationUnit(ptr)
+        return None
 
 class File(ClangObject):
     """
