@@ -1,11 +1,8 @@
-1. Fix snippets engine
+- Fix snippets engine
   - map.swap
   - fix const overloads
-
-2. Add &path to -I by default
-
-3. Think about supertab (<C-X><C-U> with supertab and clang_auto_select doesn't select first item (if items == 1 ?))
-
-4. Tool that generates .clang_complete automagically, see gccsense's gccrec script
-
-5. Explore "jump to declaration/definition" with libclang FGJ
+- Add &path to -I by default
+- Create a real help file (tags)
+- Tool that generates .clang_complete automagically, see gccsense's gccrec script
+- Explore "jump to declaration/definition" with libclang FGJ
+- Think about supertab (<C-X><C-U> with supertab and clang_auto_select doesn't select first item (if items == 1 ?))
