@@ -104,24 +104,8 @@ let b:clang_type_complete = 0
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
 function! s:ClangCompleteInit()
-  let l:local_conf = findfile('.clang_complete', '.;')
   let b:clang_user_options = ''
-  if l:local_conf != '' && filereadable(l:local_conf)
-    let l:opts = readfile(l:local_conf)
-    for l:opt in l:opts
-      " Better handling of absolute path
-      " I don't know if those pattern will work on windows
-      " platform
-      if matchstr(l:opt, '\C-I\s*/') != ''
-        let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
-              \ '-I' . '\1', 'g')
-      else
-        let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
-              \ '-I' . l:local_conf[:-16] . '\1', 'g')
-      endif
-      let b:clang_user_options .= ' ' . l:opt
-    endfor
-  endif
+  call s:parseConfig()
 
   if !exists('g:clang_auto_select')
     let g:clang_auto_select = 0
@@ -250,6 +234,40 @@ function! s:ClangCompleteInit()
       let g:clang_use_library = 0
       return
     endif
+  endif
+endfunction
+
+function! s:parseConfig()
+  let l:local_conf = findfile('.clang_complete', '.;')
+  if l:local_conf != '' && filereadable(l:local_conf)
+    let l:opts = readfile(l:local_conf)
+    for l:opt in l:opts
+      " Better handling of absolute path
+      " I don't know if those pattern will work on windows
+      " platform
+      if matchstr(l:opt, '\C-I\s*/') != ''
+        let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
+              \ '-I' . '\1', 'g')
+      else
+        let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
+              \ '-I' . l:local_conf[:-16] . '\1', 'g')
+      endif
+      let b:clang_user_options .= ' ' . l:opt
+    endfor
+  else
+    " Add &path to -I
+    let l:dirs = split(&path, ',')
+    for l:dir in l:dirs
+      if len(l:dir) == 0 || !isdirectory(l:dir)
+        continue
+      endif
+
+      " Add only absolute paths
+      if matchstr(l:dir, '\s*/') != ''
+        let l:opt = '-I' . l:dir
+        let b:clang_user_options .= ' ' . l:opt
+      endif
+    endfor
   endif
 endfunction
 
