@@ -87,6 +87,14 @@
 "       Output debugging informations, like timeing output of completion.
 "       Default: 0
 "
+"  - g:clang_auto_user_options:
+"       Set sources for user options passed to clang. Available sources are:
+"         - path - use &path content as list of include directories (relative
+"         paths are ignored)
+"         - .clang_complete - use information from .clang_complete file
+"       Multiple options are separated by comma.
+"       Default: 'path, .clang_complete'
+"
 " Todo: - Fix bugs
 "       - Parse fix-its and do something useful with it.
 "       - -code-completion-macros -code-completion-patterns
@@ -104,9 +112,6 @@ let b:clang_type_complete = 0
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
 function! s:ClangCompleteInit()
-  let b:clang_user_options = ''
-  call s:parseConfig()
-
   if !exists('g:clang_auto_select')
     let g:clang_auto_select = 0
   endif
@@ -163,6 +168,12 @@ function! s:ClangCompleteInit()
   if !exists('g:clang_sort_algo')
     let g:clang_sort_algo = 'priority'
   endif
+
+  if !exists('g:clang_auto_user_options')
+    let g:clang_auto_user_options = 'path, .clang_complete'
+  endif
+
+  call LoadUserOptions()
 
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
   inoremap <expr> <buffer> . <SID>CompleteDot()
@@ -237,38 +248,57 @@ function! s:ClangCompleteInit()
   endif
 endfunction
 
+function! LoadUserOptions()
+  let b:clang_user_options = ''
+
+  let l:option_sources = split(g:clang_auto_user_options, ',')
+  let l:remove_spaces_cmd = 'substitute(v:val, "\\s*\\(.*\\)\\s*", "\\1", "")'
+  let l:option_sources = map(l:option_sources, l:remove_spaces_cmd)
+
+  for l:source in l:option_sources
+    if l:source == 'path'
+      call s:parsePathOption()
+    elseif l:source == '.clang_complete'
+      call s:parseConfig()
+    endif
+  endfor
+endfunction
+
 function! s:parseConfig()
   let l:local_conf = findfile('.clang_complete', '.;')
-  if l:local_conf != '' && filereadable(l:local_conf)
-    let l:opts = readfile(l:local_conf)
-    for l:opt in l:opts
-      " Better handling of absolute path
-      " I don't know if those pattern will work on windows
-      " platform
-      if matchstr(l:opt, '\C-I\s*/') != ''
-        let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
-              \ '-I' . '\1', 'g')
-      else
-        let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
-              \ '-I' . l:local_conf[:-16] . '\1', 'g')
-      endif
-      let b:clang_user_options .= ' ' . l:opt
-    endfor
-  else
-    " Add &path to -I
-    let l:dirs = split(&path, ',')
-    for l:dir in l:dirs
-      if len(l:dir) == 0 || !isdirectory(l:dir)
-        continue
-      endif
-
-      " Add only absolute paths
-      if matchstr(l:dir, '\s*/') != ''
-        let l:opt = '-I' . l:dir
-        let b:clang_user_options .= ' ' . l:opt
-      endif
-    endfor
+  if l:local_conf == '' || !filereadable(l:local_conf)
+    return
   endif
+
+  let l:opts = readfile(l:local_conf)
+  for l:opt in l:opts
+    " Better handling of absolute path
+    " I don't know if those pattern will work on windows
+    " platform
+    if matchstr(l:opt, '\C-I\s*/') != ''
+      let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
+            \ '-I' . '\1', 'g')
+    else
+      let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
+            \ '-I' . l:local_conf[:-16] . '\1', 'g')
+    endif
+    let b:clang_user_options .= ' ' . l:opt
+  endfor
+endfunction
+
+function! s:parsePathOption()
+  let l:dirs = split(&path, ',')
+  for l:dir in l:dirs
+    if len(l:dir) == 0 || !isdirectory(l:dir)
+      continue
+    endif
+
+    " Add only absolute paths
+    if matchstr(l:dir, '\s*/') != ''
+      let l:opt = '-I' . l:dir
+      let b:clang_user_options .= ' ' . l:opt
+    endif
+  endfor
 endfunction
 
 function! s:initClangCompletePython()
