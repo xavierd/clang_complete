@@ -1,7 +1,6 @@
 - Fix snippets engine
   - map.swap
   - fix const overloads
-- Add &path to -I by default
 - Create a real help file (tags)
 - Tool that generates .clang_complete automagically, see gccsense's gccrec script
 - Explore "jump to declaration/definition" with libclang FGJ

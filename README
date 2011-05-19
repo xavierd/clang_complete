@@ -47,6 +47,14 @@ Configuration:
         Default: ''
         Example: '|| exit 0' (it will discard clang return value)
 
+   - g:clang_auto_user_options:
+        Set sources for user options passed to clang. Available sources are:
+          - path - use &path content as list of include directories (relative
+          paths are ignored)
+          - .clang_complete - use information from .clang_complete file
+        Multiple options are separated by comma.
+        Default: 'path, .clang_complete'
+
     - g:clang_use_library:
 	Instead of calling the clang/clang++ tool use libclang directly. This
 	gives access to many more clang features. Furthermore it automatically
