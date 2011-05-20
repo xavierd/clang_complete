@@ -2,6 +2,7 @@ from clang.cindex import *
 import vim
 import time
 import re
+import threading
 
 def initClangComplete(clang_complete_flags):
   global index
@@ -176,13 +177,41 @@ def formatResult(result):
 
   return completion
 
+
+class CompleteThread(threading.Thread):
+  lock = threading.Lock()
+
+  def __init__(self, line, column):
+    threading.Thread.__init__(self)
+    self.line = line
+    self.column = column
+    self.result = None
+
+  def run(self):
+    with CompleteThread.lock:
+      try:
+        self.result = getCurrentCompletionResults(self.line, self.column)
+      except Exception:
+        pass
+
+
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   priority = vim.eval("g:clang_sort_algo") == 'priority'
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
-  cr = getCurrentCompletionResults(line, column)
+
+  t = CompleteThread(line, column)
+  t.start()
+  while t.is_alive():
+    t.join(0.01)
+    cancel = int(vim.eval('complete_check()'))
+    if cancel != 0:
+      return []
+  cr = t.result
+  if cr is None:
+    return []
 
   regexp = re.compile("^" + base)
   filteredResult = filter(lambda x: regexp.match(getAbbr(x.string)), cr.results)
