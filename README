@@ -4,6 +4,11 @@ How-to use it? Simply put it on ~/.vim/plugin
 It should work immediately.
 
 Configuration:
+  - g:clang_auto_select:
+       if equal to 1, automatically select the first entry in the popup
+       menu
+       Default: 0
+
   - g:clang_complete_auto:
        if equal to 1, automatically complete after ->, ., ::
        Default: 1
