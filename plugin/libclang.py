@@ -205,7 +205,7 @@ def getCurrentCompletions(base):
 
   t = CompleteThread(line, column)
   t.start()
-  while t.is_alive():
+  while t.isAlive():
     t.join(0.01)
     cancel = int(vim.eval('complete_check()'))
     if cancel != 0:
