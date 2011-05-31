@@ -19,8 +19,8 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 def getCurrentTranslationUnit(update = False):
-  userOptionsGlobal = vim.eval("g:clang_user_options").split(" ")
-  userOptionsLocal = vim.eval("b:clang_user_options").split(" ")
+  userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
+  userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
   args = userOptionsGlobal + userOptionsLocal
 
   currentFile = getCurrentFile()
@@ -62,6 +62,25 @@ def getCurrentTranslationUnit(update = False):
     elapsed = (time.time() - start)
     print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
   return tu
+
+def splitOptions(options):
+  optsList = []
+  opt = ""
+  quoted = False
+
+  for char in options:
+    if char == ' ' and not quoted:
+      if opt != "":
+        optsList += [opt]
+        opt = ""
+      continue
+    elif char == '"':
+      quoted = not quoted
+    opt += char
+
+  if opt != "":
+    optsList += [opt]
+  return optsList
 
 def getQuickFix(diagnostic):
   # Some diagnostics have no file, e.g. "too many errors emitted, stopping now"
