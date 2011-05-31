@@ -4,4 +4,4 @@
 - Create a real help file (tags)
 - Tool that generates .clang_complete automagically, see gccsense's gccrec script
 - Explore "jump to declaration/definition" with libclang FGJ
-- Think about supertab (<C-X><C-U> with supertab and clang_auto_select doesn't select first item (if items == 1 ?))
+- Think about supertab (<C-X><C-U> with supertab and clang_auto_select)
