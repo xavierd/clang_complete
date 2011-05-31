@@ -188,12 +188,13 @@ class CompleteThread(threading.Thread):
     self.result = None
 
   def run(self):
-    with CompleteThread.lock:
-      try:
-        self.result = getCurrentCompletionResults(self.line, self.column)
-      except Exception:
-        pass
-
+    try:
+      CompleteThread.lock.acquire()
+      self.result = getCurrentCompletionResults(self.line, self.column)
+    except Exception:
+      CompleteThread.lock.release()
+      pass
+    CompleteThread.lock.release()
 
 def getCurrentCompletions(base):
   global debug
