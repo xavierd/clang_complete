@@ -188,12 +188,13 @@ class CompleteThread(threading.Thread):
     self.result = None
 
   def run(self):
-    with CompleteThread.lock:
-      try:
-        self.result = getCurrentCompletionResults(self.line, self.column)
-      except Exception:
-        pass
-
+    try:
+      CompleteThread.lock.acquire()
+      self.result = getCurrentCompletionResults(self.line, self.column)
+    except Exception:
+      CompleteThread.lock.release()
+      pass
+    CompleteThread.lock.release()
 
 def getCurrentCompletions(base):
   global debug
@@ -204,7 +205,7 @@ def getCurrentCompletions(base):
 
   t = CompleteThread(line, column)
   t.start()
-  while t.is_alive():
+  while t.isAlive():
     t.join(0.01)
     cancel = int(vim.eval('complete_check()'))
     if cancel != 0:
