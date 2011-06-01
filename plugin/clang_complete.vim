@@ -650,7 +650,7 @@ function! s:TriggerSnippet()
   endif
 
   " Stop monitoring as we'll trigger a snippet
-  iunmap <buffer> <C-Y>
+  silent! iunmap <buffer> <C-Y>
   augroup ClangComplete
     au! CursorMovedI <buffer>
   augroup end
