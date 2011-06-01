@@ -3,5 +3,8 @@
   - fix const overloads
 - Create a real help file (tags)
 - Tool that generates .clang_complete automagically, see gccsense's gccrec script
+- Write some unit tests
+  - clang vs libclang accuracy for complex completions
+  - clang vs libclang timing
 - Explore "jump to declaration/definition" with libclang FGJ
 - Think about supertab (<C-X><C-U> with supertab and clang_auto_select)
