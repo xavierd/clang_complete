@@ -1,0 +1,203 @@
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2011 Jun 04
+
+
+		  clang_complete plugin documentation
+
+
+clang_complete plugin		      		*clang_complete*
+
+1. Description		|clang_complete-description|
+2. License	    	|clang_complete-license|
+3. Completion kinds    	|clang_complete-compl_kinds|
+4. Configuration	|clang_complete-configuration|
+5. Options		|clang_complete-options|
+6. Known issues		|clang_complete-issues|
+7. PCH      		|clang_complete-pch|
+
+Author: Xavier Deguillard <deguilx@gmail.com>	*clang_complete-author*
+
+==============================================================================
+1. Description 					*clang_complete-description*
+
+This plugin use clang for accurately completing C and C++ code.
+
+Note: This plugin is incompatible with omnicppcomplete due to the
+unconditionnaly set mapping done by omnicppcomplete. So don't forget to
+suppress it before using this plugin.
+
+==============================================================================
+2. License	    				*clang_complete-license*
+
+See LICENSE file.
+
+Note: The LICENSE file does not cover the files that come from the LLVM
+project, namely, cindex.py and __init__.py, which are covered by the LLVM
+license.
+
+==============================================================================
+3. Completion kinds    				*clang_complete-compl_kinds*
+
+Because libclang provides a lot of information about completion, there are
+some additional kinds of completion along with standard ones (see >
+ :help complete-items
+for details):
+ '+' - constructor
+ '~' - destructor
+ 'e' - enumerator constant
+ 'a' - parameter ('a' from "argument") of a function, method or template
+ 'u' - unknown or buildin type (int, float, ...)
+ 'n' - namespace or its alias
+ 'p' - template ('p' from "pattern")
+
+==============================================================================
+4. Configuration				*clang_complete-configuration*
+
+Each project can have a .clang_complete at his root, containing the compiler
+options. This is useful if you're using some non-standard include paths. For
+simplicity, please don't put relative and absolute include path on the same
+line. It is not currently correctly handled.
+
+==============================================================================
+5. Options					*clang_complete-options*
+
+       				       	*clang_complete-auto_select*
+				       	*g:clang_auto_select*
+If equal to 1, automatically select the first entry in the popup menu.
+Default: 0
+
+       				       	*clang_complete-complete_auto*
+       				       	*g:clang_complete_auto*
+If equal to 1, automatically complete after ->, ., ::
+Default: 1
+
+       				       	*clang_complete-copen*
+       				       	*g:clang_complete_copen*
+If equal to 1, open quickfix window on error.
+Default: 0
+
+       				       	*clang_complete-hl_errors*
+       				       	*g:clang_hl_errors*
+If equal to 1, it will highlight the warnings and errors the same way clang
+does it.
+Default: 1
+
+       				       	*clang_complete-periodic_quickfix*
+       				       	*g:clang_periodic_quickfix*
+If equal to 1, it will periodically update the quickfix window.
+Default: 0
+Note: You could use the g:ClangUpdateQuickFix() to do the same with a mapping.
+
+       				       	*clang_complete-snippets*
+       				       	*g:clang_snippets*
+If equal to 1, it will do some snippets magic after a ( or a , inside function
+call. Not currently fully working.
+Default: 0
+
+				       	*clang_complete-snippets_engine*
+				       	*g:clang_snippets_engine*
+The snippets engine (clang_complete, snipmate, ultisnips... see the snippets
+subdirectory).
+Default: "clang_complete"
+
+       				       	*clang_complete-conceal_snippets*
+       				       	*g:clang_conceal_snippets*
+If equal to 1, vim will use vim 7.3 conceal feature to hide <# and #> which
+delimit a snippets.
+Default: 1 (0 if conceal not available)
+Note: See concealcursor and conceallevel for conceal configuration.
+
+       				       	*clang_complete-exec*
+       				       	*g:clang_exec*
+Name or path of clang executable.
+Note: Use this if clang has a non-standard name, or isn't in the path.
+Default: "clang"
+
+       				      	*clang_complete-user_options*
+       				       	*g:clang_user_options*
+Option added at the end of clang command. Useful if you want to filter the
+result, or if you want to ignore the error code returned by clang: on error,
+the completion is not shown.
+Default: ""
+Example: "|| exit 0" (it will discard clang return value)
+
+       				       	*clang_complete-auto_user_options*
+       				       	*g:clang_auto_user_options*
+Set sources for user options passed to clang. Available sources are:
+- path - use &path content as list of include directories (relative paths are
+  ignored)
+- .clang_complete - use information from .clang_complete file Multiple options
+  are separated by comma.
+Default: "path, .clang_complete"
+
+       				       	*clang_complete-use_library*
+       				       	*g:clang_use_library*
+Instead of calling the clang/clang++ tool use libclang directly. This gives
+access to many more clang features. Furthermore it automatically caches all
+includes in memory. Updates after changes in the same file will therefore be a
+lot faster.
+Default: 0
+
+       				       	*clang_complete-library_path*
+       				       	*g:clang_library_path*
+If libclang.[dll/so/dylib] is not in your library search path, set this to the
+absolute path where libclang is available.
+Default: ""
+
+					*clang_complete-sort_algo*
+					*g:clang_sort_algo*
+How results are sorted (alpha, priority). Currently only works with libclang.
+Default: "priority"
+
+					*clang_complete-complete_macros*
+					*g:clang_complete_macros*
+If clang should complete preprocessor macros and constants.
+Default: 0
+
+					*clang_complete-complete_patterns*
+					*g:clang_complete_patterns*
+If clang should complete code patterns, i.e loop constructs etc.
+Defaut: 0
+
+==============================================================================
+6. Known issues					*clang_complete-issues*
+
+If you find that completion is slow, please read the |clang_complete-pch|
+section below.
+
+If you get following error message while trying to complete anything: >
+ E121: Undefined variable: b:should_overload
+it means that your version of Vim is too old (this is an old bug and it has
+been fixed with one of patches for Vim 7.2) and you need to update it.
+
+If clang is not able to compile your file, it cannot complete anything. Since
+clang is not supporting every C++0x features, this is normal if it can do any
+completion on C++0x file.
+
+There is no difference in clang's output between private methods/members and
+public ones. Which means that I cannot filter private methods on the
+completion list.
+
+==============================================================================
+7. PCH      					*clang_complete-pch*
+
+In case you can not or you do not want to install libclang, a precompiled
+header file is another way to accelerate compilation, and so, to accelerate
+the completion. It is however more complicated to install and is still slower
+than the use of libclang.
+
+Here is how to create the <vector> pch, on linux (OSX users may use
+-fnext-runtime instead of -fgnu-runtime): >
+ clang -x c++-header /path/to/c++/vector -fno-exceptions -fgnu-runtime \
+    -o vector.pch
+You just have to insert it into your .clang_complete: >
+ echo '-include-pch /path/to/vector.pch -fgnu-runtime' >> .clang_complete
+<
+One of the major problem is that you cannot include more that one pch, the
+solution is to put the system headers or non changing headers into another
+header and then compile it to pch: >
+ echo '#include <iostream>\n#include <vector>' > pchheader.h
+ clang -x c++-header ./pchheader.h -fno-exceptions -fnu-runtime \
+    -o ./pchheader.pch
+And then add it to the .clang_complete file.
+
+ vim:tw=78:ts=8:ft=help:norl:
