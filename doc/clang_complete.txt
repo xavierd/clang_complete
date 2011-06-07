@@ -13,6 +13,7 @@ clang_complete plugin		      		*clang_complete*
 5. Options		|clang_complete-options|
 6. Known issues		|clang_complete-issues|
 7. PCH      		|clang_complete-pch|
+8. cc_args.py script	|clang_complete-cc_args|
 
 Author: Xavier Deguillard <deguilx@gmail.com>	*clang_complete-author*
 
@@ -199,5 +200,20 @@ header and then compile it to pch: >
  clang -x c++-header ./pchheader.h -fno-exceptions -fnu-runtime \
     -o ./pchheader.pch
 And then add it to the .clang_complete file.
+
+==============================================================================
+8. cc_args.py script				*clang_complete-cc_args*
+
+This script could be used to generate or update .clang_complete file. It works
+similar to gccsence's gccrec and simply stores -I and -D arguments passed to
+the compiler in .clang_complete file. Just add cc_args.py script as the first
+argument of compile command. You should do that every time compile options
+have changed.
+
+Example (we need -B flag to force compiling even if project is up to date): >
+ make CC='cc_args.py gcc' CXX='cc_args.py g++' -B
+After this command .clang_complete file will be created or updated with new
+options. If you don't want to update existing configuration file delete it
+before running make.
 
  vim:tw=78:ts=8:ft=help:norl:
