@@ -42,10 +42,34 @@ function! UpdateSnips()
   endif
   let l:linenb = line('.')
   if &selection == "exclusive"
-    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>ll\<C-G>"
+    return "\<esc>/\\%" . l:linenb . "l<#\<CR>m':call MoveToCCSnippetEnd()\<CR>llv`'o\<C-G>"
   else
-    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
+    return "\<esc>/\\%" . l:linenb . "l<#\<CR>m':call MoveToCCSnippetEnd()\<CR>lv`'o\<C-G>"
   endif
+endfunction
+
+function! MoveToCCSnippetEnd()
+  let l:line = getline('.')
+  let l:counter = 1
+  let l:pattern = '<#\|#>'
+  let l:startpos = col('.') + 2
+  while l:counter > 0
+      let l:ind = match(l:line, l:pattern, l:startpos)
+      if l:ind == -1
+          let l:ind = match(l:line, l:pattern, 0)
+      endif
+
+      let l:str = l:line[l:ind : l:ind + 1]
+      if l:str == '<#'
+          let l:counter += 1
+      elseif l:str == '#>'
+          let l:counter -= 1
+      endif
+
+      let l:startpos = l:ind + 2
+  endwhile
+
+  call cursor(line('.'), l:ind + 1)
 endfunction
 
 function! s:BeginSnips()
