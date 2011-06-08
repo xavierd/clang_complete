@@ -1,7 +1,6 @@
 - Fix snippets engine
   - map.swap
   - fix const overloads
-- Tool that generates .clang_complete automagically, see gccsense's gccrec script
 - Write some unit tests
   - clang vs libclang accuracy for complex completions
   - clang vs libclang timing
