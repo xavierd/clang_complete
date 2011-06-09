@@ -1,5 +1,4 @@
 - Fix snippets engine
-  - map.swap
   - fix const overloads
 - Write some unit tests
   - clang vs libclang accuracy for complex completions
