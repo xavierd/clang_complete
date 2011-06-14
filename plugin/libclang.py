@@ -211,7 +211,6 @@ class CompleteThread(threading.Thread):
       CompleteThread.lock.acquire()
       self.result = getCurrentCompletionResults(self.line, self.column)
     except Exception:
-      CompleteThread.lock.release()
       pass
     CompleteThread.lock.release()
 
