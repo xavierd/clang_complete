@@ -28,9 +28,11 @@ def writeConfiguration(lines):
 def parseArguments(arguments):
   nextIsInclude = False
   nextIsDefine = False
+  nextIsIncludeFile = False
 
   includes = []
   defines = []
+  include_file = []
 
   for arg in arguments:
     if nextIsInclude:
@@ -39,6 +41,9 @@ def parseArguments(arguments):
     elif nextIsDefine:
       defines += [arg]
       nextIsDefine = False
+    elif nextIsIncludeFile:
+      include_file += [arg]
+      nextIsIncludeFile = False
     elif arg == "-I":
       nextIsInclude = True
     elif arg == "-D":
@@ -47,9 +52,12 @@ def parseArguments(arguments):
       includes += [arg[2:]]
     elif arg[:2] == "-D":
       defines += [arg[2:]]
+    elif arg == "-include":
+      nextIsIncludeFile = True
 
   result = map(lambda x: "-I" + x, includes)
   result += map(lambda x: "-D" + x, defines)
+  result += map(lambda x: "-include " + x, include_file)
 
   return result
 
