@@ -86,7 +86,7 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> . <SID>CompleteDot()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
-  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelection()
+  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
 
   if g:clang_snippets == 1
     try
@@ -527,7 +527,7 @@ function! ClangComplete(findstart, base)
       for item in l:res
         let item['word'] = eval('snippets#' . g:clang_snippets_engine . "#add_snippet('" . item['word'] . "', '" . item['info'] . "')")
       endfor
-      inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelection()
+      inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
       augroup ClangComplete
         au CursorMovedI <buffer> call <SID>TriggerSnippet()
       augroup end
@@ -542,12 +542,19 @@ function! ClangComplete(findstart, base)
 endif
 endfunction
 
-function! s:HandlePossibleSelection()
+function! s:HandlePossibleSelectionEnter()
   if pumvisible()
     let b:snippet_chosen = 1
     return "\<C-Y>"
   end
   return "\<CR>"
+endfunction
+
+function! s:HandlePossibleSelectionCtrlY()
+  if pumvisible()
+    let b:snippet_chosen = 1
+  end
+  return "\<C-Y>"
 endfunction
 
 function! s:TriggerSnippet()
