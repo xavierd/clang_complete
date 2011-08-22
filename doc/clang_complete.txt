@@ -120,7 +120,9 @@ result, or if you want to ignore the error code returned by clang: on error,
 the completion is not shown.
 Default: ""
 Example: "|| exit 0" (it will discard clang return value)
-
+For windows, this behavior should work same with following: >
+ let g:clang_user_options='2>&1|more'
+<
        				       	*clang_complete-auto_user_options*
        				       	*g:clang_auto_user_options*
 Set sources for user options passed to clang. Available sources are:
