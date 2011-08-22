@@ -414,9 +414,10 @@ function! s:ClangCompleteBinary(base)
   call delete(l:tempfile)
 
   call s:ClangQuickFix(l:clang_output, l:tempfile)
-  if v:shell_error
-    return []
-  endif
+  " on windows, clang.exe return 1, but show results.
+  "if v:shell_error
+  "  return []
+  "endif
   if l:clang_output == []
     return []
   endif
