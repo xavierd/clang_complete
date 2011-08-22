@@ -116,10 +116,10 @@ Default: "clang"
        				      	*clang_complete-user_options*
        				       	*g:clang_user_options*
 Option added at the end of clang command. Useful if you want to filter the
-result, or if you want to ignore the error code returned by clang: on error,
-the completion is not shown.
+result, or do other stuffs. To ignore the error code returned by clang, set
+|g:clang_exec| to `"clang` and |g:clang_user_options| to `2>/dev/null || exit
+0"` if you're on *nix, or `2>NUL || exit 0"` if you are on windows.
 Default: ""
-Example: "|| exit 0" (it will discard clang return value)
 
        				       	*clang_complete-auto_user_options*
        				       	*g:clang_auto_user_options*
