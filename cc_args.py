@@ -75,6 +75,7 @@ args = parseArguments(sys.argv)
 result = mergeLists(configuration, args)
 writeConfiguration(map(lambda x: x + "\n", result))
 
-exit(os.system(" ".join(sys.argv[1:])))
+
+sys.exit(os.system(" ".join(sys.argv[1:])))
 
 # vim: set ts=2 sts=2 sw=2 expandtab :

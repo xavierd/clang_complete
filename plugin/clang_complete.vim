@@ -171,7 +171,7 @@ function! LoadUserOptions()
 endfunction
 
 function! s:parseConfig()
-  let l:local_conf = findfile('.clang_complete', '.;')
+  let l:local_conf = findfile('.clang_complete', getcwd() . ',.;')
   if l:local_conf == '' || !filereadable(l:local_conf)
     return
   endif
