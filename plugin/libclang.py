@@ -251,6 +251,28 @@ def getAbbr(strings):
   else:
     return tmplst[0].spelling
 
+def echoClangDiagnostic():
+  tu = getCurrentTranslationUnit()
+
+  severityStrings = {
+      Diagnostic.Ignored :"Ignored",
+      Diagnostic.Note :"Note",
+      Diagnostic.Warning :"Warning",
+      Diagnostic.Error :"Error",
+      Diagnostic.Fatal :"Fatal"}
+
+  curLine = vim.current.window.cursor[0]
+  for d in tu.diagnostics:
+    if d.location.line == curLine:
+      maxWidth = vim.current.window.width
+      msg = "line %d, %s: %s" % (curLine, severityStrings[d.severity], d.spelling)
+
+      # limit message length to fit one line
+      msg = msg[:maxWidth]
+
+      print msg
+      return
+
 kinds = dict({                                                                 \
 # Declarations                                                                 \
  1 : 't',  # CXCursor_UnexposedDecl (A declaration whose specific kind is not  \

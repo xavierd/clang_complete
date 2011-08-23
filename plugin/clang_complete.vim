@@ -137,6 +137,9 @@ function! s:ClangCompleteInit()
   if g:clang_periodic_quickfix == 1
     augroup ClangComplete
       au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
+      if has('python') && g:clang_use_library == 1
+        au CursorHold <buffer> call <SID>EchoClangDiagnostic()
+      endif
     augroup end
   endif
 
@@ -267,6 +270,10 @@ function! s:CallClangForDiagnostics(tempfile)
   else
     return s:CallClangBinaryForDiagnostics(a:tempfile)
   endif
+endfunction
+
+function! s:EchoClangDiagnostic()
+  python echoClangDiagnostic()
 endfunction
 
 function! s:DoPeriodicQuickFix()
