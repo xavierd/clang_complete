@@ -7,13 +7,14 @@
 clang_complete plugin		      		*clang_complete*
 
 1. Description		|clang_complete-description|
-2. License	    	|clang_complete-license|
-3. Completion kinds    	|clang_complete-compl_kinds|
-4. Configuration	|clang_complete-configuration|
-5. Options		|clang_complete-options|
-6. Known issues		|clang_complete-issues|
-7. PCH      		|clang_complete-pch|
-8. cc_args.py script	|clang_complete-cc_args|
+2. Completion kinds    	|clang_complete-compl_kinds|
+3. Configuration	|clang_complete-configuration|
+4. Options		|clang_complete-options|
+5. Known issues		|clang_complete-issues|
+6. PCH      		|clang_complete-pch|
+7. cc_args.py script	|clang_complete-cc_args|
+8. To do		|clang_complete-todo|
+9. License		|clang_complete-license|
 
 Author: Xavier Deguillard <deguilx@gmail.com>	*clang_complete-author*
 
@@ -27,16 +28,7 @@ unconditionnaly set mapping done by omnicppcomplete. So don't forget to
 suppress it before using this plugin.
 
 ==============================================================================
-2. License	    				*clang_complete-license*
-
-See LICENSE file.
-
-Note: The LICENSE file does not cover the files that come from the LLVM
-project, namely, cindex.py and __init__.py, which are covered by the LLVM
-license.
-
-==============================================================================
-3. Completion kinds    				*clang_complete-compl_kinds*
+2. Completion kinds    				*clang_complete-compl_kinds*
 
 Because libclang provides a lot of information about completion, there are
 some additional kinds of completion along with standard ones (see >
@@ -51,7 +43,7 @@ for details):
  'p' - template ('p' from "pattern")
 
 ==============================================================================
-4. Configuration				*clang_complete-configuration*
+3. Configuration				*clang_complete-configuration*
 
 Each project can have a .clang_complete at his root, containing the compiler
 options. This is useful if you're using some non-standard include paths. For
@@ -59,7 +51,7 @@ simplicity, please don't put relative and absolute include path on the same
 line. It is not currently correctly handled.
 
 ==============================================================================
-5. Options					*clang_complete-options*
+4. Options					*clang_complete-options*
 
        				       	*clang_complete-auto_select*
 				       	*g:clang_auto_select*
@@ -160,7 +152,7 @@ If clang should complete code patterns, i.e loop constructs etc.
 Defaut: 0
 
 ==============================================================================
-6. Known issues					*clang_complete-issues*
+5. Known issues					*clang_complete-issues*
 
 If you find that completion is slow, please read the |clang_complete-pch|
 section below.
@@ -179,7 +171,7 @@ public ones. Which means that I cannot filter private methods on the
 completion list.
 
 ==============================================================================
-7. PCH      					*clang_complete-pch*
+6. PCH      					*clang_complete-pch*
 
 In case you can not or you do not want to install libclang, a precompiled
 header file is another way to accelerate compilation, and so, to accelerate
@@ -202,18 +194,63 @@ header and then compile it to pch: >
 And then add it to the .clang_complete file.
 
 ==============================================================================
-8. cc_args.py script				*clang_complete-cc_args*
+7. cc_args.py script				*clang_complete-cc_args*
 
-This script could be used to generate or update .clang_complete file. It works
-similar to gccsence's gccrec and simply stores -I and -D arguments passed to
-the compiler in .clang_complete file. Just add cc_args.py script as the first
-argument of compile command. You should do that every time compile options
-have changed.
+This script, installed at ~/.vim/bin/cc_args.py, could be used to generate or
+update the .clang_complete file. It works similar to gccsence's gccrec and
+simply stores -I and -D arguments passed to the compiler in the
+.clang_complete file.  Just add the cc_args.py script as the first argument of
+the compile command. You should do that every time compile options have
+changed.
 
 Example (we need -B flag to force compiling even if project is up to date): >
- make CC='cc_args.py gcc' CXX='cc_args.py g++' -B
-After this command .clang_complete file will be created or updated with new
-options. If you don't want to update existing configuration file delete it
-before running make.
+ make CC='~/.vim/bin/cc_args.py gcc' CXX='~/.vim/bin/cc_args.py g++' -B
+After running this command, .clang_complete will be created or updated with
+new options. If you don't want to update an existing configuration file,
+delete it before running make.
+
+==============================================================================
+8. To do						*clang_complete-todo*
+
+- Fix snippets engine
+  - map.swap
+  - fix const overloads
+- Write some unit tests
+  - clang vs libclang accuracy for complex completions
+  - clang vs libclang timing
+- Explore "jump to declaration/definition" with libclang FGJ
+- Think about supertab (<C-X><C-U> with supertab and clang_auto_select)
+- Parse fix-its and do something useful with it
+
+==============================================================================
+9. License					*clang_complete-license*
+
+Copyright (c) 2010, 2011, Xavier Deguillard
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of Xavier Deguillard nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL XAVIER DEGUILLARD BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Note: This license does not cover the files that come from the LLVM project,
+namely, cindex.py and __init__.py, which are covered by the LLVM license.
 
  vim:tw=78:ts=8:ft=help:norl:

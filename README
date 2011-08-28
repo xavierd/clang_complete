@@ -1,7 +1,13 @@
-This plugin use clang for accurately completing C and C++ code.
+This plugin uses clang for accurately completing C and C++ code.
 
-How-to use it? Simply put it on ~/.vim/
-It should work immediately.
+To build and install in one step, type:
+$ make install
 
-See doc/clang_complete.txt for help and LICENSE for license (also read a note
-in License section of the help file).
+To build and install in two steps, type:
+$ make
+$ vim clang_complete.vba -c 'so %' -c 'q'
+
+You need Vim 7.3 or higher, compiled with python support and ideally, with
+the conceal feature.
+
+See doc/clang_complete.txt for help and license.
