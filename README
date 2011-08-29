@@ -7,6 +7,8 @@ To build and install in two steps, type:
 $ make
 $ vim clang_complete.vba -c 'so %' -c 'q'
 
+Alternatively, you can also put the files in ~/.vim/
+
 You need Vim 7.3 or higher, compiled with python support and ideally, with
 the conceal feature.
 
