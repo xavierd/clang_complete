@@ -76,6 +76,9 @@ result = mergeLists(configuration, args)
 writeConfiguration(map(lambda x: x + "\n", result))
 
 
-sys.exit(os.system(" ".join(sys.argv[1:])))
+status = os.system(" ".join(sys.argv[1:]))
+if not os.WIFEXITED(status):
+  sys.exit(1)
+sys.exit(os.WEXITSTATUS(status))
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
