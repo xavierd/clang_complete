@@ -385,10 +385,7 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
 endfunction
 
 function! s:DemangleProto(prototype)
-  let l:proto = substitute(a:prototype, '[#', '', 'g')
-  let l:proto = substitute(l:proto, '#]', ' ', 'g')
-  let l:proto = substitute(l:proto, '#>', '', 'g')
-  let l:proto = substitute(l:proto, '<#', '', 'g')
+  let l:proto = substitute(a:prototype, '\[#[^#]*#\]', '', 'g')
   let l:proto = substitute(l:proto, '{#.*#}', '', 'g')
   return l:proto
 endfunction
@@ -463,6 +460,7 @@ function! s:ClangCompleteBinary(base)
       let l:word = substitute(l:value, '.*<#', '<#', 'g')
       let l:word = substitute(l:word, '#>.*', '#>', 'g')
       let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
+      let l:proto = l:value
       let l:proto = s:DemangleProto(l:value)
       let l:kind = ''
     else
@@ -523,17 +521,33 @@ function! ClangComplete(findstart, base)
       let l:res = s:ClangCompleteBinary(a:base)
     endif
 
+    for item in l:res
+      if g:clang_snippets == 1
+        let l:args_pos = []
+        let l:startidx = match(l:item['info'], '<#')
+        while l:startidx != -1
+          let l:item['info'] = substitute(l:item['info'], '<#', '', '')
+          let l:endidx = match(l:item['info'], '#>')
+          let l:item['info'] = substitute(l:item['info'], '#>', '', '')
+          let l:args_pos += [[ l:startidx, l:endidx ]]
+          let l:startidx = match(l:item['info'], '<#')
+        endwhile
+        let Snip = function('snippets#' . g:clang_snippets_engine . '#add_snippet')
+        let item['word'] = Snip(item['info'], l:args_pos)
+      else
+        let item['info'] = substitute(item['info'], '<#', '', 'g')
+        let item['info'] = substitute(item['info'], '#>', '', 'g')
+        let item['word'] = item['abbr']
+      endif
+      let item['menu'] = item['info']
+    endfor
     if g:clang_snippets == 1
-      for item in l:res
-        let item['word'] = eval('snippets#' . g:clang_snippets_engine . "#add_snippet('" . item['word'] . "', '" . item['info'] . "')")
-      endfor
       inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
       augroup ClangComplete
         au CursorMovedI <buffer> call <SID>TriggerSnippet()
       augroup end
       let b:snippet_chosen = 0
     endif
-  endif
 
   if g:clang_debug == 1
     echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]

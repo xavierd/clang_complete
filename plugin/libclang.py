@@ -172,7 +172,10 @@ def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
 def formatChunkForWord(chunk):
-  return chunk.spelling
+  if chunk.isKindPlaceHolder():
+    return "<#" + chunk.spelling + "#>"
+  else:
+    return chunk.spelling
 
 def formatResult(result):
   completion = dict()
@@ -187,8 +190,8 @@ def formatResult(result):
   else:
     returnStr = ""
 
-  info = returnStr + "".join(map(lambda x: x.spelling, word))
-  word = abbr
+  info = "".join(map(formatChunkForWord, word))
+  word = returnStr + "".join(map(lambda x: x.spelling, word))
 
   completion['word'] = word
   completion['abbr'] = abbr
