@@ -5,14 +5,26 @@ function! snippets#ultisnips#init()
   call snippets#ultisnips#reset()
 endfunction
 
-function! snippets#ultisnips#add_snippet(keyword, proto)
-  " Construct a snippet id
-  let l:snippet_id = substitute(a:proto, '\v^.*(\V' . a:keyword . '\v.{-})( *const *)?$', '\1', '')
-  let l:snippet_id = substitute(l:snippet_id, ' ', '_', 'g')
+" fullname = strcat(char *dest, const char *src)
+" args_pos = [ [8, 17], [20, 34] ]
+function! snippets#ultisnips#add_snippet(fullname, args_pos)
+  let l:snip = ''
+  let l:prev_idx = 0
+  let l:snip_idx = 1
+  for elt in a:args_pos
+    let l:snip .= a:fullname[l:prev_idx : elt[0] - 1] . '${' . l:snip_idx . ':' . a:fullname[elt[0] : elt[1] - 1] . '}'
+    let l:snip_idx += 1
+    let l:prev_idx = elt[1]
+  endfor
 
-  " Create ultisnips's snippet
-  let l:snippet = s:CreateUltiSnipsSnippet(a:keyword, a:proto)
-  call UltiSnips_AddSnippet(l:snippet_id, l:snippet, a:proto, 'i', &filetype)
+  let l:snip .= a:fullname[l:prev_idx : ] . '${' . l:snip_idx . '}'
+
+  let l:snippet_id = substitute(a:fullname, ' ', '_', 'g')
+
+  call MakeSnip(&filetype, l:snippet_id, l:snip)
+
+  return l:snippet_id
+  call UltiSnips_AddSnippet(l:snippet_id, l:snip, a:fullname, 'i', &filetype)
 
   return l:snippet_id
 endfunction
@@ -25,43 +37,4 @@ function! snippets#ultisnips#reset()
   python UltiSnips_Manager.reset()
 endfunction
 
-
-" ---------------- Helpers ----------------
-
-function! s:CreateUltiSnipsSnippet(trigger, proto)
-  " Try to parse parameters
-  let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.*)([)>])')
-
-  " Check if it's a type without template params
-  if empty(l:matches)
-    " Clean up prototype (remove return type and const)
-    let l:proto = substitute(a:proto, '\v^.*(\V' . a:trigger . '\v.{-})( *const *)?$', '\1', '')
-    return l:proto . ' ${1:obj};${2}'
-  endif
-
-  " Get parameters
-  let l:delim_start = l:matches[1]
-  let l:params = split(l:matches[2], '\v\s*,\s*')
-  let l:delim_end = l:matches[3]
-
-  " Construct snippet
-  let l:tmp = 1
-  let l:snippet = a:trigger . l:delim_start
-  for param in l:params
-    let l:snippet .= '${' . l:tmp . ':' . param . '}'
-    if l:tmp != len(l:params)
-      let l:snippet .= ', '
-    endif
-    let l:tmp += 1
-  endfor
-  let l:snippet .= l:delim_end
-  if l:delim_start == '('
-    " Function
-    let l:snippet .= '${' . l:tmp . ':;}${' . (l:tmp+1) . '}'
-  else
-    " Template
-    let l:snippet .= ' ${' . l:tmp . ':obj};${' . (l:tmp+1) . '}'
-  endif
-
-  return l:snippet
-endfunction
+" vim: set ts=2 sts=2 sw=2 expandtab :
