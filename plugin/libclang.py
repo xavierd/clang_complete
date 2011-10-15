@@ -196,6 +196,9 @@ def formatResult(result):
   completion['info'] = info
   completion['dup'] = 1
 
+  if returnStr.strip(' ') == 'void':
+    completion['info'] += ';'
+
   # Replace the number that represents a specific kind with a better
   # textual representation.
   completion['kind'] = kinds[result.cursorKind]

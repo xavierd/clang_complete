@@ -390,12 +390,17 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
 endfunction
 
 function! s:DemangleProto(prototype)
+  let l:retval = matchstr(a:prototype, '\[#[^#]*#\]')
   let l:proto = substitute(a:prototype, '[#', '', 'g')
   let l:proto = substitute(l:proto, '#]', ' ', 'g')
   let l:proto = substitute(l:proto, '#>', '', 'g')
   let l:proto = substitute(l:proto, '<#', '', 'g')
   let l:proto = substitute(l:proto, '{#.*#}', '', 'g')
-  return l:proto
+  if l:retval == '[#void#]'
+    return l:proto.';'
+  else
+    return l:proto
+  endif
 endfunction
 
 let b:col = 0
