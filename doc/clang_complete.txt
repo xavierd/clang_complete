@@ -55,7 +55,11 @@ line. It is not currently correctly handled.
 
        				       	*clang_complete-auto_select*
 				       	*g:clang_auto_select*
-If equal to 1, automatically select the first entry in the popup menu.
+If equal to 0, nothing is selected.
+If equal to 1, automatically select the first entry in the popup menu, and
+insert it into the code.
+If equal to 2, automatically select the first entry in the popup menu, but
+without inserting it into the code.
 Default: 0
 
        				       	*clang_complete-complete_auto*
