@@ -12,7 +12,6 @@ au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
 let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
-let b:clang_type_complete = 0
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
@@ -112,7 +111,6 @@ function! s:ClangCompleteInit()
   let b:should_overload = 0
   let b:my_changedtick = b:changedtick
   let b:clang_parameters = '-x c'
-  let b:clang_type_complete = 0
 
   if &filetype == 'objc'
     let b:clang_parameters = '-x objective-c'
@@ -503,7 +501,6 @@ function! ClangComplete(findstart, base)
     if l:line[l:wsstart - 1] =~ '[(,]'
       let b:should_overload = 1
       let b:col = l:wsstart + 1
-      let b:clang_type_complete = 0
       return l:wsstart
     endif
     let b:should_overload = 0
