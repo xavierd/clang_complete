@@ -5,7 +5,9 @@ function! snippets#snipmate#init()
   call snippets#snipmate#reset()
 endfunction
 
-function! snippets#snipmate#add_snippet(keyword, proto)
+" fullname = strcat(char *dest, const char *src)
+" args_pos = [ [8, 17], [20, 34] ]
+function! snippets#snipmate#add_snippet(fullname, args_pos)
   " If we are already in a snipmate snippet, well not much we can do until snipmate supports nested snippets
   if exists('g:snipPos')
     return a:keyword
