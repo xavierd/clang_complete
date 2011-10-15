@@ -198,9 +198,7 @@ def formatResult(result):
 
   if returnStr.strip(' ') == 'void' and \
       vim.eval("len(getline('.')) < col('.')") == '1':
-    if re.match('objc', vim.eval("&ft"), re.I):
-      completion['info'] += '];'
-    else:
+    if not re.match('objc', vim.eval('&ft'), re.I):
       completion['info'] += ';'
 
   # Replace the number that represents a specific kind with a better

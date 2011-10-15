@@ -397,10 +397,10 @@ function! s:DemangleProto(prototype)
   let l:proto = substitute(l:proto, '<#', '', 'g')
   let l:proto = substitute(l:proto, '{#.*#}', '', 'g')
   if l:retval == '[#void#]' && len(getline('.')) < col('.')
-    if &filetype =~ '\cobjc'
-      return l:proto.'];'
-    else
+    if &filetype !~ '\cobjc'
       return l:proto.';'
+    else
+      return l:proto
     endif
   else
     return l:proto
