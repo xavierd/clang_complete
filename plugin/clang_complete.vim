@@ -98,7 +98,7 @@ function! s:ClangCompleteInit()
 
   " Force menuone. Without it, when there's only one completion result,
   " it can be confusing (not completing and no popup)
-  if g:clang_auto_select != 1
+  if g:clang_auto_select != 2
     set completeopt-=menu
     set completeopt+=menuone
   endif
@@ -612,10 +612,10 @@ function! s:LaunchCompletion()
   let l:result = ""
   if s:ShouldComplete()
     let l:result = "\<C-X>\<C-U>"
-    if g:clang_auto_select != 1
+    if g:clang_auto_select != 2
       let l:result .= "\<C-P>"
     endif
-    if g:clang_auto_select == 2
+    if g:clang_auto_select == 1
       let l:result .= "\<C-R>=(pumvisible() ? \"\\<Down>\" : '')\<CR>"
     endif
   endif
