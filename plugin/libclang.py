@@ -196,6 +196,11 @@ def formatResult(result):
   completion['info'] = info
   completion['dup'] = 1
 
+  if returnStr.strip(' ') == 'void' and \
+      vim.eval("len(getline('.')) < col('.')") == '1':
+    if not re.match('objc', vim.eval('&ft'), re.I):
+      completion['info'] += ';'
+
   # Replace the number that represents a specific kind with a better
   # textual representation.
   completion['kind'] = kinds[result.cursorKind]
