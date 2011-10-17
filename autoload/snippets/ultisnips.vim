@@ -21,9 +21,6 @@ function! snippets#ultisnips#add_snippet(fullname, args_pos)
 
   let l:snippet_id = substitute(a:fullname, ' ', '_', 'g')
 
-  call MakeSnip(&filetype, l:snippet_id, l:snip)
-
-  return l:snippet_id
   call UltiSnips_AddSnippet(l:snippet_id, l:snip, a:fullname, 'i', &filetype)
 
   return l:snippet_id
