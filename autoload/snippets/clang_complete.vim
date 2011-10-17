@@ -8,21 +8,19 @@ function! snippets#clang_complete#init()
   syntax match Conceal /#>/ conceal
 endfunction
 
-" We want to generate a format like [#std::basic_string<char> &#]append(<#const std::basic_string<char> &__str#>, <#size_type __pos#>, <#size_type __n#>)
-function! snippets#clang_complete#add_snippet(keyword, proto)
-  let l:pattern = '\v^(<(struct|union|enum)>\s*<\V' . a:keyword . '\>\)\?\v(.{-})<\V' . a:keyword . '\>'
-  let l:snippet_id = substitute(a:proto, l:pattern, a:keyword, '')
-  let l:snippet_id = substitute(l:snippet_id, '<', '<<#', 'g')
-  let l:snippet_id = substitute(l:snippet_id, '>', '#>>', 'g')
-  let l:snippet_id = substitute(l:snippet_id, ',', '#>, <#', 'g')
+" fullname = strcat(char *dest, const char *src)
+" args_pos = [ [8, 17], [20, 34] ]
+function! snippets#clang_complete#add_snippet(fullname, args_pos)
+  let l:res = ''
+  let l:prev_idx = 0
+  for elt in a:args_pos
+    let l:res .= a:fullname[l:prev_idx : elt[0] - 1] . '<#' . a:fullname[elt[0] : elt[1] - 1] . '#>'
+    let l:prev_idx = elt[1]
+  endfor
 
-  " A function with no arguments shouldn't have snippets for the argument list.
-  if match(l:snippet_id, '()') != -1
-    return l:snippet_id
-  endif
-  let l:snippet_id = substitute(l:snippet_id, '(', '(<#', 'g')
-  let l:snippet_id = substitute(l:snippet_id, ')', '#>)', 'g')
-  return l:snippet_id
+  let l:res .= a:fullname[l:prev_idx : ]
+
+  return l:res
 endfunction
 
 function! snippets#clang_complete#trigger()
@@ -75,26 +73,10 @@ endfunction
 
 function! MoveToCCSnippetEnd()
   let l:line = getline('.')
-  let l:counter = 1
-  let l:pattern = '<#\|#>'
+  let l:pattern = '#>'
   let l:startpos = col('.') + 2
-  while l:counter > 0
-    let l:ind = match(l:line, l:pattern, l:startpos)
-    if l:ind == -1
-      let l:ind = match(l:line, l:pattern, 0)
-    endif
 
-    let l:str = l:line[l:ind : l:ind + 1]
-    if l:str == '<#'
-      let l:counter += 1
-    elseif l:str == '#>'
-      let l:counter -= 1
-    endif
-
-    let l:startpos = l:ind + 2
-  endwhile
-
-  call cursor(line('.'), l:ind + 1)
+  call cursor(line('.'), match(l:line, l:pattern, l:startpos) + 1)
 endfunction
 
 function! s:BeginSnips()
