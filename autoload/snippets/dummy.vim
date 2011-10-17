@@ -8,8 +8,8 @@ endfunction
 " args_pos: contain the position of the argument in fullname. ex [ [8, 17], [20, 34] ]
 " Returns: text to be inserted for when trigger() is called
 function! snippets#dummy#add_snippet(fullname, args_pos)
-  echo 'Creating snippet for "' . proto . '" using "' . keyword . '"'
-  return keyword
+  echo 'Creating snippet for "' . a:fullname
+  return a:fullname
 endfunction
 
 " Trigger the snippet
