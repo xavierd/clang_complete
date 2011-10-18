@@ -35,7 +35,7 @@ def getCurrentTranslationUnit(args, update = False):
 
   if debug:
     start = time.time()
-  flags = TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble # | TranslationUnit.CacheCompletionResults
+  flags = TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble | TranslationUnit.CacheCompletionResults
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
