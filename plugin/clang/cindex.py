@@ -1290,6 +1290,10 @@ class CodeCompletionResult(Structure):
         return str(CompletionString(self.completionString))
 
     @property
+    def kind(self):
+        return CursorKind.from_id(self.cursorKind)
+
+    @property
     def string(self):
         return CompletionString(self.completionString)
 
