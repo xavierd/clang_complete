@@ -875,7 +875,9 @@ class Cursor(Structure):
             # FIXME: clang_getCursorSpelling should be fixed to not assert on
             # this, for consistency with clang_getCursorUSR.
             return None
-        return Cursor_spelling(self)
+        if not hasattr(self, '_spelling'):
+            self._spelling = Cursor_spelling(self)
+        return self._spelling
 
     @property
     def displayname(self):
@@ -886,7 +888,9 @@ class Cursor(Structure):
         such as the parameters of a function or template or the arguments of a
         class template specialization.
         """
-        return Cursor_displayname(self)
+        if not hasattr(self, '_displayname'):
+            self._displayname = Cursor_displayname(self)
+        return self._displayname
 
     @property
     def location(self):
@@ -894,7 +898,9 @@ class Cursor(Structure):
         Return the source location (the starting character) of the entity
         pointed at by the cursor.
         """
-        return Cursor_loc(self)
+        if not hasattr(self, '_loc'):
+            self._loc = Cursor_loc(self)
+        return self._loc
 
     @property
     def extent(self):
@@ -902,7 +908,9 @@ class Cursor(Structure):
         Return the source range (the range of text) occupied by the entity
         pointed at by the cursor.
         """
-        return Cursor_extent(self)
+        if not hasattr(self, '_extent'):
+            self._extent = Cursor_extent(self)
+        return self._extent
 
     @property
     def type(self):
@@ -910,7 +918,9 @@ class Cursor(Structure):
         Retrieve the type (if any) of of the entity pointed at by the
         cursor.
         """
-        return Cursor_type(self)
+        if not hasattr(self, '_type'):
+            self._type = Cursor_type(self)
+        return self._type
 
     def get_children(self):
         """Return an iterator for accessing the children of this cursor."""
