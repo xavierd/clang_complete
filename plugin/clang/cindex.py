@@ -120,7 +120,7 @@ class SourceLocation(Structure):
                 f = File(f)
             else:
                 f = None
-            self._data = (f, int(l.value), int(c.value), int(c.value))
+            self._data = (f, int(l.value), int(c.value), int(o.value))
         return self._data
 
     @property
