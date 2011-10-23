@@ -88,12 +88,7 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
 
   if g:clang_snippets == 1
-    try
-      call eval('snippets#' . g:clang_snippets_engine . '#init()')
-    catch /^Vim\%((\a\+)\)\=:E117/
-      echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found.'
-      let g:clang_snippets = 0
-    endtry
+    call g:ClangSetSnippetEngine(g:clang_snippets_engine)
   endif
 
   " Force menuone. Without it, when there's only one completion result,
@@ -531,7 +526,7 @@ function! ClangComplete(findstart, base)
     endif
 
     if g:clang_snippets == 1
-      call eval('snippets#' . g:clang_snippets_engine . '#reset()')
+      call b:ResetSnip()
     endif
 
     if g:clang_use_library == 1
@@ -542,8 +537,7 @@ function! ClangComplete(findstart, base)
 
     for item in l:res
       if g:clang_snippets == 1
-        let Snip = function('snippets#' . g:clang_snippets_engine . '#add_snippet')
-        let item['word'] = Snip(item['info'], item['args_pos'])
+        let item['word'] = b:AddSnip(item['info'], item['args_pos'])
       else
         let item['word'] = item['abbr']
       endif
@@ -591,7 +585,7 @@ function! s:TriggerSnippet()
   augroup end
 
   " Trigger the snippet
-  call eval('snippets#' . g:clang_snippets_engine . '#trigger()')
+  call b:TriggerSnip()
 endfunction
 
 function! s:ShouldComplete()
@@ -650,6 +644,18 @@ endfunction
 function! g:ClangUpdateQuickFix()
   call s:DoPeriodicQuickFix()
   return ''
+endfunction
+
+function! g:ClangSetSnippetEngine(engine_name)
+  try
+    call eval('snippets#' . a:engine_name . '#init()')
+    let b:AddSnip = function('snippets#' . a:engine_name . '#add_snippet')
+    let b:ResetSnip = function('snippets#' . a:engine_name . '#reset')
+    let b:TriggerSnip = function('snippets#' . a:engine_name . '#trigger')
+  catch /^Vim\%((\a\+)\)\=:E117/
+    echoe 'Snippets engine ' . a:engine_name . ' not found.'
+    let g:clang_snippets = 0
+  endtry
 endfunction
 
 " vim: set ts=2 sts=2 sw=2 expandtab :
