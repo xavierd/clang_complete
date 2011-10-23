@@ -171,32 +171,27 @@ def getCurrentCompletionResults(line, column):
 def completeCurrentAt(line, column):
   print "\n".join(map(str, getCurrentCompletionResults().results))
 
-def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder():
-    return "<#" + chunk.spelling + "#>"
-  else:
-    return chunk.spelling
-
 def formatResult(result):
   completion = dict()
 
   abbr = getAbbr(result.string)
-  info = filter(lambda x: not x.isKindInformative(), result.string)
-  word = filter(lambda x: not x.isKindResultType(), info)
-  returnValue = filter(lambda x: x.isKindResultType(), info)
+  word = filter(lambda x: not x.isKindInformative() and not x.isKindResultType(), result.string)
 
-  if len(returnValue) > 0:
-    returnStr = returnValue[0].spelling + " "
-  else:
-    returnStr = ""
+  args_pos = []
+  cur_pos = 0
+  for chunk in word:
+    chunk_len = len(chunk.spelling)
+    if chunk.isKindPlaceHolder():
+      args_pos += [[ cur_pos, cur_pos + chunk_len ]]
+    cur_pos += chunk_len
 
-  info = "".join(map(formatChunkForWord, word))
-  word = returnStr + "".join(map(lambda x: x.spelling, word))
+  word = "".join(map(lambda x: x.spelling, word))
 
   completion['word'] = word
   completion['abbr'] = abbr
-  completion['menu'] = info
-  completion['info'] = info
+  completion['menu'] = word
+  completion['info'] = word
+  completion['args_pos'] = args_pos
   completion['dup'] = 1
 
   # Replace the number that represents a specific kind with a better

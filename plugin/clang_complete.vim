@@ -455,6 +455,7 @@ function! s:ClangCompleteBinary(base)
       endif
 
       let l:word = l:wabbr
+
       let l:proto = s:DemangleProto(l:proto)
 
     elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
@@ -473,13 +474,26 @@ function! s:ClangCompleteBinary(base)
       continue
     endif
 
+    let l:args_pos = []
+    if g:clang_snippets == 1
+      let l:startidx = match(l:proto, '<#')
+      while l:startidx != -1
+        let l:proto = substitute(l:proto, '<#', '', '')
+        let l:endidx = match(l:proto, '#>')
+        let l:proto = substitute(l:proto, '#>', '', '')
+        let l:args_pos += [[ l:startidx, l:endidx ]]
+        let l:startidx = match(l:proto, '<#')
+      endwhile
+    endif
+
     let l:item = {
           \ 'word': l:word,
           \ 'abbr': l:wabbr,
           \ 'menu': l:proto,
           \ 'info': l:proto,
           \ 'dup': 1,
-          \ 'kind': l:kind }
+          \ 'kind': l:kind,
+          \ 'args_pos': l:args_pos }
 
     call add(l:res, l:item)
   endfor
@@ -528,23 +542,11 @@ function! ClangComplete(findstart, base)
 
     for item in l:res
       if g:clang_snippets == 1
-        let l:args_pos = []
-        let l:startidx = match(l:item['info'], '<#')
-        while l:startidx != -1
-          let l:item['info'] = substitute(l:item['info'], '<#', '', '')
-          let l:endidx = match(l:item['info'], '#>')
-          let l:item['info'] = substitute(l:item['info'], '#>', '', '')
-          let l:args_pos += [[ l:startidx, l:endidx ]]
-          let l:startidx = match(l:item['info'], '<#')
-        endwhile
         let Snip = function('snippets#' . g:clang_snippets_engine . '#add_snippet')
-        let item['word'] = Snip(item['info'], l:args_pos)
+        let item['word'] = Snip(item['info'], item['args_pos'])
       else
-        let item['info'] = substitute(item['info'], '<#', '', 'g')
-        let item['info'] = substitute(item['info'], '#>', '', 'g')
         let item['word'] = item['abbr']
       endif
-      let item['menu'] = item['info']
     endfor
     if g:clang_snippets == 1
       inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
