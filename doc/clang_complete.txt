@@ -216,9 +216,6 @@ delete it before running make.
 ==============================================================================
 8. To do						*clang_complete-todo*
 
-- Fix snippets engine
-  - map.swap
-  - fix const overloads
 - Write some unit tests
   - clang vs libclang accuracy for complex completions
   - clang vs libclang timing
