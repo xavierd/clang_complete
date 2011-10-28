@@ -168,9 +168,6 @@ def getCurrentCompletionResults(line, column):
     print "LibClang - Code completion time: " + str(elapsed)
   return cr
 
-def completeCurrentAt(line, column):
-  print "\n".join(map(str, getCurrentCompletionResults().results))
-
 def formatResult(result):
   completion = dict()
 
