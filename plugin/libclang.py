@@ -18,11 +18,7 @@ def getCurrentFile():
   file = "\n".join(vim.eval("getline(1, '$')"))
   return (vim.current.buffer.name, file)
 
-def getCurrentTranslationUnit(update = False):
-  userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-  userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-  args = userOptionsGlobal + userOptionsLocal
-
+def getCurrentTranslationUnit(args, update = False):
   currentFile = getCurrentFile()
   fileName = vim.current.buffer.name
 
@@ -154,10 +150,13 @@ def getCurrentQuickFixList():
 def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  getCurrentTranslationUnit(update = True)
+  userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
+  userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
+  args = userOptionsGlobal + userOptionsLocal
+  getCurrentTranslationUnit(args, update = True)
 
-def getCurrentCompletionResults(line, column):
-  tu = getCurrentTranslationUnit()
+def getCurrentCompletionResults(line, column, args):
+  tu = getCurrentTranslationUnit(args)
   currentFile = getCurrentFile()
   if debug:
     start = time.time()
@@ -206,6 +205,9 @@ class CompleteThread(threading.Thread):
     self.line = line
     self.column = column
     self.result = None
+    userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
+    userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
+    self.args = userOptionsGlobal + userOptionsLocal
 
   def run(self):
     try:
@@ -217,9 +219,10 @@ class CompleteThread(threading.Thread):
         # Otherwise we would get: E293: block was not locked
         # The user does not see any delay, as we just pause a background thread.
         time.sleep(0.1)
-        getCurrentTranslationUnit()
+        getCurrentTranslationUnit(self.args)
       else:
-        self.result = getCurrentCompletionResults(self.line, self.column)
+        self.result = getCurrentCompletionResults(self.line, self.column,
+                                                  self.args)
     except Exception:
       pass
     CompleteThread.lock.release()
