@@ -208,20 +208,23 @@ function! s:parsePathOption()
 endfunction
 
 function! s:initClangCompletePython()
-  python import sys
+  " Only parse the python library once
+  if !exists('s:libclang_loaded')
+    python import sys
+    if exists('g:clang_library_path')
+      " Load the library from the given library path.
+      exe 'python sys.argv = ["' . escape(g:clang_library_path, '\') . '"]'
+    else
+      " By setting argv[0] to '' force the python bindings to load the library
+      " from the normal system search path.
+      python sys.argv[0] = ''
+    endif
 
-  if exists('g:clang_library_path')
-    " Load the library from the given library path.
-    exe 'python sys.argv = ["' . escape(g:clang_library_path, '\') . '"]'
-  else
-    " By setting argv[0] to '' force the python bindings to load the library
-    " from the normal system search path.
-    python sys.argv[0] = ''
+    exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
+    exe 'pyfile ' . s:plugin_path . '/libclang.py'
+    python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
+    let s:libclang_loaded = 1
   endif
-
-  exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
-  exe 'pyfile ' . s:plugin_path . '/libclang.py'
-  python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
   python WarmupCache()
 endfunction
 
