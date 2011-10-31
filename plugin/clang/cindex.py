@@ -1490,7 +1490,6 @@ class TranslationUnit(ClangObject):
                                            options)
         if ptr:
             return CodeCompletionResults(ptr)
-
         return None
 
 class Index(ClangObject):
