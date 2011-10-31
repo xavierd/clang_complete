@@ -1544,6 +1544,11 @@ class File(ClangObject):
     translation unit.
     """
 
+    @staticmethod
+    def from_name(translation_unit, file_name):
+        """Retrieve a file handle within the given translation unit."""
+        return File(File_getFile(translation_unit, file_name))
+
     @property
     def name(self):
         """Return the complete file and path name of the file."""
@@ -1553,6 +1558,12 @@ class File(ClangObject):
     def time(self):
         """Return the last modification time of the file."""
         return File_time(self)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<File: %s>" % (self.name)
 
 class FileInclusion(object):
     """
@@ -1780,6 +1791,10 @@ TranslationUnit_includes.argtypes = [TranslationUnit,
                                      py_object]
 
 # File Functions
+File_getFile = lib.clang_getFile
+File_getFile.argtypes = [TranslationUnit, c_char_p]
+File_getFile.restype = c_object_p
+
 File_name = lib.clang_getFileName
 File_name.argtypes = [File]
 File_name.restype = _CXString
