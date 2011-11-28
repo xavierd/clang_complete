@@ -317,7 +317,7 @@ function! s:ClangQuickFix(clang_output, tempfname)
     exe l:winbufnr . 'wincmd w'
   endif
   call setqflist(l:list)
-  doautocmd QuickFixCmdPost make
+  silent doautocmd QuickFixCmdPost make
 endfunction
 
 function! s:ClangUpdateQuickFix(clang_output, tempfname)
