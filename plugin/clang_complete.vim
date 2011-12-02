@@ -323,7 +323,7 @@ endfunction
 function! s:ClangUpdateQuickFix(clang_output, tempfname)
   let l:list = []
   for l:line in a:clang_output
-    let l:erridx = match(l:line, '\%(error\|warning\): ')
+    let l:erridx = match(l:line, '\%(error\|warning\|note\): ')
     if l:erridx == -1
       " Error are always at the beginning.
       if l:line[:11] == 'COMPLETION: ' || l:line[:9] == 'OVERLOAD: '
@@ -345,10 +345,14 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
       let l:text = l:line[l:erridx + 7:]
       let l:type = 'E'
       let l:hlgroup = ' SpellBad '
-    else
+    elseif l:line[l:erridx] == 'w'
       let l:text = l:line[l:erridx + 9:]
       let l:type = 'W'
       let l:hlgroup = ' SpellLocal '
+    else
+      let l:text = l:line[l:erridx + 6:]
+      let l:type = 'I'
+      let l:hlgroup = ' '
     endif
     let l:item = {
           \ 'bufnr': l:bufnr,
@@ -358,7 +362,7 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
           \ 'type': l:type }
     let l:list = add(l:list, l:item)
 
-    if g:clang_hl_errors == 0 || l:fname != '%'
+    if g:clang_hl_errors == 0 || l:fname != '%' || l:type == 'I'
       continue
     endif
 
