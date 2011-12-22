@@ -457,6 +457,9 @@ function! s:ClangCompleteBinary(base)
       endif
 
       let l:word = l:wabbr
+      let l:menu = substitute(l:proto, '\[#\([^#]*\)#\]', '\1 ', 'g')
+      let l:menu = substitute(l:menu, '<#\([^#]*\)#>', '\1', 'g')
+      let l:menu = substitute(l:menu, '{#[^#]*#}', '', 'g')
 
       let l:proto = s:DemangleProto(l:proto)
 
@@ -469,7 +472,7 @@ function! s:ClangCompleteBinary(base)
       let l:word = substitute(l:value, '.*<#', '<#', 'g')
       let l:word = substitute(l:word, '#>.*', '#>', 'g')
       let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
-      let l:proto = l:value
+      let l:menu = l:wabbr
       let l:proto = s:DemangleProto(l:value)
       let l:kind = ''
     else
@@ -491,7 +494,7 @@ function! s:ClangCompleteBinary(base)
     let l:item = {
           \ 'word': l:word,
           \ 'abbr': l:wabbr,
-          \ 'menu': l:proto,
+          \ 'menu': l:menu,
           \ 'info': l:proto,
           \ 'dup': 0,
           \ 'kind': l:kind,

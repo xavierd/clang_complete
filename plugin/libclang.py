@@ -169,6 +169,7 @@ def formatResult(result):
 
   abbr = getAbbr(result.string)
   word = filter(lambda x: not x.isKindInformative() and not x.isKindResultType(), result.string)
+  returnValue = filter(lambda x: x.isKindResultType(), result.string)
 
   args_pos = []
   cur_pos = 0
@@ -180,9 +181,13 @@ def formatResult(result):
 
   word = "".join(map(lambda x: x.spelling, word))
 
+  menu = word
+  if len(returnValue) > 0:
+    menu = returnValue[0].spelling + " " + menu
+
   completion['word'] = word
   completion['abbr'] = abbr
-  completion['menu'] = word
+  completion['menu'] = menu
   completion['info'] = word
   completion['args_pos'] = args_pos
   completion['dup'] = 0
