@@ -48,7 +48,7 @@ for details):
 Each project can have a .clang_complete at his root, containing the compiler
 options. This is useful if you're using some non-standard include paths or
 need to specify particular architecture type, frameworks to use, path to
-precompiled headers etc.
+precompiled headers, precompiler definitions etc.
 
 Compiler options should go on individual lines (multiple options on one line
 can work sometimes too, but since there are some not obvious conditions for
@@ -59,6 +59,13 @@ of linker arguments in .clang_complete file. They will lead to completion
 failure when using clang executable and will be completely ignored by
 libclang.
 
+Example .clang_complete file: >
+ -DDEBUG
+ -include ../config.h
+ -I../common
+ -I/usr/include/c++/4.5.3/
+ -I/usr/include/c++/4.5.3/x86_64-slackware-linux/
+<
 ==============================================================================
 4. Options					*clang_complete-options*
 
