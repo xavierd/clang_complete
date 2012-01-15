@@ -76,7 +76,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_auto_user_options')
-    let g:clang_auto_user_options = 'path, .clang_complete'
+    let g:clang_auto_user_options = 'path, .clang_complete, gcc'
   endif
 
   call LoadUserOptions()
@@ -166,6 +166,9 @@ function! LoadUserOptions()
       call s:parsePathOption()
     elseif l:source == '.clang_complete'
       call s:parseConfig()
+    else
+      let l:getopts = 'getopts#' . l:source . '#getopts'
+      silent call eval(l:getopts . '()')
     endif
   endfor
 endfunction

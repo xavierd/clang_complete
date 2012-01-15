@@ -137,10 +137,22 @@ Default: ""
        				       	*g:clang_auto_user_options*
 Set sources for user options passed to clang. Available sources are:
 - path - use &path content as list of include directories (relative paths are
-  ignored)
+  ignored);
 - .clang_complete - use information from .clang_complete file Multiple options
-  are separated by comma.
-Default: "path, .clang_complete"
+  are separated by comma;
+- {anything} else will be treaded as a custom option source in the following
+  manner: clang_complete will try to load autoload-function named
+  getopts#{anything}#getopts, which then will be able to modify
+  b:clang_user_options variable. See help on |autoload| if you don't know
+  what it is.
+  
+An example of custom option sources is bundled with clang_complete and called
+"gcc". This source runs gcc to get a list of include paths. The list of
+include paths for each of supported filetypes (c, cpp, objc and objcpp) is
+cached on a disk and can be removed by calling ClearGCCIncludeCaches()
+function (for changes to take affect one needs to reread buffers using the
+:edit command or something equivalent).
+Default: "path, .clang_complete, gcc"
 
        				       	*clang_complete-use_library*
        				       	*g:clang_use_library*
