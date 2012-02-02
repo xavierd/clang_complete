@@ -170,7 +170,8 @@ Default: ""
 
 					*clang_complete-sort_algo*
 					*g:clang_sort_algo*
-How results are sorted (alpha, priority). Currently only works with libclang.
+How results are sorted (alpha, priority, none). Currently only works with
+libclang.
 Default: "priority"
 
 					*clang_complete-complete_macros*

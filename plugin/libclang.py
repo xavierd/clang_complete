@@ -27,7 +27,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
       tu.reparse([currentFile])
       if debug:
         elapsed = (time.time() - start)
-        print "LibClang - Reparsing: " + str(elapsed)
+        print "LibClang - Reparsing: %.3f" % elapsed
     return tu
 
   if debug:
@@ -36,7 +36,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - First parse: " + str(elapsed)
+    print "LibClang - First parse: %.3f" % elapsed
 
   if tu == None:
     print "Cannot parse this source file. The following arguments " \
@@ -53,7 +53,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   tu.reparse([currentFile])
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
+    print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
   return tu
 
 def splitOptions(options):
@@ -161,29 +161,41 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName):
       complete_flags)
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - Code completion time: " + str(elapsed)
+    print "LibClang - Code completion time (library): %.3f" % elapsed
   return cr
 
 def formatResult(result):
   completion = dict()
 
-  abbr = getAbbr(result.string)
-  word = filter(lambda x: not x.isKindInformative() and not x.isKindResultType(), result.string)
-  returnValue = filter(lambda x: x.isKindResultType(), result.string)
+  returnValue = None
+  abbr = ""
+  chunks = filter(lambda x: not x.isKindInformative(), result.string)
 
   args_pos = []
   cur_pos = 0
-  for chunk in word:
-    chunk_len = len(chunk.spelling)
+  word = ""
+
+  for chunk in chunks:
+
+    if chunk.isKindResultType():
+      returnValue = chunk
+      continue
+
+    chunk_spelling = chunk.spelling
+
+    if chunk.isKindTypedText():
+      appr = chunk_spelling
+
+    chunk_len = len(chunk_spelling)
     if chunk.isKindPlaceHolder():
       args_pos += [[ cur_pos, cur_pos + chunk_len ]]
     cur_pos += chunk_len
-
-  word = "".join(map(lambda x: x.spelling, word))
+    word += chunk_spelling
 
   menu = word
-  if len(returnValue) > 0:
-    menu = returnValue[0].spelling + " " + menu
+
+  if returnValue:
+    menu = returnValue.spelling + " " + menu
 
   completion['word'] = word
   completion['abbr'] = abbr
@@ -242,9 +254,12 @@ def WarmupCache():
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  priority = vim.eval("g:clang_sort_algo") == 'priority'
+  sorting = vim.eval("g:clang_sort_algo")
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
+
+  if debug:
+    start = time.time()
 
   t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name)
   t.start()
@@ -257,17 +272,27 @@ def getCurrentCompletions(base):
   if cr is None:
     return []
 
-  regexp = re.compile("^" + base)
-  filteredResult = filter(lambda x: regexp.match(getAbbr(x.string)), cr.results)
+  results = cr.results
 
-  getPriority = lambda x: x.string.priority
-  getAbbrevation = lambda x: getAbbr(x.string).lower()
-  if priority:
-    key = getPriority
-  else:
-    key = getAbbrevation
-  sortedResult = sorted(filteredResult, None, key)
-  return map(formatResult, sortedResult)
+  if base != "":
+    regexp = re.compile("^" + base)
+    results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
+
+  if sorting == 'priority':
+    getPriority = lambda x: x.string.priority
+    results = sorted(results, None, getPriority)
+  if sorting == 'alpha':
+    getAbbrevation = lambda x: getAbbr(x.string).lower()
+    results = sorted(results, None, getAbbrevation)
+
+  result = map(formatResult, results)
+
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - Code completion time (library + formatting): %.3f" \
+      % elapsed
+    time.sleep(1)
+  return result
 
 def getAbbr(strings):
   tmplst = filter(lambda x: x.isKindTypedText(), strings)
