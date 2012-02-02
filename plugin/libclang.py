@@ -27,7 +27,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
       tu.reparse([currentFile])
       if debug:
         elapsed = (time.time() - start)
-        print "LibClang - Reparsing: " + str(elapsed)
+        print "LibClang - Reparsing: %.3f" % elapsed
     return tu
 
   if debug:
@@ -36,7 +36,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - First parse: " + str(elapsed)
+    print "LibClang - First parse: %.3f" % elapsed
 
   if tu == None:
     print "Cannot parse this source file. The following arguments " \
@@ -53,7 +53,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   tu.reparse([currentFile])
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
+    print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
   return tu
 
 def splitOptions(options):
@@ -161,7 +161,7 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName):
       complete_flags)
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - Code completion time: " + str(elapsed)
+    print "LibClang - Code completion time (library): %.3f" % elapsed
   return cr
 
 def formatResult(result):
