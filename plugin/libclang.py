@@ -168,7 +168,7 @@ def formatResult(result):
   completion = dict()
 
   returnValue = None
-  abbr = getAbbr(result.string)
+  abbr = ""
   chunks = filter(lambda x: not x.isKindInformative(), result.string)
 
   args_pos = []
@@ -182,6 +182,10 @@ def formatResult(result):
       continue
 
     chunk_spelling = chunk.spelling
+
+    if chunk.isKindTypedText():
+      appr = chunk_spelling
+
     chunk_len = len(chunk_spelling)
     if chunk.isKindPlaceHolder():
       args_pos += [[ cur_pos, cur_pos + chunk_len ]]
