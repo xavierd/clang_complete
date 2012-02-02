@@ -262,8 +262,9 @@ def getCurrentCompletions(base):
 
   results = cr.results
 
-  regexp = re.compile("^" + base)
-  results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
+  if base != "":
+    regexp = re.compile("^" + base)
+    results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
 
   if priority:
     getPriority = lambda x: x.string.priority
