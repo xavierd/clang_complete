@@ -168,18 +168,18 @@ def formatResult(result):
   completion = dict()
 
   abbr = getAbbr(result.string)
-  word = filter(lambda x: not x.isKindInformative() and not x.isKindResultType(), result.string)
+  chunks = filter(lambda x: not x.isKindInformative() and not x.isKindResultType(), result.string)
   returnValue = filter(lambda x: x.isKindResultType(), result.string)
 
   args_pos = []
   cur_pos = 0
-  for chunk in word:
+  for chunk in chunks:
     chunk_len = len(chunk.spelling)
     if chunk.isKindPlaceHolder():
       args_pos += [[ cur_pos, cur_pos + chunk_len ]]
     cur_pos += chunk_len
 
-  word = "".join(map(lambda x: x.spelling, word))
+  word = "".join(map(lambda x: x.spelling, chunks))
 
   menu = word
   if len(returnValue) > 0:
