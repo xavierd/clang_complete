@@ -246,6 +246,9 @@ def getCurrentCompletions(base):
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
 
+  if debug:
+    start = time.time()
+
   t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name)
   t.start()
   while t.isAlive():
@@ -267,7 +270,14 @@ def getCurrentCompletions(base):
   else:
     key = getAbbrevation
   sortedResult = sorted(filteredResult, None, key)
-  return map(formatResult, sortedResult)
+  result = map(formatResult, sortedResult)
+
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - Code completion time (library + formatting): %.3f" \
+      % elapsed
+    time.sleep(1)
+  return result
 
 def getAbbr(strings):
   tmplst = filter(lambda x: x.isKindTypedText(), strings)
