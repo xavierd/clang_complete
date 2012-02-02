@@ -260,17 +260,19 @@ def getCurrentCompletions(base):
   if cr is None:
     return []
 
-  regexp = re.compile("^" + base)
-  filteredResult = filter(lambda x: regexp.match(getAbbr(x.string)), cr.results)
+  results = cr.results
 
-  getPriority = lambda x: x.string.priority
-  getAbbrevation = lambda x: getAbbr(x.string).lower()
+  regexp = re.compile("^" + base)
+  results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
+
   if priority:
-    key = getPriority
+    getPriority = lambda x: x.string.priority
+    results = sorted(results, None, getPriority)
   else:
-    key = getAbbrevation
-  sortedResult = sorted(filteredResult, None, key)
-  result = map(formatResult, sortedResult)
+    getAbbrevation = lambda x: getAbbr(x.string).lower()
+    results = sorted(results, None, getAbbrevation)
+
+  result = map(formatResult, results)
 
   if debug:
     elapsed = (time.time() - start)
