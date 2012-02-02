@@ -254,7 +254,7 @@ def WarmupCache():
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  priority = vim.eval("g:clang_sort_algo") == 'priority'
+  sorting = vim.eval("g:clang_sort_algo")
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
 
@@ -278,10 +278,10 @@ def getCurrentCompletions(base):
     regexp = re.compile("^" + base)
     results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
 
-  if priority:
+  if sorting == 'priority':
     getPriority = lambda x: x.string.priority
     results = sorted(results, None, getPriority)
-  else:
+  if sorting == 'alpha':
     getAbbrevation = lambda x: getAbbr(x.string).lower()
     results = sorted(results, None, getAbbrevation)
 

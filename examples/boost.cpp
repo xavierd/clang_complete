@@ -13,6 +13,6 @@
 
 int main()
 {
-	boost:
+	boost::matc
 	//     ^ Code complete here by typing ":"
 }
