@@ -248,7 +248,6 @@ def WarmupCache():
   debug = int(vim.eval("g:clang_debug")) == 1
   t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
   t.start()
-  return
 
 
 def getCurrentCompletions(base):

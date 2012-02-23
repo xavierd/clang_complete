@@ -143,13 +143,12 @@ function! s:ClangCompleteInit()
   " Load the python bindings of libclang
   if g:clang_use_library == 1
     if has('python')
-      exe s:initClangCompletePython()
+      call s:initClangCompletePython()
     else
       echoe 'clang_complete: No python support available.'
       echoe 'Cannot use clang library, using executable'
       echoe 'Compile vim with python support to use libclang'
       let g:clang_use_library = 0
-      return
     endif
   endif
 endfunction
