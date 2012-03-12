@@ -14,7 +14,8 @@ clang_complete plugin		      		*clang_complete*
 6. PCH      		|clang_complete-pch|
 7. cc_args.py script	|clang_complete-cc_args|
 8. To do		|clang_complete-todo|
-9. License		|clang_complete-license|
+9. FAQ			|clang_complete-faq|
+10. License		|clang_complete-license|
 
 Author: Xavier Deguillard <deguilx@gmail.com>	*clang_complete-author*
 
@@ -118,6 +119,12 @@ If equal to 1, vim will use vim 7.3 conceal feature to hide <# and #> which
 delimit a snippets.
 Default: 1 (0 if conceal not available)
 Note: See concealcursor and conceallevel for conceal configuration.
+
+       				       	*clang_close-preview*
+       				       	*g:clang_close_preview*
+If equal to 1, the preview window will be close automatically after a
+completion.
+Default: 0
 
        				       	*clang_complete-exec*
        				       	*g:clang_exec*
@@ -253,7 +260,36 @@ delete it before running make.
 - Parse fix-its and do something useful with it
 
 ==============================================================================
-9. License					*clang_complete-license*
+9. FAQ						*clang_complete-faq*
+
+*) clang_complete doesn't work! I always get the message "pattern not found".
+
+This can have multiple reasons. You can try to open the quickfix window
+(:copen) that displays the error messages from clang to get a better idea what
+goes on. It might be that you need to update your .clang_complete file. If
+this does not help, keep in mind that clang_complete can cause clang to search
+for header files first in the system-wide paths and then in the ones specified
+locally in .clang_complete. Therefore you might have to add "-nostdinc" and
+the system include paths in the right order to .clang_complete.
+
+*) Only function names get completed but not the parentheses/parameters.
+
+Enable the snippets-support by adding the following lines to your .vimrc,
+for example:
+
+let g:clang_snippets = 1
+let g:clang_snippets_engine = 'clang_complete'
+
+If you have snipmate installed, you can use
+
+let g:clang_snippets = 1
+let g:clang_snippets_engine = 'snipmate'
+
+instead. After a completetion you can use <Tab> in normal mode to jump to the
+next parameter.
+
+==============================================================================
+10. License					*clang_complete-license*
 
 Copyright (c) 2010, 2011, Xavier Deguillard
 All rights reserved.

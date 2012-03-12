@@ -26,6 +26,10 @@ function! s:ClangCompleteInit()
     let g:clang_complete_auto = 1
   endif
 
+  if !exists('g:clang_close_preview')
+    let g:clang_close_preview = 0
+  endif
+
   if !exists('g:clang_complete_copen')
     let g:clang_complete_copen = 0
   endif
@@ -560,13 +564,12 @@ function! ClangComplete(findstart, base)
         let item['word'] = item['abbr']
       endif
     endfor
-    if g:clang_snippets == 1
-      inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
-      augroup ClangComplete
-        au CursorMovedI <buffer> call <SID>TriggerSnippet()
-      augroup end
-      let b:snippet_chosen = 0
-    endif
+
+    inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
+    augroup ClangComplete
+      au CursorMovedI <buffer> call <SID>TriggerSnippet()
+    augroup end
+    let b:snippet_chosen = 0
 
   if g:clang_debug == 1
     echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
@@ -596,14 +599,20 @@ function! s:TriggerSnippet()
     return
   endif
 
-  " Stop monitoring as we'll trigger a snippet
-  silent! iunmap <buffer> <C-Y>
-  augroup ClangComplete
-    au! CursorMovedI <buffer>
-  augroup end
+  if g:clang_snippets == 1
+    " Stop monitoring as we'll trigger a snippet
+    silent! iunmap <buffer> <C-Y>
+    augroup ClangComplete
+      au! CursorMovedI <buffer>
+    augroup end
 
-  " Trigger the snippet
-  call b:TriggerSnip()
+    " Trigger the snippet
+    call b:TriggerSnip()
+  endif
+
+  if g:clang_close_preview
+    pclose
+  endif
 endfunction
 
 function! s:ShouldComplete()
