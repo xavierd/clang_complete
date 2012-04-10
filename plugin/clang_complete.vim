@@ -83,13 +83,24 @@ function! s:ClangCompleteInit()
     let g:clang_auto_user_options = 'path, .clang_complete, gcc'
   endif
 
+  if !exists('g:clang_omnicppcomplete_compliance')
+    let g:clang_omnicppcomplete_compliance = 0
+  endif
+
   call LoadUserOptions()
 
+  if g:clang_omnicppcomplete_compliance != 0
+    let g:clang_complete_auto = 0
+  endif
+
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
-  inoremap <expr> <buffer> . <SID>CompleteDot()
-  inoremap <expr> <buffer> > <SID>CompleteArrow()
-  inoremap <expr> <buffer> : <SID>CompleteColon()
-  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
+
+  if g:clang_omnicppcomplete_compliance == 0
+    inoremap <expr> <buffer> . <SID>CompleteDot()
+    inoremap <expr> <buffer> > <SID>CompleteArrow()
+    inoremap <expr> <buffer> : <SID>CompleteColon()
+    inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
+  endif
 
   if g:clang_snippets == 1
     call g:ClangSetSnippetEngine(g:clang_snippets_engine)
@@ -136,7 +147,9 @@ function! s:ClangCompleteInit()
   endif
 
   setlocal completefunc=ClangComplete
-  setlocal omnifunc=ClangComplete
+  if g:clang_omnicppcomplete_compliance == 0
+    setlocal omnifunc=ClangComplete
+  endif
 
   if g:clang_periodic_quickfix == 1
     augroup ClangComplete

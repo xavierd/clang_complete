@@ -26,7 +26,11 @@ This plugin use clang for accurately completing C and C++ code.
 
 Note: This plugin is incompatible with omnicppcomplete due to the
 unconditionnaly set mapping done by omnicppcomplete. So don't forget to
-suppress it before using this plugin.
+suppress it before using this plugin. Also it's possible to keep
+omnicppcomplete plugin enabled by setting |g:clang_omnicppcomplete_compliance|.
+in this case it will be possible to use omnicppcomplete in parallel with
+clang_complete, though functionality of the latter will be reduced to
+<C-X><C-U> only.
 
 ==============================================================================
 2. Completion kinds    				*clang_complete-compl_kinds*
@@ -189,6 +193,13 @@ Default: 0
 					*clang_complete-complete_patterns*
 					*g:clang_complete_patterns*
 If clang should complete code patterns, i.e loop constructs etc.
+Defaut: 0
+
+					*clang_complete-omnicppcomplete_compliance*
+					*g:clang_omnicppcomplete_compliance*
+Omnicppcomplete compatibility mode. Keeps omni auto-completion in control of
+omnicppcomplete, disables clang's auto-completion (|g:clang_complete_auto|)
+and enables only <C-X><C-U> as main clang completion function.
 Defaut: 0
 
 ==============================================================================
