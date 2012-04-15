@@ -1,14 +1,17 @@
-SHELL=/bin/bash
+SHELL	:= /bin/bash
+FILES	:= $(shell git ls-files autoload bin doc plugin)
 
-all: dist
+all: clang_complete.vmb
 
-dist:
-	@vim -c 'r! git ls-files autoload bin doc plugin' \
+clang_complete.vmb: $(FILES)
+	vim -c "r! git ls-files autoload bin doc plugin" \
 	     -c '$$,$$d _' \
-	     -c '%MkVimball! clang_complete.vba .' -c 'q!'
+	     -c "%MkVimball! $@ ." -c 'q!'
 
-install: dist
-	@vim clang_complete.vba -c 'so %' -c 'q'
+.PHONY: install
+install: clang_complete.vmb
+	vim $< -c 'so %' -c 'q'
 
+.PHONY: clean
 clean:
-	@rm -f clang_complete.vba
+	rm -f clang_complete.vba
