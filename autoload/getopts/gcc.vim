@@ -34,12 +34,20 @@ function! s:CacheExists()
   endif
 
   let l:lines = readfile(b:cache)
+
+  for l:line in l:lines
+    let l:line = substitute(l:line, '^\s\+', '', '')
+    if l:line =~ '^-I' && !isdirectory(l:line[2:])
+      return 0
+    endif
+  endfor
+
   return len(l:lines) > 0
 endfunction
 
 function! s:CreateCache()
   let b:gcc_opts = s:GetGCCOptions()
-  call writefile([b:gcc_opts], b:cache)
+  call writefile(b:gcc_opts, b:cache)
 endfunction
 
 function! s:GetGCCOptions()
@@ -52,12 +60,15 @@ function! s:GetGCCOptions()
     let l:out = l:out[1:]
   endif
 
-  let l:result = ''
+  let l:result = []
   while !empty(l:out) && l:out[0] !~ '^End of search list.$'
     let l:inc_path = substitute(l:out[0], '^\s*', '', '')
     let l:inc_path = fnamemodify(l:inc_path, ':p')
     let l:inc_path = substitute(l:inc_path, '\', '/', 'g')
-    let l:result .= ' -I' . l:inc_path
+
+    if isdirectory(l:inc_path)
+      call add(l:result, '-I' . l:inc_path)
+    endif
 
     let l:out = l:out[1:]
   endwhile
@@ -65,11 +76,11 @@ function! s:GetGCCOptions()
 endfunction
 
 function! s:ReadCache()
-  let b:gcc_opts = join(readfile(b:cache), ' ')
+  let b:gcc_opts = readfile(b:cache)
 endfunction
 
 function! s:AppendOptions()
-  let b:clang_user_options .= ' ' . b:gcc_opts
+  let b:clang_user_options .= ' ' . join(b:gcc_opts, ' ')
 endfunction
 
 function! ClearGCCIncludeCaches()
