@@ -5,7 +5,7 @@ $ make install
 
 To build and install in two steps, type:
 $ make
-$ vim clang_complete.vba -c 'so %' -c 'q'
+$ vim clang_complete.vmb -c 'so %' -c 'q'
 
 Alternatively, you can also put the files in ~/.vim/
 
