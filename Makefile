@@ -14,4 +14,4 @@ install: clang_complete.vmb
 
 .PHONY: clean
 clean:
-	rm -f clang_complete.vba
+	rm -f clang_complete.vmb
