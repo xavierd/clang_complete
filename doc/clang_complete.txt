@@ -288,6 +288,14 @@ let g:clang_snippets_engine = 'snipmate'
 instead. After a completetion you can use <Tab> in normal mode to jump to the
 next parameter.
 
+*) Can I configure clang_complete to insert the text automatically when there
+   is only one possibility?
+
+You can configure vim to complete automatically the longest common match by 
+adding the following line to your vimrc:
+
+set completeopt=menu,longest
+
 ==============================================================================
 10. License					*clang_complete-license*
 
