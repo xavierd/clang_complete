@@ -55,9 +55,9 @@ def parseArguments(arguments):
     elif arg == "-include":
       nextIsIncludeFile = True
 
-  result = map(lambda x: "-I" + x, includes)
-  result += map(lambda x: "-D" + x, defines)
-  result += map(lambda x: "-include " + x, include_file)
+  result = list(map(lambda x: "-I" + x, includes))
+  result.extend(map(lambda x: "-D" + x, defines))
+  result.extend(map(lambda x: "-include " + x, include_file))
 
   return result
 
