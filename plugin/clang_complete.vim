@@ -89,7 +89,8 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> . <SID>CompleteDot()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
-  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
+  " Based on https://github.com/tpope/vim-endwise/pull/13
+  exe 'inoremap <expr> <buffer> <CR> '.maparg('<CR>', 'i').'<SID>HandlePossibleSelectionEnter()'
 
   if g:clang_snippets == 1
     call g:ClangSetSnippetEngine(g:clang_snippets_engine)
