@@ -168,7 +168,8 @@ function! LoadUserOptions()
     if l:source == 'path'
       call s:parsePathOption()
     elseif l:source == '.clang_complete'
-      call s:parseConfig()
+      " call s:parseConfig()
+      call s:parseCascadedConfig()
     else
       let l:getopts = 'getopts#' . l:source . '#getopts'
       silent call eval(l:getopts . '()')
@@ -202,6 +203,34 @@ function! s:parseConfig()
     let b:clang_user_options .= ' ' . l:opt
   endfor
 endfunction
+
+function! s:parseCascadedConfig()
+	let l:local_conf_list = findfile('.clang_complete', expand('%:p:h') . ';' . getcwd(), -1)
+	for l:local_conf in reverse(l:local_conf_list)
+	  let l:root = substitute(fnamemodify(l:local_conf, ':p:h'), '\', '/', 'g')
+	
+	  let l:opts = readfile(l:local_conf)
+	  for l:opt in l:opts
+	    " Use forward slashes only
+	    let l:opt = substitute(l:opt, '\', '/', 'g')
+	    " Handling of absolute path
+	    if matchstr(l:opt, '\C-I\s*/') != ''
+	      let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
+	            \ '-I' . '\1', 'g')
+	    " Check for win32 is enough since it's true on win64
+	    elseif has('win32') && matchstr(l:opt, '\C-I\s*[a-zA-Z]:/') != ''
+	      let l:opt = substitute(l:opt, '\C-I\s*\([a-zA-Z:]/\%(\w\|\\\s\)*\)',
+	            \ '-I' . '\1', 'g')
+	    else
+	      let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\.\|/\|\\\s\)*\)',
+	            \ '-I' . l:root . '/\1', 'g')
+	    endif
+	    let b:clang_user_options .= ' ' . l:opt
+	  endfor
+	endfor
+	
+endfunction
+
 
 function! s:parsePathOption()
   let l:dirs = split(&path, ',')
