@@ -80,7 +80,12 @@ def get_cindex_library():
         path += 'libclang.dll'
     else:
         path += 'libclang.so'
-    return cdll.LoadLibrary(path)
+    try:
+        return cdll.LoadLibrary(path)
+    except Exception:
+        path = sys.argv[0]
+        path += 'libclang.so.1'
+        return cdll.LoadLibrary(path)
 
 # ctypes doesn't implicitly convert c_void_p to the appropriate wrapper
 # object. This is a problem, because it means that from_parameter will see an
