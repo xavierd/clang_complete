@@ -66,9 +66,6 @@ import sys
 from ctypes import *
 
 def get_cindex_library():
-    # FIXME: It's probably not the case that the library is actually found in
-    # this location. We need a better system of identifying and loading the
-    # CIndex library. It could be on path or elsewhere, or versioned, etc.
     from ctypes.util import find_library
     path = sys.argv[0]
     if path != '':
