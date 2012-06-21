@@ -66,20 +66,11 @@ import sys
 from ctypes import *
 
 def get_cindex_library():
-    # FIXME: It's probably not the case that the library is actually found in
-    # this location. We need a better system of identifying and loading the
-    # CIndex library. It could be on path or elsewhere, or versioned, etc.
-    import platform
-    name = platform.system()
+    from ctypes.util import find_library
     path = sys.argv[0]
     if path != '':
         path += '/'
-    if name == 'Darwin':
-        path += 'libclang.dylib'
-    elif name == 'Windows':
-        path += 'libclang.dll'
-    else:
-        path += 'libclang.so'
+    path += find_library('clang')
     return cdll.LoadLibrary(path)
 
 # ctypes doesn't implicitly convert c_void_p to the appropriate wrapper
