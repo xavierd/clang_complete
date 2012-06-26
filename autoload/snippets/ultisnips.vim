@@ -2,7 +2,7 @@
 " Author: Philippe Vaucher
 
 function! snippets#ultisnips#init()
-  UltiSnipsAddFiletypes clang_complete
+  UltiSnipsAddFiletypes cpp.clang_complete
   call snippets#ultisnips#reset()
 endfunction
 
