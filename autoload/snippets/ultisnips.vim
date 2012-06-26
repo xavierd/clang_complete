@@ -2,7 +2,7 @@
 " Author: Philippe Vaucher
 
 function! snippets#ultisnips#init()
-  UltiSnipsAddFiletypes &filetype.clang_complete
+  exe "UltiSnipsAddFiletypes ".&filetype.".clang_complete"
   call snippets#ultisnips#reset()
 endfunction
 
