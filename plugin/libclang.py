@@ -151,7 +151,8 @@ def updateCurrentDiagnostics():
   debug = int(vim.eval("g:clang_debug")) == 1
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
   userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-  args = userOptionsGlobal + userOptionsLocal
+  parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
+  args = userOptionsGlobal + userOptionsLocal + parametersLocal
   libclangLock.acquire()
   getCurrentTranslationUnit(args, getCurrentFile(),
                           vim.current.buffer.name, update = True)
@@ -225,7 +226,8 @@ class CompleteThread(threading.Thread):
     self.result = None
     userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
     userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-    self.args = userOptionsGlobal + userOptionsLocal
+    parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
+    self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
 
   def run(self):
     try:
