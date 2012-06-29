@@ -4,7 +4,7 @@
 let s:scr = expand('<sfile>')
 let s:cache_path = fnamemodify(s:scr, ':p:h')
 
-function! getopts#cache#getopts(ext, optfunc)
+function! getopts#cache#getcachedopts(ext, optfunc)
   let s:cache = s:cache_path . '/' . &filetype . '.' . a:ext . '.cache'
   if !s:CacheExists()
     call s:CreateCache(a:optfunc)
