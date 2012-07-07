@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2011 Jun 04
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 07
 
 
 		  clang_complete plugin documentation
@@ -134,10 +134,20 @@ Default: "clang"
 
        				      	*clang_complete-user_options*
        				       	*g:clang_user_options*
-Option added at the end of clang command. Useful if you want to filter the
-result, or do other stuffs. To ignore the error code returned by clang, set
-|g:clang_exec| to `"clang` and |g:clang_user_options| to `2>/dev/null || exit
-0"` if you're on *nix, or `2>NUL || exit 0"` if you are on windows.
+When using clang executable the value of this option is added at the end of
+clang command. Useful if you want to filter the result, or do other stuffs.
+To ignore the error code returned by clang, set |g:clang_exec| to `"clang` and
+|g:clang_user_options| to `2>/dev/null || exit 0"` if you're on *nix, or to
+`2>NUL || exit 0"` if you are on windows.
+
+When using libclang the value of this option is passed to libclang as
+compilation arguments.
+
+Example: >
+ " compile all sources as c++11 (just for example, use .clang_complete for
+ " setting version of the language per project)
+ let g:clang_user_options = '-std=c++11'
+<
 Default: ""
 
        				       	*clang_complete-auto_user_options*
