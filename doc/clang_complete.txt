@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2011 Jun 04
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 07
 
 
 		  clang_complete plugin documentation
@@ -32,9 +32,8 @@ suppress it before using this plugin.
 2. Completion kinds    				*clang_complete-compl_kinds*
 
 Because libclang provides a lot of information about completion, there are
-some additional kinds of completion along with standard ones (see >
- :help complete-items
-for details):
+some additional kinds of completion along with standard ones (see
+|complete-items| for details):
  '+' - constructor
  '~' - destructor
  'e' - enumerator constant
@@ -118,7 +117,7 @@ Default: "clang_complete"
 If equal to 1, vim will use vim 7.3 conceal feature to hide <# and #> which
 delimit a snippets.
 Default: 1 (0 if conceal not available)
-Note: See concealcursor and conceallevel for conceal configuration.
+Note: See |'concealcursor'| and |'conceallevel'| for conceal configuration.
 
        				       	*clang_close-preview*
        				       	*g:clang_close_preview*
@@ -134,10 +133,20 @@ Default: "clang"
 
        				      	*clang_complete-user_options*
        				       	*g:clang_user_options*
-Option added at the end of clang command. Useful if you want to filter the
-result, or do other stuffs. To ignore the error code returned by clang, set
-|g:clang_exec| to `"clang` and |g:clang_user_options| to `2>/dev/null || exit
-0"` if you're on *nix, or `2>NUL || exit 0"` if you are on windows.
+When using clang executable the value of this option is added at the end of
+clang command. Useful if you want to filter the result, or do other stuffs.
+To ignore the error code returned by clang, set |g:clang_exec| to `"clang` and
+|g:clang_user_options| to `2>/dev/null || exit 0"` if you're on *nix, or to
+`2>NUL || exit 0"` if you are on windows.
+
+When using libclang the value of this option is passed to libclang as
+compilation arguments.
+
+Example: >
+ " compile all sources as c++11 (just for example, use .clang_complete for
+ " setting version of the language per project)
+ let g:clang_user_options = '-std=c++11'
+<
 Default: ""
 
        				       	*clang_complete-auto_user_options*
@@ -152,7 +161,7 @@ Set sources for user options passed to clang. Available sources are:
   getopts#{anything}#getopts, which then will be able to modify
   b:clang_user_options variable. See help on |autoload| if you don't know
   what it is.
-  
+
 An example of custom option sources is bundled with clang_complete and called
 "gcc". This source runs gcc to get a list of include paths. The list of
 include paths for each of supported filetypes (c, cpp, objc and objcpp) is
@@ -291,7 +300,7 @@ next parameter.
 *) Can I configure clang_complete to insert the text automatically when there
    is only one possibility?
 
-You can configure vim to complete automatically the longest common match by 
+You can configure vim to complete automatically the longest common match by
 adding the following line to your vimrc:
 
 set completeopt=menu,longest
