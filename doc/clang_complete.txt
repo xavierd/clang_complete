@@ -32,9 +32,8 @@ suppress it before using this plugin.
 2. Completion kinds    				*clang_complete-compl_kinds*
 
 Because libclang provides a lot of information about completion, there are
-some additional kinds of completion along with standard ones (see >
- :help complete-items
-for details):
+some additional kinds of completion along with standard ones (see
+|complete-items| for details):
  '+' - constructor
  '~' - destructor
  'e' - enumerator constant
@@ -118,7 +117,7 @@ Default: "clang_complete"
 If equal to 1, vim will use vim 7.3 conceal feature to hide <# and #> which
 delimit a snippets.
 Default: 1 (0 if conceal not available)
-Note: See concealcursor and conceallevel for conceal configuration.
+Note: See |'concealcursor'| and |'conceallevel'| for conceal configuration.
 
        				       	*clang_close-preview*
        				       	*g:clang_close_preview*
