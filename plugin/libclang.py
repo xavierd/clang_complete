@@ -243,7 +243,8 @@ class CompleteThread(threading.Thread):
                                           self.args, self.currentFile, self.fileName)
     except Exception:
       pass
-    libclangLock.release()
+    if libclangLock.locked():
+      libclangLock.release()
 
 def WarmupCache():
   global debug
