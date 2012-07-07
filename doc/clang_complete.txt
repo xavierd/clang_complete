@@ -162,7 +162,7 @@ Set sources for user options passed to clang. Available sources are:
   getopts#{anything}#getopts, which then will be able to modify
   b:clang_user_options variable. See help on |autoload| if you don't know
   what it is.
-  
+
 An example of custom option sources is bundled with clang_complete and called
 "gcc". This source runs gcc to get a list of include paths. The list of
 include paths for each of supported filetypes (c, cpp, objc and objcpp) is
@@ -301,7 +301,7 @@ next parameter.
 *) Can I configure clang_complete to insert the text automatically when there
    is only one possibility?
 
-You can configure vim to complete automatically the longest common match by 
+You can configure vim to complete automatically the longest common match by
 adding the following line to your vimrc:
 
 set completeopt=menu,longest
