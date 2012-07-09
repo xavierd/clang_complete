@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 07
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 09
 
 
 		  clang_complete plugin documentation
@@ -49,6 +49,12 @@ Each project can have a .clang_complete at his root, containing the compiler
 options. This is useful if you're using some non-standard include paths or
 need to specify particular architecture type, frameworks to use, path to
 precompiled headers, precompiler definitions etc.
+
+Note that as with other option sources, .clang_complete file is loaded and
+parsed by the plugin only on buffer loading (or reloading, for example with
+:edit! command). Thus no changes made to .clang_complete file after loading
+source file into Vim's buffer will take effect until buffer will be closed and
+opened again, reloaded or Vim is restarted.
 
 Compiler options should go on individual lines (multiple options on one line
 can work sometimes too, but since there are some not obvious conditions for
@@ -156,11 +162,14 @@ Set sources for user options passed to clang. Available sources are:
   ignored);
 - .clang_complete - use information from .clang_complete file Multiple options
   are separated by comma;
-- {anything} else will be treaded as a custom option source in the following
+- {anything} else will be treated as a custom option source in the following
   manner: clang_complete will try to load autoload-function named
   getopts#{anything}#getopts, which then will be able to modify
   b:clang_user_options variable. See help on |autoload| if you don't know
   what it is.
+
+This option is processed and all sources are used on buffer loading, not each
+time before doing completion.
 
 An example of custom option sources is bundled with clang_complete and called
 "gcc". This source runs gcc to get a list of include paths. The list of
