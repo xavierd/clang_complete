@@ -192,8 +192,7 @@ function! s:parseConfig()
     if matchstr(l:opt, '\C-I\s*/') != ''
       let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
             \ '-I' . '\1', 'g')
-    " Check for win32 is enough since it's true on win64
-    elseif has('win32') && matchstr(l:opt, '\C-I\s*[a-zA-Z]:/') != ''
+    elseif s:isWindows() && matchstr(l:opt, '\C-I\s*[a-zA-Z]:/') != ''
       let l:opt = substitute(l:opt, '\C-I\s*\([a-zA-Z:]/\%(\w\|\\\s\)*\)',
             \ '-I' . '\1', 'g')
     else
@@ -272,7 +271,7 @@ function! s:CallClangBinaryForDiagnostics(tempfile)
         \ . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
-  let l:clang_output = split(system(l:command), "\n")
+  let l:clang_output = split(system(s:escapeCommand(l:command)), "\n")
   call delete(a:tempfile)
   return l:clang_output
 endfunction
@@ -427,7 +426,8 @@ function! s:ClangCompleteBinary(base)
         \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
         \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
-  let l:clang_output = split(system(l:command), "\n")
+
+  let l:clang_output = split(system(s:escapeCommand(l:command)), "\n")
   call delete(l:tempfile)
 
   call s:ClangQuickFix(l:clang_output, l:tempfile)
@@ -515,6 +515,15 @@ function! s:ClangCompleteBinary(base)
     call add(l:res, l:item)
   endfor
   return l:res
+endfunction
+
+function! s:escapeCommand(command)
+    return s:isWindows() ? a:command : escape(a:command, '()')
+endfunction
+
+function! s:isWindows()
+  " Check for win32 is enough since it's true on win64
+  return has('win32')
 endfunction
 
 function! ClangComplete(findstart, base)
