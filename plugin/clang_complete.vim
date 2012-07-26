@@ -10,6 +10,7 @@
 au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
 
 let b:clang_parameters = ''
+let b:clang_base_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
 
@@ -109,20 +110,21 @@ function! s:ClangCompleteInit()
 
   let b:should_overload = 0
   let b:my_changedtick = b:changedtick
-  let b:clang_parameters = '-x c'
+  let b:clang_base_parameters = '-x c'
 
   if &filetype == 'objc'
-    let b:clang_parameters = '-x objective-c'
+    let b:clang_base_parameters = '-x objective-c'
   endif
 
   if &filetype == 'cpp' || &filetype == 'objcpp'
-    let b:clang_parameters .= '++'
+    let b:clang_base_parameters .= '++'
   endif
 
   if expand('%:e') =~ 'h*'
-    let b:clang_parameters .= '-header'
+    let b:clang_base_parameters .= '-header'
   endif
 
+  let b:clang_parameters = b:clang_base_parameters
   let g:clang_complete_lib_flags = 0
 
   if g:clang_complete_macros == 1
