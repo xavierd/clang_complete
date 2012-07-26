@@ -228,12 +228,8 @@ class CompleteThread(threading.Thread):
     parametersLocal = splitOptions(vim.eval("b:clang_base_parameters"))
     userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
     userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-<<<<<<< HEAD
-    parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-    self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
-=======
+    # parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
     self.args = parametersLocal + userOptionsGlobal + userOptionsLocal
->>>>>>> fuck
 
   def run(self):
     try:
