@@ -33,6 +33,9 @@ function! snippets#clang_complete#add_snippet(fullname, args_pos)
   endfor
 
   let l:res .= a:fullname[l:prev_idx : ]
+  if g:clang_trailing_placeholder == 1 && len(a:args_pos) > 0
+    let l:res .= '<##>'
+  endif
 
   return l:res
 endfunction
@@ -88,7 +91,7 @@ endfunction
 function! MoveToCCSnippetEnd()
   let l:line = getline('.')
   let l:pattern = '#>'
-  let l:startpos = col('.') + 2
+  let l:startpos = col('.') + 1
 
   call cursor(line('.'), match(l:line, l:pattern, l:startpos) + 1)
 endfunction
