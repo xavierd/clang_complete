@@ -122,8 +122,15 @@ Default: "clang_complete"
        				       	*g:clang_conceal_snippets*
 If equal to 1, vim will use vim 7.3 conceal feature to hide <# and #> which
 delimit a snippets.
+
+Example of conceal configuration (see |'concealcursor'| and |'conceallevel'|
+for details): >
+ " conceal in insert (i), normal (n) and visual (v) modes
+ set concealcursor=inv
+ " hide concealed text completely unless replacement character is defined
+ set conceallevel=2
+
 Default: 1 (0 if conceal not available)
-Note: See |'concealcursor'| and |'conceallevel'| for conceal configuration.
 
        				       	*clang_close-preview*
        				       	*g:clang_close_preview*
