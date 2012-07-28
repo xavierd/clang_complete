@@ -58,6 +58,10 @@ function! s:ClangCompleteInit()
     let g:clang_user_options = ''
   endif
 
+  if !exists('g:clang_conceal_snippets')
+    let g:clang_conceal_snippets= has('conceal')
+  endif
+
   " Only use libclang if the user clearly show intent to do so for now
   if !exists('g:clang_use_library')
     let g:clang_use_library = (has('python') && exists('g:clang_library_path'))

@@ -4,15 +4,17 @@
 function! snippets#clang_complete#init()
   noremap <expr> <silent> <buffer> <tab> UpdateSnips()
   snoremap <expr> <silent> <buffer> <tab> UpdateSnips()
-  augroup ClangCompleteSnippets
-    " the check for b:clang_user_options is to do not define anything on
-    " buffers that are not supported by clang_complete
-    autocmd! Syntax *
-           \ if exists('b:clang_user_options') |
-           \   call <SID>UpdateConcealSyntax() |
-           \ endif
-  augroup END
-  call s:UpdateConcealSyntax()
+  if g:clang_conceal_snippets == 1
+    augroup ClangCompleteSnippets
+      " the check for b:clang_user_options is to do not define anything on
+      " buffers that are not supported by clang_complete
+      autocmd! Syntax *
+             \ if exists('b:clang_user_options') |
+             \   call <SID>UpdateConcealSyntax() |
+             \ endif
+    augroup END
+    call s:UpdateConcealSyntax()
+  endif
 endfunction
 
 function! s:UpdateConcealSyntax()
