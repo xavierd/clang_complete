@@ -4,6 +4,20 @@
 function! snippets#clang_complete#init()
   noremap <expr> <silent> <buffer> <tab> UpdateSnips()
   snoremap <expr> <silent> <buffer> <tab> UpdateSnips()
+  if g:clang_conceal_snippets == 1
+    augroup ClangCompleteSnippets
+      " the check for b:clang_user_options is to do not define anything on
+      " buffers that are not supported by clang_complete
+      autocmd! Syntax *
+             \ if exists('b:clang_user_options') |
+             \   call <SID>UpdateConcealSyntax() |
+             \ endif
+    augroup END
+    call s:UpdateConcealSyntax()
+  endif
+endfunction
+
+function! s:UpdateConcealSyntax()
   syntax match Conceal /<#/ conceal
   syntax match Conceal /#>/ conceal
 endfunction
@@ -19,6 +33,9 @@ function! snippets#clang_complete#add_snippet(fullname, args_pos)
   endfor
 
   let l:res .= a:fullname[l:prev_idx : ]
+  if g:clang_trailing_placeholder == 1 && len(a:args_pos) > 0
+    let l:res .= '<##>'
+  endif
 
   return l:res
 endfunction
@@ -74,7 +91,7 @@ endfunction
 function! MoveToCCSnippetEnd()
   let l:line = getline('.')
   let l:pattern = '#>'
-  let l:startpos = col('.') + 2
+  let l:startpos = col('.') + 1
 
   call cursor(line('.'), match(l:line, l:pattern, l:startpos) + 1)
 endfunction

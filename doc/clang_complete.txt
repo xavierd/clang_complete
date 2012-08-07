@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 09
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 29
 
 
 		  clang_complete plugin documentation
@@ -120,10 +120,25 @@ Default: "clang_complete"
 
        				       	*clang_complete-conceal_snippets*
        				       	*g:clang_conceal_snippets*
-If equal to 1, vim will use vim 7.3 conceal feature to hide <# and #> which
-delimit a snippets.
+Note: This option is specific to clang_complete snippets engine.
+If equal to 1, clang_complete will use vim 7.3 conceal feature to hide <#
+and #> which delimit snippet placeholders.
+
+Example of conceal configuration (see |'concealcursor'| and |'conceallevel'|
+for details): >
+ " conceal in insert (i), normal (n) and visual (v) modes
+ set concealcursor=inv
+ " hide concealed text completely unless replacement character is defined
+ set conceallevel=2
+
 Default: 1 (0 if conceal not available)
-Note: See |'concealcursor'| and |'conceallevel'| for conceal configuration.
+
+       				       	*clang_complete-clang_trailing_placeholder*
+       				       	*g:clang_trailing_placeholder*
+Note: This option is specific to clang_complete snippets engine.
+If equal to 1, clang_complete will add a trailing placeholder after functions
+to let you add you continue writing code faster.
+Default: 0
 
        				       	*clang_close-preview*
        				       	*g:clang_close_preview*
