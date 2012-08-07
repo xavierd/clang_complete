@@ -149,10 +149,9 @@ def getCurrentQuickFixList():
 def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  parametersLocal = splitOptions(vim.eval("b:clang_base_parameters"))
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
   userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-  # parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
+  parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
   args = parametersLocal + userOptionsGlobal + userOptionsLocal
   libclangLock.acquire()
   getCurrentTranslationUnit(args, getCurrentFile(),
