@@ -154,14 +154,7 @@ function! s:ClangCompleteInit()
 
   " Load the python bindings of libclang
   if g:clang_use_library == 1
-    if has('python')
-      call s:initClangCompletePython()
-    else
-      echoe 'clang_complete: No python support available.'
-      echoe 'Cannot use clang library, using executable'
-      echoe 'Compile vim with python support to use libclang'
-      let g:clang_use_library = 0
-    endif
+    call s:TestPythonInit()
   endif
 endfunction
 
@@ -245,6 +238,18 @@ function! s:initClangCompletePython()
     let s:libclang_loaded = 1
   endif
   python WarmupCache()
+endfunction
+
+" A wrapper around initClangCompletePython that checks for python availability
+function! s:TestPythonInit()
+  if has('python')
+    call s:initClangCompletePython()
+  else
+    echoe 'clang_complete: No python support available.'
+    echoe 'Cannot use clang library, using executable'
+    echoe 'Compile vim with python support to use libclang'
+    let g:clang_use_library = 0
+  endif
 endfunction
 
 function! s:GetKind(proto)
@@ -569,6 +574,7 @@ function! ClangComplete(findstart, base)
     endif
 
     if g:clang_use_library == 1
+      call s:TestPythonInit()
       python vim.command('let l:res = ' + str(getCurrentCompletions(vim.eval('a:base'))))
     else
       let l:res = s:ClangCompleteBinary(a:base)
