@@ -46,16 +46,6 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
     return None
 
   translationUnits[fileName] = tu
-
-  # Reparse to initialize the PCH cache even for auto completion
-  # This should be done by index.parse(), however it is not.
-  # So we need to reparse ourselves.
-  if debug:
-    start = time.time()
-  tu.reparse([currentFile])
-  if debug:
-    elapsed = (time.time() - start)
-    print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
   return tu
 
 def splitOptions(options):
