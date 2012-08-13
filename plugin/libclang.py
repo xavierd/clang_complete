@@ -34,7 +34,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
 
   if debug:
     start = time.time()
-  flags = TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble # | TranslationUnit.CacheCompletionResults
+  # TranslationUnit.PrecompiledPreamble usage makes completion for members of namespace fail
+  flags = TranslationUnit.Nothing # TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble | TranslationUnit.CacheCompletionResults
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
@@ -281,6 +282,10 @@ def getCurrentCompletions(base):
     regexp = re.compile("^" + base)
     results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
 
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - Code matching time: %.3f" % elapsed
+
   if sorting == 'priority':
     getPriority = lambda x: x.string.priority
     results = sorted(results, None, getPriority)
@@ -288,7 +293,15 @@ def getCurrentCompletions(base):
     getAbbrevation = lambda x: getAbbr(x.string).lower()
     results = sorted(results, None, getAbbrevation)
 
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - Code formatting sorting time: %.3f" % elapsed
+
   result = map(formatResult, results)
+
+  if debug:
+    elapsed = (time.time() - start)
+    print "LibClang - Code formatting mapping time: %.3f" % elapsed
 
   if debug:
     elapsed = (time.time() - start)
