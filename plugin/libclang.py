@@ -224,15 +224,16 @@ class CompleteThread(threading.Thread):
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    self.args = None
+    self._args = None
 
-  def getArgs(self):
-    if self.args == None:
+  @property
+  def args(self):
+    if self._args == None:
       userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
       userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
       parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-      self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
-    return self.args
+      self._args = userOptionsGlobal + userOptionsLocal + parametersLocal
+    return self._args
 
   def run(self):
     try:
@@ -244,10 +245,10 @@ class CompleteThread(threading.Thread):
         # Otherwise we would get: E293: block was not locked
         # The user does not see any delay, as we just pause a background thread.
         time.sleep(0.5)
-        getCurrentTranslationUnit(self.getArgs(), self.currentFile, self.fileName)
+        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
       else:
         self.result = getCurrentCompletionResults(self.line, self.column,
-                                          self.getArgs(), self.currentFile, self.fileName)
+                                          self.args, self.currentFile, self.fileName)
     except Exception:
       pass
     libclangLock.release()
