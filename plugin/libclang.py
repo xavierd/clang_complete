@@ -35,7 +35,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   if debug:
     start = time.time()
   # TranslationUnit.PrecompiledPreamble usage makes completion for members of namespace fail
-  flags = TranslationUnit.Nothing # TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble | TranslationUnit.CacheCompletionResults
+  flags = TranslationUnit.CacheCompletionResults
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
