@@ -294,7 +294,6 @@ def getCurrentCompletions(base):
     elapsed = (time.time() - start)
     print "LibClang - Code completion time (library + formatting): %.3f" \
       % elapsed
-    time.sleep(1)
   return result
 
 def getAbbr(strings):
