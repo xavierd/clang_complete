@@ -151,6 +151,12 @@ class SourceLocation(Structure):
         """Get the file offset represented by this source location."""
         return self._get_instantiation()[3]
 
+    def __eq__(self, other):
+        return SourceLocation_equalLocations(self, other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __repr__(self):
         if self.file:
             filename = self.file.name
@@ -190,6 +196,12 @@ class SourceRange(Structure):
         source range.
         """
         return SourceRange_end(self)
+
+    def __eq__(self, other):
+        return SourceRange_equalRanges(self, other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __repr__(self):
         return "<SourceRange start %r, end %r>" % (self.start, self.end)
@@ -1625,6 +1637,10 @@ SourceLocation_getLocation = lib.clang_getLocation
 SourceLocation_getLocation.argtypes = [TranslationUnit, File, c_uint, c_uint]
 SourceLocation_getLocation.restype = SourceLocation
 
+SourceLocation_equalLocations = lib.clang_equalLocations
+SourceLocation_equalLocations.argtypes = [SourceLocation, SourceLocation]
+SourceLocation_equalLocations.restype = bool
+
 # Source Range Functions
 SourceRange_getRange = lib.clang_getRange
 SourceRange_getRange.argtypes = [SourceLocation, SourceLocation]
@@ -1637,6 +1653,10 @@ SourceRange_start.restype = SourceLocation
 SourceRange_end = lib.clang_getRangeEnd
 SourceRange_end.argtypes = [SourceRange]
 SourceRange_end.restype = SourceLocation
+
+SourceRange_equalRanges = lib.clang_equalRanges
+SourceRange_equalRanges.argtypes = [SourceRange, SourceRange]
+SourceRange_equalRanges.restype = bool
 
 # CursorKind Functions
 CursorKind_is_decl = lib.clang_isDeclaration
