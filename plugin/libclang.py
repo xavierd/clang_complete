@@ -2,16 +2,19 @@ from clang.cindex import *
 import vim
 import time
 import threading
+import psutil, os
 
 def initClangComplete(clang_complete_flags):
   global index
   index = Index.create()
   global translationUnits
-  translationUnits = dict()
+  translationUnits = []
   global complete_flags
   complete_flags = int(clang_complete_flags)
   global libclangLock
   libclangLock = threading.Lock()
+  global process
+  process = psutil.Process(os.getpid())
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -20,8 +23,9 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
-  if fileName in translationUnits:
-    tu = translationUnits[fileName]
+  fileNames = [name for name, tu in translationUnits]
+  if fileName in fileNames:
+    tu = translationUnits[fileNames.index(fileName)][1]
     if update:
       if debug:
         start = time.time()
@@ -30,6 +34,15 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
         elapsed = (time.time() - start)
         print "LibClang - Reparsing: %.3f" % elapsed
     return tu
+
+  percent = vim.eval("g:clang_memory_percent")
+  if percent.isdigit() and 0 <= int(percent) <= 100:
+    percent = int(percent)
+  else:
+    percent = 50
+
+  if process.get_memory_percent() > percent:
+    translationUnits.pop()
 
   if debug:
     start = time.time()
@@ -44,7 +57,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
         + "are used for clang: " + " ".join(args)
     return None
 
-  translationUnits[fileName] = tu
+  translationUnits.append((fileName, tu))
 
   # Reparse to initialize the PCH cache even for auto completion
   # This should be done by index.parse(), however it is not.
@@ -137,12 +150,16 @@ def highlightDiagnostics(tu):
   map (highlightDiagnostic, tu.diagnostics)
 
 def highlightCurrentDiagnostics():
-  if vim.current.buffer.name in translationUnits:
-    highlightDiagnostics(translationUnits[vim.current.buffer.name])
+  fileNames = [name for name, tu in translationUnits]
+  if vim.current.buffer.name in fileNames:
+    tu = translationUnits[fileNames.index(vim.current.buffer.name)][1]
+    highlightDiagnostics(tu)
 
 def getCurrentQuickFixList():
-  if vim.current.buffer.name in translationUnits:
-    return getQuickFixList(translationUnits[vim.current.buffer.name])
+  fileNames = [name for name, tu in translationUnits]
+  if vim.current.buffer.name in fileNames:
+    tu = translationUnits[fileNames.index(vim.current.buffer.name)][1]
+    return getQuickFixList(tu)
   return []
 
 def updateCurrentDiagnostics():

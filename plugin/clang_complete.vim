@@ -91,6 +91,10 @@ function! s:ClangCompleteInit()
     let g:clang_auto_user_options = 'path, .clang_complete, clang'
   endif
 
+  if !exists('g:clang_memory_percent')
+    let g:clang_memory_percent = 50
+  endif
+
   call LoadUserOptions()
 
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
