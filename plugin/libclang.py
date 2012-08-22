@@ -1,7 +1,6 @@
 from clang.cindex import *
 import vim
 import time
-import re
 import threading
 
 def initClangComplete(clang_complete_flags):
@@ -278,8 +277,7 @@ def getCurrentCompletions(base):
   results = cr.results
 
   if base != "":
-    regexp = re.compile("^" + base)
-    results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
+    results = filter(lambda x: getAbbr(x.string).startswith(base), results)
 
   if sorting == 'priority':
     getPriority = lambda x: x.string.priority
@@ -298,11 +296,10 @@ def getCurrentCompletions(base):
   return result
 
 def getAbbr(strings):
-  tmplst = filter(lambda x: x.isKindTypedText(), strings)
-  if len(tmplst) == 0:
-    return ""
-  else:
-    return tmplst[0].spelling
+  for s in strings:
+    if s.isKindTypedText():
+      return s.spelling
+  return ""
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \
