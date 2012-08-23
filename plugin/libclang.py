@@ -226,10 +226,16 @@ class CompleteThread(threading.Thread):
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-    userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-    parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-    self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
+    self._args = None
+
+  @property
+  def args(self):
+    if self._args == None:
+      userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
+      userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
+      parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
+      self._args = userOptionsGlobal + userOptionsLocal + parametersLocal
+    return self._args
 
   def run(self):
     try:
@@ -240,7 +246,7 @@ class CompleteThread(threading.Thread):
         # This short pause is necessary to allow vim to initialize itself.
         # Otherwise we would get: E293: block was not locked
         # The user does not see any delay, as we just pause a background thread.
-        time.sleep(0.1)
+        time.sleep(0.5)
         getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
       else:
         self.result = getCurrentCompletionResults(self.line, self.column,
