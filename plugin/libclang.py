@@ -89,6 +89,8 @@ def getQuickFix(diagnostic):
   elif diagnostic.severity == diagnostic.Note:
     type = 'I'
   elif diagnostic.severity == diagnostic.Warning:
+    if "argument unused during compilation" in diagnostic.spelling:
+      return None
     type = 'W'
   elif diagnostic.severity == diagnostic.Error:
     type = 'E'
