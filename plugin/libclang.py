@@ -1,18 +1,20 @@
 from clang.cindex import *
 import vim
 import time
-import re
 import threading
+import psutil, os
 
 def initClangComplete(clang_complete_flags):
   global index
   index = Index.create()
   global translationUnits
-  translationUnits = dict()
+  translationUnits = []
   global complete_flags
   complete_flags = int(clang_complete_flags)
   global libclangLock
   libclangLock = threading.Lock()
+  global process
+  process = psutil.Process(os.getpid())
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -21,8 +23,9 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
-  if fileName in translationUnits:
-    tu = translationUnits[fileName]
+  fileNames = [name for name, tu in translationUnits]
+  if fileName in fileNames:
+    tu = translationUnits[fileNames.index(fileName)][1]
     if update:
       if debug:
         start = time.time()
@@ -31,6 +34,15 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
         elapsed = (time.time() - start)
         print "LibClang - Reparsing: %.3f" % elapsed
     return tu
+
+  percent = vim.eval("g:clang_memory_percent")
+  if percent.isdigit() and 0 <= int(percent) <= 100:
+    percent = int(percent)
+  else:
+    percent = 50
+
+  if process.get_memory_percent() > percent:
+    translationUnits.pop()
 
   if debug:
     start = time.time()
@@ -45,7 +57,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
         + "are used for clang: " + " ".join(args)
     return None
 
-  translationUnits[fileName] = tu
+  translationUnits.append((fileName, tu))
 
   # Reparse to initialize the PCH cache even for auto completion
   # This should be done by index.parse(), however it is not.
@@ -138,12 +150,16 @@ def highlightDiagnostics(tu):
   map (highlightDiagnostic, tu.diagnostics)
 
 def highlightCurrentDiagnostics():
-  if vim.current.buffer.name in translationUnits:
-    highlightDiagnostics(translationUnits[vim.current.buffer.name])
+  fileNames = [name for name, tu in translationUnits]
+  if vim.current.buffer.name in fileNames:
+    tu = translationUnits[fileNames.index(vim.current.buffer.name)][1]
+    highlightDiagnostics(tu)
 
 def getCurrentQuickFixList():
-  if vim.current.buffer.name in translationUnits:
-    return getQuickFixList(translationUnits[vim.current.buffer.name])
+  fileNames = [name for name, tu in translationUnits]
+  if vim.current.buffer.name in fileNames:
+    tu = translationUnits[fileNames.index(vim.current.buffer.name)][1]
+    return getQuickFixList(tu)
   return []
 
 def updateCurrentDiagnostics():
@@ -215,7 +231,6 @@ def formatResult(result):
 
   return completion
 
-
 class CompleteThread(threading.Thread):
   def __init__(self, line, column, currentFile, fileName):
     threading.Thread.__init__(self)
@@ -253,56 +268,65 @@ def WarmupCache():
   t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
   t.start()
 
+class Completion:
+  def __init__(self):
+    self.base    = None
+    self.basket  = None
+    self.thread  = None
+    self.sorting = None
 
-def getCurrentCompletions(base):
+  def start(self, base):
+    self.base = base
+    self.sorting = vim.eval("g:clang_sort_algo")
+    line = int(vim.eval("line('.')"))
+    column = int(vim.eval("b:col"))
+    self.thread = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name)
+    self.thread.start()
+
+  def isReady(self, timeout):
+    self.thread.join(timeout)
+    if not self.thread.isAlive():
+      self.basket = self.thread.result
+      self.basket = self.basket.results if self.basket else []
+      if self.base:
+        self.basket = filter(lambda x: getAbbr(x.string).startswith(self.base), self.basket)
+      if self.sorting == 'priority':
+        getPriority = lambda x: x.string.priority
+        self.basket = sorted(self.basket, None, getPriority)
+      if self.sorting == 'alpha':
+        getAbbrevation = lambda x: getAbbr(x.string).lower()
+        self.basket = sorted(self.basket, None, getAbbrevation)
+      return True
+    return False
+
+  def fetch(self, amount):
+    handful = self.basket[0:amount]
+    del self.basket[0:amount]
+    return map(formatResult, handful)
+
+def startCompletion(base):
   global debug
+  global completion
+
   debug = int(vim.eval("g:clang_debug")) == 1
-  sorting = vim.eval("g:clang_sort_algo")
-  line = int(vim.eval("line('.')"))
-  column = int(vim.eval("b:col"))
+  completion = Completion()
+  completion.start(base)
 
-  if debug:
-    start = time.time()
+def isCompletionReady(timeout):
+  return '1' if completion.isReady(timeout) else '0'
 
-  t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name)
-  t.start()
-  while t.isAlive():
-    t.join(0.01)
-    cancel = int(vim.eval('complete_check()'))
-    if cancel != 0:
-      return []
-  cr = t.result
-  if cr is None:
-    return []
+def fetchCompletions(amount):
+  return str(completion.fetch(amount))
 
-  results = cr.results
-
-  if base != "":
-    regexp = re.compile("^" + base)
-    results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
-
-  if sorting == 'priority':
-    getPriority = lambda x: x.string.priority
-    results = sorted(results, None, getPriority)
-  if sorting == 'alpha':
-    getAbbrevation = lambda x: getAbbr(x.string).lower()
-    results = sorted(results, None, getAbbrevation)
-
-  result = map(formatResult, results)
-
-  if debug:
-    elapsed = (time.time() - start)
-    print "LibClang - Code completion time (library + formatting): %.3f" \
-      % elapsed
-    time.sleep(1)
-  return result
+def endCompletion():
+  global completion
+  completion = None
 
 def getAbbr(strings):
-  tmplst = filter(lambda x: x.isKindTypedText(), strings)
-  if len(tmplst) == 0:
-    return ""
-  else:
-    return tmplst[0].spelling
+  for s in strings:
+    if s.isKindTypedText():
+      return s.spelling
+  return ""
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \
