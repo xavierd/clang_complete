@@ -231,7 +231,6 @@ def formatResult(result):
 
   return completion
 
-
 class CompleteThread(threading.Thread):
   def __init__(self, line, column, currentFile, fileName):
     threading.Thread.__init__(self)
@@ -269,48 +268,59 @@ def WarmupCache():
   t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
   t.start()
 
+class Completion:
+  def __init__(self):
+    self.base    = None
+    self.basket  = None
+    self.thread  = None
+    self.sorting = None
 
-def getCurrentCompletions(base):
+  def start(self, base):
+    self.base = base
+    self.sorting = vim.eval("g:clang_sort_algo")
+    line = int(vim.eval("line('.')"))
+    column = int(vim.eval("b:col"))
+    self.thread = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name)
+    self.thread.start()
+
+  def isReady(self, timeout):
+    self.thread.join(timeout)
+    if not self.thread.isAlive():
+      self.basket = self.thread.result
+      self.basket = self.basket.results if self.basket else []
+      if self.base:
+        self.basket = filter(lambda x: getAbbr(x.string).startswith(self.base), self.basket)
+      if self.sorting == 'priority':
+        getPriority = lambda x: x.string.priority
+        self.basket = sorted(self.basket, None, getPriority)
+      if self.sorting == 'alpha':
+        getAbbrevation = lambda x: getAbbr(x.string).lower()
+        self.basket = sorted(self.basket, None, getAbbrevation)
+      return True
+    return False
+
+  def fetch(self, amount):
+    handful = self.basket[0:amount]
+    del self.basket[0:amount]
+    return map(formatResult, handful)
+
+def startCompletion(base):
   global debug
+  global completion
+
   debug = int(vim.eval("g:clang_debug")) == 1
-  sorting = vim.eval("g:clang_sort_algo")
-  line = int(vim.eval("line('.')"))
-  column = int(vim.eval("b:col"))
+  completion = Completion()
+  completion.start(base)
 
-  if debug:
-    start = time.time()
+def isCompletionReady(timeout):
+  return '1' if completion.isReady(timeout) else '0'
 
-  t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name)
-  t.start()
-  while t.isAlive():
-    t.join(0.01)
-    cancel = int(vim.eval('complete_check()'))
-    if cancel != 0:
-      return []
-  cr = t.result
-  if cr is None:
-    return []
+def fetchCompletions(amount):
+  return str(completion.fetch(amount))
 
-  results = cr.results
-
-  if base != "":
-    results = filter(lambda x: getAbbr(x.string).startswith(base), results)
-
-  if sorting == 'priority':
-    getPriority = lambda x: x.string.priority
-    results = sorted(results, None, getPriority)
-  if sorting == 'alpha':
-    getAbbrevation = lambda x: getAbbr(x.string).lower()
-    results = sorted(results, None, getAbbrevation)
-
-  result = map(formatResult, results)
-
-  if debug:
-    elapsed = (time.time() - start)
-    print "LibClang - Code completion time (library + formatting): %.3f" \
-      % elapsed
-    time.sleep(1)
-  return result
+def endCompletion():
+  global completion
+  completion = None
 
 def getAbbr(strings):
   for s in strings:

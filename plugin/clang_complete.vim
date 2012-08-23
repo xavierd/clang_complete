@@ -572,31 +572,64 @@ function! ClangComplete(findstart, base)
       call b:ResetSnip()
     endif
 
-    if g:clang_use_library == 1
-      python vim.command('let l:res = ' + str(getCurrentCompletions(vim.eval('a:base'))))
-    else
-      let l:res = s:ClangCompleteBinary(a:base)
-    endif
-
-    for item in l:res
-      if g:clang_snippets == 1
-        let item['word'] = b:AddSnip(item['info'], item['args_pos'])
-      else
-        let item['word'] = item['abbr']
-      endif
-    endfor
-
     inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
     augroup ClangComplete
       au CursorMovedI <buffer> call <SID>TriggerSnippet()
     augroup end
     let b:snippet_chosen = 0
 
-  if g:clang_debug == 1
-    echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
+    if g:clang_use_library == 1
+      python startCompletion(vim.eval('a:base'))
+
+      let l:ready = 0
+      while !l:ready && !complete_check()
+        python vim.command('let l:ready = ' + isCompletionReady(0.25))
+      endwhile
+
+      if l:ready
+        if &pumheight
+          python pumheight = int(vim.eval('&pumheight'))
+        else
+          python pumheight = 50
+        endif
+
+        while !complete_check()
+          python vim.command('let l:handful = ' + fetchCompletions(pumheight))
+
+          if l:handful == []
+            break
+          endif
+
+          for item in l:handful
+            if g:clang_snippets == 1
+              let item['word'] = b:AddSnip(item['info'], item['args_pos'])
+            else
+              let item['word'] = item['abbr']
+            endif
+            call complete_add(item)
+          endfor
+        endwhile
+      endif
+
+      python endCompletion()
+
+      let l:res = []
+    else
+      let l:res = s:ClangCompleteBinary(a:base)
+      for item in l:res
+        if g:clang_snippets == 1
+          let item['word'] = b:AddSnip(item['info'], item['args_pos'])
+        else
+          let item['word'] = item['abbr']
+        endif
+      endfor
+    endif
+
+    if g:clang_debug == 1
+      echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
+    endif
+    return l:res
   endif
-  return l:res
-endif
 endfunction
 
 function! s:HandlePossibleSelectionEnter()
