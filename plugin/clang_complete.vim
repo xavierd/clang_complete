@@ -19,7 +19,7 @@ let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
 function! s:ClangCompleteInit()
   let l:bufname = bufname("%")
-  if l:bufname == '' || !filereadable(l:bufname)
+  if l:bufname == ''
     return
   endif
   
