@@ -15,6 +15,12 @@ def initClangComplete(clang_complete_flags):
   libclangLock = threading.Lock()
   global process
   process = psutil.Process(os.getpid())
+  global memory_percent
+  memory_percent = vim.eval("g:clang_memory_percent")
+  if memory_percent.isdigit() and 0 <= int(memory_percent) <= 100:
+    memory_percent = int(memory_percent)
+  else:
+    memory_percent = 50
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -35,13 +41,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
         print "LibClang - Reparsing: %.3f" % elapsed
     return tu
 
-  percent = vim.eval("g:clang_memory_percent")
-  if percent.isdigit() and 0 <= int(percent) <= 100:
-    percent = int(percent)
-  else:
-    percent = 50
-
-  if process.get_memory_percent() > percent:
+  if process.get_memory_percent() > memory_percent:
     translationUnits.pop()
 
   if debug:
@@ -164,17 +164,17 @@ def getCurrentQuickFixList():
     return getQuickFixList(tu)
   return []
 
-def updateCurrentDiagnostics():
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
+def evalArgs():
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
   userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
   parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-  args = userOptionsGlobal + userOptionsLocal + parametersLocal
-  libclangLock.acquire()
-  getCurrentTranslationUnit(args, getCurrentFile(),
-                          vim.current.buffer.name, update = True)
-  libclangLock.release()
+  return userOptionsGlobal + userOptionsLocal + parametersLocal
+
+def updateCurrentDiagnostics():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  with libclangLock:
+    getCurrentTranslationUnit(evalArgs(), getCurrentFile(), vim.current.buffer.name, update = True)
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName):
   tu = getCurrentTranslationUnit(args, currentFile, fileName)
@@ -246,10 +246,7 @@ class CompleteThread(threading.Thread):
   @property
   def args(self):
     if self._args == None:
-      userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-      userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-      parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-      self._args = userOptionsGlobal + userOptionsLocal + parametersLocal
+      self._args = evalArgs()
     return self._args
 
   def run(self):
@@ -261,7 +258,7 @@ class CompleteThread(threading.Thread):
         # This short pause is necessary to allow vim to initialize itself.
         # Otherwise we would get: E293: block was not locked
         # The user does not see any delay, as we just pause a background thread.
-        time.sleep(0.5)
+        time.sleep(0.1)
         getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
       else:
         self.result = getCurrentCompletionResults(self.line, self.column,
@@ -335,6 +332,15 @@ def getAbbr(strings):
     if s.isKindTypedText():
       return s.spelling
   return ""
+
+def parseWithNotifications():
+  time.sleep(0.1) # Needed to avoid E293. Is it safe?
+  vim.command('echom "Parsing started"')
+  updateCurrentDiagnostics()
+  vim.command('echom "Parsing done"')
+
+def backgroundParse():
+  threading.Thread(target=parseWithNotifications).start()
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \

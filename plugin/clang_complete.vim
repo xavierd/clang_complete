@@ -732,6 +732,12 @@ function! g:ClangUpdateQuickFix()
   return ''
 endfunction
 
+" May be used in a mapping to update precompiled preamble.
+function! g:ClangBackgroundParse()
+  python backgroundParse()
+  return ''
+endfunction
+
 function! g:ClangSetSnippetEngine(engine_name)
   try
     call eval('snippets#' . a:engine_name . '#init()')
