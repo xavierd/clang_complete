@@ -574,7 +574,9 @@ function! ClangComplete(findstart, base)
     endif
 
     if g:clang_use_library == 1
-      python vim.command('let l:res = ' + str(getCurrentCompletions(vim.eval('a:base'))))
+      python completions, timer = getCurrentCompletions(vim.eval('a:base'))
+      python vim.command('let l:res = ' + completions)
+      python timer.registerEvent("Load into vimscript")
     else
       let l:res = s:ClangCompleteBinary(a:base)
     endif
@@ -592,6 +594,11 @@ function! ClangComplete(findstart, base)
       au CursorMovedI <buffer> call <SID>TriggerSnippet()
     augroup end
     let b:snippet_chosen = 0
+
+  if g:clang_use_library == 1
+    python timer.registerEvent("vimscript + snippets")
+    python timer.finish()
+  endif
 
   if g:clang_debug == 1
     echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
