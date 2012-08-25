@@ -28,16 +28,18 @@ def getCurrentFile():
   file = "\n".join(vim.eval("getline(1, '$')"))
   return (vim.current.buffer.name, file)
 
-def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
+def getCurrentTranslationUnit(args, currentFile, fileName, update = False, silent = False):
   fileNames = [name for name, tu in translationUnits]
   if fileName in fileNames:
     tu = translationUnits[fileNames.index(fileName)][1]
     if update:
       if debug:
         start = time.time()
-      vim.command('echom "Parsing started"')
+      if not silent:
+        vim.command('echom "Parsing started"')
       tu.reparse([currentFile])
-      vim.command('echom "Parsing done"')
+      if not silent:
+        vim.command('echom "Parsing done"')
       if debug:
         elapsed = (time.time() - start)
         print "LibClang - Reparsing: %.3f" % elapsed
@@ -48,7 +50,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
 
   if debug:
     start = time.time()
-  vim.command('echom "Parsing started"')
+  if not silent:
+    vim.command('echom "Parsing started"')
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
@@ -68,7 +71,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   if debug:
     start = time.time()
   tu.reparse([currentFile])
-  vim.command('echom "Parsing done"')
+  if not silent:
+    vim.command('echom "Parsing done"')
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
@@ -178,7 +182,8 @@ def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   with libclangLock:
-    getCurrentTranslationUnit(evalArgs(), getCurrentFile(), vim.current.buffer.name, update = True)
+    getCurrentTranslationUnit(evalArgs(), getCurrentFile(), vim.current.buffer.name,
+                                                       update = True, silent = True)
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName):
   tu = getCurrentTranslationUnit(args, currentFile, fileName)
@@ -336,7 +341,8 @@ def getAbbr(strings):
 
 def sleepAndParse():
   time.sleep(0.1) # Needed to avoid E293. Is it safe?
-  updateCurrentDiagnostics()
+  with libclangLock:
+    getCurrentTranslationUnit(evalArgs(), getCurrentFile(), vim.current.buffer.name, update = True)
 
 def backgroundParse():
   threading.Thread(target=sleepAndParse).start()
