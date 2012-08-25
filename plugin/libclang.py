@@ -35,7 +35,9 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
     if update:
       if debug:
         start = time.time()
+      vim.command('echom "Parsing started"')
       tu.reparse([currentFile])
+      vim.command('echom "Parsing done"')
       if debug:
         elapsed = (time.time() - start)
         print "LibClang - Reparsing: %.3f" % elapsed
@@ -46,6 +48,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
 
   if debug:
     start = time.time()
+  vim.command('echom "Parsing started"')
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
@@ -65,6 +68,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   if debug:
     start = time.time()
   tu.reparse([currentFile])
+  vim.command('echom "Parsing done"')
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
@@ -333,14 +337,12 @@ def getAbbr(strings):
       return s.spelling
   return ""
 
-def parseWithNotifications():
+def sleepAndParse():
   time.sleep(0.1) # Needed to avoid E293. Is it safe?
-  vim.command('echom "Parsing started"')
   updateCurrentDiagnostics()
-  vim.command('echom "Parsing done"')
 
 def backgroundParse():
-  threading.Thread(target=parseWithNotifications).start()
+  threading.Thread(target=sleepAndParse).start()
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \
