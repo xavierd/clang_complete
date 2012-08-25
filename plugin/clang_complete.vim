@@ -309,7 +309,6 @@ function! s:DoPeriodicQuickFix()
   let b:my_changedtick = b:changedtick
 
   " Create tempfile name for clang/clang++ executable mode
-  let b:my_changedtick = b:changedtick
   let l:tempfile = expand('%:p:h') . '/' . localtime() . expand('%:t')
 
   let l:clang_output = s:CallClangForDiagnostics(l:tempfile)
