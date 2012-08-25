@@ -1,4 +1,4 @@
-from clang.cindex import *
+from clang.cindex import Index, TranslationUnit, CachedProperty
 import vim
 import time
 import threading
@@ -245,13 +245,10 @@ class CompleteThread(threading.Thread):
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    self._args = None
 
-  @property
+  @CachedProperty
   def args(self):
-    if self._args == None:
-      self._args = evalArgs()
-    return self._args
+      return evalArgs()
 
   def run(self):
     try:
