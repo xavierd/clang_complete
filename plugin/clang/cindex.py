@@ -1732,33 +1732,49 @@ class CompletionString(ClangObject):
     def __len__(self):
         self.num_chunks
 
-    @CachedProperty
-    def num_chunks(self):
-        return lib.clang_getNumCompletionChunks(self.obj)
-
     def __getitem__(self, key):
         if self.num_chunks <= key:
             raise IndexError
         return CompletionChunk(self.obj, key)
-
-    @property
-    def priority(self):
-        return lib.clang_getCompletionPriority(self.obj)
-
-    @property
-    def availability(self):
-        res = lib.clang_getCompletionAvailability(self.obj)
-        return availabilityKinds[res]
 
     def __repr__(self):
         return " | ".join([str(a) for a in self]) \
                + " || Priority: " + str(self.priority) \
                + " || Availability: " + str(self.availability)
 
+    @CachedProperty
+    def num_chunks(self):
+        return lib.clang_getNumCompletionChunks(self.obj)
+
+    @CachedProperty
+    def priority(self):
+        return lib.clang_getCompletionPriority(self.obj)
+
+    @CachedProperty
+    def availability(self):
+        return availabilityKinds[self.raw_availability]
+
+    @CachedProperty
+    def raw_availability(self):
+        return lib.clang_getCompletionAvailability(self.obj)
+
+    def isAvailable(self):
+        return self.raw_availability == 0
+
+    def isDeprecated(self):
+        return self.raw_availability == 1
+
+    def isNotAvailable(self):
+        return self.raw_availability == 2
+
+    def isNotAccessible(self):
+        return self.raw_availability == 3
+
 availabilityKinds = {
             0: CompletionChunk.Kind("Available"),
             1: CompletionChunk.Kind("Deprecated"),
-            2: CompletionChunk.Kind("NotAvailable")}
+            2: CompletionChunk.Kind("NotAvailable"),
+            3: CompletionChunk.Kind("NotAccessible")}
 
 class CodeCompletionResult(Structure):
     _fields_ = [('cursorKind', c_int), ('completionString', c_object_p)]
