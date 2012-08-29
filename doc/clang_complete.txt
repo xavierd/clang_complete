@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Jul 29
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Aug 29
 
 
 		  clang_complete plugin documentation
@@ -192,6 +192,8 @@ get a list of include paths. The list of include paths for each of supported
 filetypes (c, cpp, objc and objcpp) is cached on a disk and can be removed by
 calling the ClearIncludeCaches() function (for changes to take affect one
 needs to reread buffers using the :edit command or something equivalent).
+Since list of included paths can depend on user options "clang" and "gcc"
+should appear at the end of the list of sources.
 Default: "path, .clang_complete, clang"
 
        				       	*clang_complete-use_library*
