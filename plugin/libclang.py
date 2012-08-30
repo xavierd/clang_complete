@@ -2,12 +2,17 @@ from clang.cindex import *
 import vim
 import time
 import re
+import threading
 
-def initClangComplete():
+def initClangComplete(clang_complete_flags):
   global index
   index = Index.create()
   global translationUnits
   translationUnits = dict()
+  global complete_flags
+  complete_flags = int(clang_complete_flags)
+  global libclangLock
+  libclangLock = threading.Lock()
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -33,7 +38,7 @@ def getCurrentTranslationUnit(update = False):
       tu.reparse([currentFile])
       if debug:
         elapsed = (time.time() - start)
-        print "LibClang - Reparsing: " + str(elapsed)
+        print "LibClang - Reparsing: %.3f" % elapsed
     return tu
 
   if debug:
@@ -42,7 +47,7 @@ def getCurrentTranslationUnit(update = False):
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - First parse: " + str(elapsed)
+    print "LibClang - First parse: %.3f" % elapsed
 
   if tu == None:
     print "Cannot parse this source file. The following arguments " \
@@ -59,8 +64,27 @@ def getCurrentTranslationUnit(update = False):
   tu.reparse([currentFile])
   if debug:
     elapsed = (time.time() - start)
-    print "LibClang - First reparse (generate PCH cache): " + str(elapsed)
+    print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
   return tu
+
+def splitOptions(options):
+  optsList = []
+  opt = ""
+  quoted = False
+
+  for char in options:
+    if char == ' ' and not quoted:
+      if opt != "":
+        optsList += [opt]
+        opt = ""
+      continue
+    elif char == '"':
+      quoted = not quoted
+    opt += char
+
+  if opt != "":
+    optsList += [opt]
+  return optsList
 
 def getQuickFix(diagnostic):
   # Some diagnostics have no file, e.g. "too many errors emitted, stopping now"
@@ -69,9 +93,17 @@ def getQuickFix(diagnostic):
   else:
     filename = ""
 
-  if diagnostic.severity == diagnostic.Warning:
+  if diagnostic.severity == diagnostic.Ignored:
+    type = 'I'
+  elif diagnostic.severity == diagnostic.Note:
+    type = 'I'
+  elif diagnostic.severity == diagnostic.Warning:
+    if "argument unused during compilation" in diagnostic.spelling:
+      return None
     type = 'W'
   elif diagnostic.severity == diagnostic.Error:
+    type = 'E'
+  elif diagnostic.severity == diagnostic.Fatal:
     type = 'E'
   else:
     return None
@@ -128,57 +160,65 @@ def getCurrentQuickFixList():
 def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  getCurrentTranslationUnit(update = True)
+  userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
+  userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
+  parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
+  args = userOptionsGlobal + userOptionsLocal + parametersLocal
+  libclangLock.acquire()
+  getCurrentTranslationUnit(args, getCurrentFile(),
+                          vim.current.buffer.name, update = True)
+  libclangLock.release()
 
-def getCurrentCompletionResults(line, column):
-  tu = getCurrentTranslationUnit()
-  currentFile = getCurrentFile()
-  if debug:
-    start = time.time()
-  cr = tu.codeComplete(vim.current.buffer.name, line, column, [currentFile])
-  if debug:
-    elapsed = (time.time() - start)
-    print "LibClang - Code completion time: " + str(elapsed)
+def getCurrentCompletionResults(line, column, args, currentFile, fileName,
+                                timer):
+
+  tu = getCurrentTranslationUnit(args, currentFile, fileName)
+  timer.registerEvent("Get TU")
+
+  cr = tu.codeComplete(fileName, line, column, [currentFile],
+      complete_flags)
+  timer.registerEvent("Code Complete")
   return cr
-
-def completeCurrentAt(line, column):
-  print "\n".join(map(str, getCurrentCompletionResults().results))
-
-def formatChunkForWord(chunk):
-  if chunk.isKindPlaceHolder() and snippets:
-    return "<#" + chunk.spelling + "#>"
-  else:
-    return chunk.spelling
 
 def formatResult(result):
   completion = dict()
 
-  abbr = getAbbr(result.string)
-  info = filter(lambda x: not x.isKindInformative(), result.string)
-  word = filter(lambda x: not x.isKindResultType(), info)
-  returnValue = filter(lambda x: x.isKindResultType(), info)
+  returnValue = None
+  abbr = ""
+  chunks = filter(lambda x: not x.isKindInformative(), result.string)
 
-  if len(returnValue) > 0:
-    returnStr = returnValue[0].spelling + " "
-  else:
-    returnStr = ""
+  args_pos = []
+  cur_pos = 0
+  word = ""
 
-  if kinds[result.cursorKind] == 'f' and usesnipmate:
-    vim.eval("s:AddSnipmateSnippet('" + abbr + "', '" \
-        + abbr + "', '" \
-        + "".join(map(formatChunkForWord, word)) + "')")
+  for chunk in chunks:
 
-  info = returnStr + "".join(map(lambda x: x.spelling, word))
-  if snippets:
-    word = "".join(map(formatChunkForWord, word))
-  else:
-    word = abbr
+    if chunk.isKindResultType():
+      returnValue = chunk
+      continue
+
+    chunk_spelling = chunk.spelling
+
+    if chunk.isKindTypedText():
+      abbr = chunk_spelling
+
+    chunk_len = len(chunk_spelling)
+    if chunk.isKindPlaceHolder():
+      args_pos += [[ cur_pos, cur_pos + chunk_len ]]
+    cur_pos += chunk_len
+    word += chunk_spelling
+
+  menu = word
+
+  if returnValue:
+    menu = returnValue.spelling + " " + menu
 
   completion['word'] = word
   completion['abbr'] = abbr
-  completion['menu'] = info
-  completion['info'] = info
-  completion['dup'] = 1
+  completion['menu'] = menu
+  completion['info'] = word
+  completion['args_pos'] = args_pos
+  completion['dup'] = 0
 
   # Replace the number that represents a specific kind with a better
   # textual representation.
@@ -186,25 +226,91 @@ def formatResult(result):
 
   return completion
 
+
+class CompleteThread(threading.Thread):
+  def __init__(self, line, column, currentFile, fileName, timer=None):
+    threading.Thread.__init__(self)
+    self.line = line
+    self.column = column
+    self.currentFile = currentFile
+    self.fileName = fileName
+    self.result = None
+    userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
+    userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
+    parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
+    self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
+    self.timer = timer
+
+  def run(self):
+    try:
+      libclangLock.acquire()
+      if self.line == -1:
+        # Warm up the caches. For this it is sufficient to get the current
+        # translation unit. No need to retrieve completion results.
+        # This short pause is necessary to allow vim to initialize itself.
+        # Otherwise we would get: E293: block was not locked
+        # The user does not see any delay, as we just pause a background thread.
+        time.sleep(0.1)
+        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
+      else:
+        self.result = getCurrentCompletionResults(self.line, self.column,
+                                                  self.args, self.currentFile,
+                                                  self.fileName, self.timer)
+    except Exception:
+      pass
+    libclangLock.release()
+
+def WarmupCache():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
+  t.start()
+
+
 def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  global snippets
-  snippets = int(vim.eval("g:clang_snippets")) == 1
-  global usesnipmate
-  usesnipmate = int(vim.eval("g:clang_use_snipmate")) == 1
-  priority = vim.eval("g:clang_sort_algo") == 'priority'
+  sorting = vim.eval("g:clang_sort_algo")
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
-  cr = getCurrentCompletionResults(line, column)
 
-  regexp = re.compile("^" + base)
-  filteredResult = filter(lambda x: regexp.match(getAbbr(x.string)), cr.results)
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, column)
 
-  getPriority = lambda x: x.string.priority
-  getAbbrevation = lambda x: getAbbr(x.string).lower()
-  sortedResult = sorted(filteredResult, key = getPriority if priority else getAbbrevation)
-  return map(formatResult, sortedResult)
+  t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name,
+                     timer)
+  t.start()
+  while t.isAlive():
+    t.join(0.01)
+    cancel = int(vim.eval('complete_check()'))
+    if cancel != 0:
+      return (str([]), timer)
+  cr = t.result
+  if cr is None:
+    return (str([]), timer)
+
+  results = cr.results
+
+  timer.registerEvent("Count # Results (%s)" % str(len(results)))
+
+  if base != "":
+    regexp = re.compile("^" + base)
+    results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
+
+  timer.registerEvent("Filter")
+
+  if sorting == 'priority':
+    getPriority = lambda x: x.string.priority
+    results = sorted(results, None, getPriority)
+  if sorting == 'alpha':
+    getAbbrevation = lambda x: getAbbr(x.string).lower()
+    results = sorted(results, None, getAbbrevation)
+
+  timer.registerEvent("Sort")
+
+  result = map(formatResult, results)
+
+  timer.registerEvent("Format")
+  return (str(result), timer)
 
 def getAbbr(strings):
   tmplst = filter(lambda x: x.isKindTypedText(), strings)
@@ -315,7 +421,7 @@ kinds = dict({                                                                 \
                                                                                \
 # Preprocessing                                                                \
 500 : '500', # CXCursor_PreprocessingDirective                                 \
-501 : 'm',   # CXCursor_MacroDefinition                                        \
+501 : 'd',   # CXCursor_MacroDefinition                                        \
 502 : '502', # CXCursor_MacroInstantiation                                     \
 503 : '503'  # CXCursor_InclusionDirective                                     \
 })

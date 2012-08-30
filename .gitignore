@@ -1,0 +1,4 @@
+*.pyc
+*.vmb
+*.cache
+tags

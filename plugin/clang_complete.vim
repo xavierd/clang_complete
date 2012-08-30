@@ -95,40 +95,32 @@
 "       - -code-completion-macros -code-completion-patterns
 "
 
-au FileType c,cpp,objc,objcpp call s:ClangCompleteInit()
+au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
 
 let b:clang_parameters = ''
 let b:clang_user_options = ''
 let b:my_changedtick = 0
-let b:clang_type_complete = 0
-let b:snipmate_snippets = {}
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
 function! s:ClangCompleteInit()
-  let l:local_conf = findfile('.clang_complete', '.;')
-  let b:clang_user_options = ''
-  if l:local_conf != ''
-    let l:opts = readfile(l:local_conf)
-    for l:opt in l:opts
-      " Better handling of absolute path
-      " I don't know if those pattern will work on windows
-      " platform
-      if matchstr(l:opt, '\C-I\s*/') != ''
-        let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
-              \ '-I' . '\1', 'g')
-      else
-        let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\\\s\)*\)',
-              \ '-I' . l:local_conf[:-16] . '\1', 'g')
-      endif
-      let b:clang_user_options .= ' ' . l:opt
-    endfor
+  let l:bufname = bufname("%")
+  if l:bufname == ''
+    return
+  endif
+  
+  if !exists('g:clang_auto_select')
+    let g:clang_auto_select = 0
   endif
 
   if !exists('g:clang_complete_auto')
     let g:clang_complete_auto = 1
+  endif
+
+  if !exists('g:clang_close_preview')
+    let g:clang_close_preview = 0
   endif
 
   if !exists('g:clang_complete_copen')
@@ -147,8 +139,8 @@ function! s:ClangCompleteInit()
     let g:clang_snippets = 0
   endif
 
-  if !exists('g:clang_conceal_snippets')
-    let g:clang_conceal_snippets = has('conceal')
+  if !exists('g:clang_snippets_engine')
+    let g:clang_snippets_engine = 'clang_complete'
   endif
 
   if !exists('g:clang_exec')
@@ -170,12 +162,12 @@ function! s:ClangCompleteInit()
     let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
   endif
 
-  if !exists('g:clang_use_snipmate')
-    if g:clang_snippets == 1
-      let g:clang_use_snipmate = 0
-    else
-      let g:clang_use_snipmate = exists('g:snippets_dir')
-    endif
+  if !exists('g:clang_complete_macros')
+    let g:clang_complete_macros = 0
+  endif
+
+  if !exists('g:clang_complete_patterns')
+    let g:clang_complete_patterns = 0
   endif
 
   if !exists('g:clang_debug')
@@ -186,18 +178,27 @@ function! s:ClangCompleteInit()
     let g:clang_sort_algo = 'priority'
   endif
 
-  inoremap <expr> <buffer> <C-X><C-U> LaunchCompletion()
-  inoremap <expr> <buffer> . CompleteDot()
-  inoremap <expr> <buffer> > CompleteArrow()
-  inoremap <expr> <buffer> : CompleteColon()
+  if !exists('g:clang_auto_user_options')
+    let g:clang_auto_user_options = 'path, .clang_complete, clang'
+  endif
+
+  call LoadUserOptions()
+
+  inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
+  inoremap <expr> <buffer> . <SID>CompleteDot()
+  inoremap <expr> <buffer> > <SID>CompleteArrow()
+  inoremap <expr> <buffer> : <SID>CompleteColon()
+  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
 
   if g:clang_snippets == 1
-    noremap <expr> <buffer> <tab> UpdateSnips()
-    snoremap <expr> <buffer> <tab> UpdateSnips()
-    if g:clang_conceal_snippets == 1
-      syntax match Conceal /<#/ conceal
-      syntax match Conceal /#>/ conceal
-    endif
+    call g:ClangSetSnippetEngine(g:clang_snippets_engine)
+  endif
+
+  " Force menuone. Without it, when there's only one completion result,
+  " it can be confusing (not completing and no popup)
+  if g:clang_auto_select != 2
+    set completeopt-=menu
+    set completeopt+=menuone
   endif
 
   " Disable every autocmd that could have been set.
@@ -208,7 +209,6 @@ function! s:ClangCompleteInit()
   let b:should_overload = 0
   let b:my_changedtick = b:changedtick
   let b:clang_parameters = '-x c'
-  let b:clang_type_complete = 0
 
   if &filetype == 'objc'
     let b:clang_parameters = '-x objective-c'
@@ -222,44 +222,120 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '-header'
   endif
 
+  let g:clang_complete_lib_flags = 0
+
+  if g:clang_complete_macros == 1
+    let b:clang_parameters .= ' -code-completion-macros'
+    let g:clang_complete_lib_flags = 1
+  endif
+
+  if g:clang_complete_patterns == 1
+    let b:clang_parameters .= ' -code-completion-patterns'
+    let g:clang_complete_lib_flags += 2
+  endif
+
   setlocal completefunc=ClangComplete
   setlocal omnifunc=ClangComplete
 
   if g:clang_periodic_quickfix == 1
     augroup ClangComplete
-      au CursorHold,CursorHoldI <buffer> call s:DoPeriodicQuickFix()
+      au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
     augroup end
   endif
 
   " Load the python bindings of libclang
   if g:clang_use_library == 1
     if has('python')
-      exe s:initClangCompletePython()
+      call s:initClangCompletePython()
     else
-      echoe "clang_complete: No python support available."
-      echoe "Cannot use clang library, using executable"
-      echoe "Compile vim with python support to use libclang"
+      echoe 'clang_complete: No python support available.'
+      echoe 'Cannot use clang library, using executable'
+      echoe 'Compile vim with python support to use libclang'
       let g:clang_use_library = 0
-      return
     endif
   endif
 endfunction
 
-function! s:initClangCompletePython()
-  python import sys
+function! LoadUserOptions()
+  let b:clang_user_options = ''
 
-  if exists('g:clang_library_path')
-    " Load the library from the given library path.
-    exe 'python sys.argv = ["' . escape(g:clang_library_path, '\') . '"]'
-  else
-    " By setting argv[0] to '' force the python bindings to load the library
-    " from the normal system search path.
-    python sys.argv[0] = ''
+  let l:option_sources = split(g:clang_auto_user_options, ',')
+  let l:remove_spaces_cmd = 'substitute(v:val, "\\s*\\(.*\\)\\s*", "\\1", "")'
+  let l:option_sources = map(l:option_sources, l:remove_spaces_cmd)
+
+  for l:source in l:option_sources
+    if l:source == 'path'
+      call s:parsePathOption()
+    elseif l:source == '.clang_complete'
+      call s:parseConfig()
+    else
+      let l:getopts = 'getopts#' . l:source . '#getopts'
+      silent call eval(l:getopts . '()')
+    endif
+  endfor
+endfunction
+
+function! s:parseConfig()
+  let l:local_conf = findfile('.clang_complete', getcwd() . ',.;')
+  if l:local_conf == '' || !filereadable(l:local_conf)
+    return
   endif
 
-  exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
-  exe 'pyfile ' . s:plugin_path . '/libclang.py'
-  python initClangComplete()
+  let l:root = substitute(fnamemodify(l:local_conf, ':p:h'), '\', '/', 'g')
+
+  let l:opts = readfile(l:local_conf)
+  for l:opt in l:opts
+    " Use forward slashes only
+    let l:opt = substitute(l:opt, '\', '/', 'g')
+    " Handling of absolute path
+    if matchstr(l:opt, '\C-I\s*/') != ''
+      let l:opt = substitute(l:opt, '\C-I\s*\(/\%(\w\|\\\s\)*\)',
+            \ '-I' . '\1', 'g')
+    elseif s:isWindows() && matchstr(l:opt, '\C-I\s*[a-zA-Z]:/') != ''
+      let l:opt = substitute(l:opt, '\C-I\s*\([a-zA-Z:]/\%(\w\|\\\s\)*\)',
+            \ '-I' . '\1', 'g')
+    else
+      let l:opt = substitute(l:opt, '\C-I\s*\(\%(\w\|\.\|/\|\\\s\)*\)',
+            \ '-I' . l:root . '/\1', 'g')
+    endif
+    let b:clang_user_options .= ' ' . l:opt
+  endfor
+endfunction
+
+function! s:parsePathOption()
+  let l:dirs = split(&path, ',')
+  for l:dir in l:dirs
+    if len(l:dir) == 0 || !isdirectory(l:dir)
+      continue
+    endif
+
+    " Add only absolute paths
+    if matchstr(l:dir, '\s*/') != ''
+      let l:opt = '-I' . l:dir
+      let b:clang_user_options .= ' ' . l:opt
+    endif
+  endfor
+endfunction
+
+function! s:initClangCompletePython()
+  " Only parse the python library once
+  if !exists('s:libclang_loaded')
+    python import sys
+    if exists('g:clang_library_path')
+      " Load the library from the given library path.
+      exe 'python sys.argv = ["' . escape(g:clang_library_path, '\') . '"]'
+    else
+      " By setting argv[0] to '' force the python bindings to load the library
+      " from the normal system search path.
+      python sys.argv[0] = ''
+    endif
+
+    exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
+    exe 'pyfile ' . s:plugin_path . '/libclang.py'
+    python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
+    let s:libclang_loaded = 1
+  endif
+  python WarmupCache()
 endfunction
 
 function! s:GetKind(proto)
@@ -294,7 +370,7 @@ function! s:CallClangBinaryForDiagnostics(tempfile)
         \ . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
-  let l:clang_output = split(system(l:command), "\n")
+  let l:clang_output = split(system(s:escapeCommand(l:command)), "\n")
   call delete(a:tempfile)
   return l:clang_output
 endfunction
@@ -351,13 +427,13 @@ function! s:ClangQuickFix(clang_output, tempfname)
     exe l:winbufnr . 'wincmd w'
   endif
   call setqflist(l:list)
-  doautocmd QuickFixCmdPost make
+  silent doautocmd QuickFixCmdPost make
 endfunction
 
 function! s:ClangUpdateQuickFix(clang_output, tempfname)
   let l:list = []
   for l:line in a:clang_output
-    let l:erridx = match(l:line, '\%(error\|warning\): ')
+    let l:erridx = match(l:line, '\%(error\|warning\|note\): ')
     if l:erridx == -1
       " Error are always at the beginning.
       if l:line[:11] == 'COMPLETION: ' || l:line[:9] == 'OVERLOAD: '
@@ -379,10 +455,14 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
       let l:text = l:line[l:erridx + 7:]
       let l:type = 'E'
       let l:hlgroup = ' SpellBad '
-    else
+    elseif l:line[l:erridx] == 'w'
       let l:text = l:line[l:erridx + 9:]
       let l:type = 'W'
       let l:hlgroup = ' SpellLocal '
+    else
+      let l:text = l:line[l:erridx + 6:]
+      let l:type = 'I'
+      let l:hlgroup = ' '
     endif
     let l:item = {
           \ 'bufnr': l:bufnr,
@@ -392,7 +472,7 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
           \ 'type': l:type }
     let l:list = add(l:list, l:item)
 
-    if g:clang_hl_errors == 0 || l:fname != '%'
+    if g:clang_hl_errors == 0 || l:fname != '%' || l:type == 'I'
       continue
     endif
 
@@ -423,112 +503,9 @@ function! s:ClangUpdateQuickFix(clang_output, tempfname)
 endfunction
 
 function! s:DemangleProto(prototype)
-  let l:proto = substitute(a:prototype, '[#', '', 'g')
-  let l:proto = substitute(l:proto, '#]', ' ', 'g')
-  let l:proto = substitute(l:proto, '#>', '', 'g')
-  let l:proto = substitute(l:proto, '<#', '', 'g')
+  let l:proto = substitute(a:prototype, '\[#[^#]*#\]', '', 'g')
   let l:proto = substitute(l:proto, '{#.*#}', '', 'g')
-
   return l:proto
-endfunction
-
-function! s:CreateSnipmateSnippet(trigger, proto)
-  " Try to parse parameters
-  let l:matches = matchlist(a:proto, '\v^.*\V' . a:trigger . '\v([(<])(.*)([)>])')
-
-  " Check if it's a type without template params
-  if empty(l:matches)
-    " Clean up prototype (remove return type and const)
-    let l:proto = substitute(a:proto, '\v^.*(\V' . a:trigger . '\v.{-})( *const *)?$', '\1', '')
-    return l:proto . ' ${1:obj};${2}'
-  endif
-
-  " Get parameters
-  let l:delim_start = l:matches[1]
-  let l:params = split(l:matches[2], '\v\s*,\s*')
-  let l:delim_end = l:matches[3]
-
-  " Construct snippet
-  let l:tmp = 1
-  let l:snippet = a:trigger . l:delim_start
-  for param in l:params
-    let l:snippet .= '${' . l:tmp . ':' . param . '}'
-    if l:tmp != len(l:params)
-      let l:snippet .= ', '
-    endif
-    let l:tmp += 1
-  endfor
-  let l:snippet .= l:delim_end
-  if l:delim_start == '('
-    " Function
-    let l:snippet .= '${' . l:tmp . ':;}${' . (l:tmp+1) . '}'
-  else
-    " Template
-    let l:snippet .= ' ${' . l:tmp . ':obj};${' . (l:tmp+1) . '}'
-  endif
-
-  return l:snippet
-endfunction
-
-function! s:AddSnipmateSnippet(word, trigger, proto)
-  " Clean up prototype (remove return type and const)
-  let l:word = substitute(a:proto, '\v^.*(\V' . a:word . '\v.{-})( *const *)?$', '\1', '')
-
-  " Create snipmate's snippet
-  let l:snippet = s:CreateSnipmateSnippet(a:trigger, a:proto)
-  call MakeSnip(&filetype, a:trigger, l:snippet, a:proto)
-
-  " Store which overload we are going to complete
-  if !has_key(b:snipmate_snippets, a:trigger)
-    let b:snipmate_snippets[a:trigger] = []
-  endif
-  let b:snipmate_snippets[a:trigger] += [l:word]
-endfunction
-
-function! TriggerSnipmate()
-  " Dont bother doing anything until we're sure the user exited the menu
-  if pumvisible() != 0
-    return
-  endif
-
-  " Check if the user really did chose an entry for the menu or just typed someting inexistant
-  let l:col  = col('.')
-  let l:line = getline('.')
-  let l:word = strpart(l:line, b:col - 1, l:col - b:col)
-  let l:trigger = matchstr(l:word, '\v^[^(<]+')
-  if !has_key(b:snipmate_snippets, l:trigger)
-    return
-  endif
-
-
-  " Ok we'll trigger snipmate now, stop monitoring
-  augroup ClangComplete
-    au! CursorMovedI <buffer>
-  augroup end
-
-  " Rewrite line with snipmate's snippet trigger
-  let l:corrected_line = strpart(l:line, 0, b:col + len(l:trigger) - 1) . strpart(l:line, l:col - 1)
-  call setline('.', l:corrected_line)
-
-  " Move cursor to where we want (there's probably a simpler way than this)
-  call feedkeys("\<Esc>", 't')
-  call cursor(0, b:col + len(l:trigger))
-  call feedkeys('a', 't')
-
-  " If we are already in a snipmate snippet, well not much we can do until snipmate supports nested snippets
-  if exists('g:snipPos')
-    return
-  endif
-
-  " Trigger snipmate
-  call feedkeys("\<Tab>", 't')
-  if len(b:snipmate_snippets[l:trigger]) > 1
-    let l:index = index(b:snipmate_snippets[l:trigger], l:word) + 1
-    if l:index == -1
-      echoe 'clang_complete snipmate error'
-    endif
-    call feedkeys(l:index . "\<CR>", 't')
-  endif
 endfunction
 
 let b:col = 0
@@ -548,38 +525,27 @@ function! s:ClangCompleteBinary(base)
         \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
         \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
-  let l:clang_output = split(system(l:command), "\n")
+
+  let l:clang_output = split(system(s:escapeCommand(l:command)), "\n")
   call delete(l:tempfile)
 
   call s:ClangQuickFix(l:clang_output, l:tempfile)
   if v:shell_error
-    return {}
+    return []
   endif
   if l:clang_output == []
-    return {}
+    return []
   endif
 
+  let l:filter_str = "v:val =~ '^COMPLETION: " . a:base . "\\|^OVERLOAD: '"
+  call filter(l:clang_output, l:filter_str)
+
   let l:res = []
-  "for l:line in l:clang_output
-  while !empty(l:clang_output)
-    let l:line = l:clang_output[0]
-    let l:clang_output = l:clang_output[1:]
+  for l:line in l:clang_output
 
     if l:line[:11] == 'COMPLETION: ' && b:should_overload != 1
 
       let l:value = l:line[12:]
-
-      if l:value =~ 'Pattern'
-        if g:clang_snippets != 1 && g:clang_use_snipmate != 1
-          continue
-        endif
-
-        let l:value = l:value[10:]
-      endif
-
-      if l:value !~ '^' . a:base
-        continue
-      endif
 
       let l:colonidx = stridx(l:value, ' : ')
       if l:colonidx == -1
@@ -601,20 +567,14 @@ function! s:ClangCompleteBinary(base)
         continue
       endif
 
-      if g:clang_snippets == 1
-        let l:word = substitute(l:proto, '\[#[^#]*#\]', '', 'g')
-        if l:word =~ '{#.*#}'
-          let l:next_line = substitute(l:line, '{#\(.*\)#}', '\1', '')
-          let l:clang_output = [l:next_line] + l:clang_output
-          let l:word = substitute(l:word, '{#.*#}', '', 'g')
-        endif
-      else
-        let l:word = l:wabbr
-      endif
+      let l:word = l:wabbr
+      let l:menu = substitute(l:proto, '\[#\([^#]*\)#\]', '\1 ', 'g')
+      let l:menu = substitute(l:menu, '<#\([^#]*\)#>', '\1', 'g')
+      let l:menu = substitute(l:menu, '{#[^#]*#}', '', 'g')
+
       let l:proto = s:DemangleProto(l:proto)
 
     elseif l:line[:9] == 'OVERLOAD: ' && b:should_overload == 1
-          \ && g:clang_snippets == 1
 
       let l:value = l:line[10:]
       if match(l:value, '<#') == -1
@@ -623,28 +583,46 @@ function! s:ClangCompleteBinary(base)
       let l:word = substitute(l:value, '.*<#', '<#', 'g')
       let l:word = substitute(l:word, '#>.*', '#>', 'g')
       let l:wabbr = substitute(l:word, '<#\([^#]*\)#>', '\1', 'g')
+      let l:menu = l:wabbr
       let l:proto = s:DemangleProto(l:value)
       let l:kind = ''
     else
       continue
     endif
 
-    if g:clang_use_snipmate == 1
-      call s:AddSnipmateSnippet(l:word, l:wabbr, l:proto)
-      let l:word = l:wabbr
+    let l:args_pos = []
+    if g:clang_snippets == 1
+      let l:startidx = match(l:proto, '<#')
+      while l:startidx != -1
+        let l:proto = substitute(l:proto, '<#', '', '')
+        let l:endidx = match(l:proto, '#>')
+        let l:proto = substitute(l:proto, '#>', '', '')
+        let l:args_pos += [[ l:startidx, l:endidx ]]
+        let l:startidx = match(l:proto, '<#')
+      endwhile
     endif
 
     let l:item = {
           \ 'word': l:word,
           \ 'abbr': l:wabbr,
-          \ 'menu': l:proto,
+          \ 'menu': l:menu,
           \ 'info': l:proto,
-          \ 'dup': 1,
-          \ 'kind': l:kind }
+          \ 'dup': 0,
+          \ 'kind': l:kind,
+          \ 'args_pos': l:args_pos }
 
     call add(l:res, l:item)
-  endwhile
+  endfor
   return l:res
+endfunction
+
+function! s:escapeCommand(command)
+    return s:isWindows() ? a:command : escape(a:command, '()')
+endfunction
+
+function! s:isWindows()
+  " Check for win32 is enough since it's true on win64
+  return has('win32')
 endfunction
 
 function! ClangComplete(findstart, base)
@@ -661,7 +639,6 @@ function! ClangComplete(findstart, base)
     if l:line[l:wsstart - 1] =~ '[(,]'
       let b:should_overload = 1
       let b:col = l:wsstart + 1
-      let b:clang_type_complete = 0
       return l:wsstart
     endif
     let b:should_overload = 0
@@ -678,32 +655,82 @@ function! ClangComplete(findstart, base)
       let l:time_start = reltime()
     endif
 
-    if g:clang_use_snipmate == 1
-      " Quick & Easy way to prevent snippets to be added twice
-      " Ideally we should modify snipmate to be smarter about this
-      call ReloadSnippets(&filetype)
-      let b:snipmate_snippets = {}
+    if g:clang_snippets == 1
+      call b:ResetSnip()
     endif
 
     if g:clang_use_library == 1
-      python vim.command('let l:res = '
-                  \ + str(getCurrentCompletions(vim.eval("a:base"))) + '')
+      python completions, timer = getCurrentCompletions(vim.eval('a:base'))
+      python vim.command('let l:res = ' + completions)
+      python timer.registerEvent("Load into vimscript")
     else
       let l:res = s:ClangCompleteBinary(a:base)
     endif
-    if g:clang_snippets == 1
-      augroup ClangComplete
-        au CursorMovedI <buffer> call BeginSnips()
-      augroup end
-    endif
-    if g:clang_debug == 1
-      echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
-    endif
-    return l:res
+
+    for item in l:res
+      if g:clang_snippets == 1
+        let item['word'] = b:AddSnip(item['info'], item['args_pos'])
+      else
+        let item['word'] = item['abbr']
+      endif
+    endfor
+
+    inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
+    augroup ClangComplete
+      au CursorMovedI <buffer> call <SID>TriggerSnippet()
+    augroup end
+    let b:snippet_chosen = 0
+
+  if g:clang_use_library == 1
+    python timer.registerEvent("vimscript + snippets")
+    python timer.finish()
+  endif
+
+  if g:clang_debug == 1
+    echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
+  endif
+  return l:res
+endif
+endfunction
+
+function! s:HandlePossibleSelectionEnter()
+  if pumvisible()
+    let b:snippet_chosen = 1
+    return "\<C-Y>"
+  end
+  return "\<CR>"
+endfunction
+
+function! s:HandlePossibleSelectionCtrlY()
+  if pumvisible()
+    let b:snippet_chosen = 1
+  end
+  return "\<C-Y>"
+endfunction
+
+function! s:TriggerSnippet()
+  " Dont bother doing anything until we're sure the user exited the menu
+  if !b:snippet_chosen
+    return
+  endif
+
+  if g:clang_snippets == 1
+    " Stop monitoring as we'll trigger a snippet
+    silent! iunmap <buffer> <C-Y>
+    augroup ClangComplete
+      au! CursorMovedI <buffer>
+    augroup end
+
+    " Trigger the snippet
+    call b:TriggerSnip()
+  endif
+
+  if g:clang_close_preview
+    pclose
   endif
 endfunction
 
-function! ShouldComplete()
+function! s:ShouldComplete()
   if (getline('.') =~ '#\s*\(include\|import\)')
     return 0
   else
@@ -720,75 +747,57 @@ function! ShouldComplete()
   endif
 endfunction
 
-function! LaunchCompletion()
-  if ShouldComplete()
-    if match(&completeopt, "longest") != -1
-      return "\<C-X>\<C-U>"
-    else
-      return "\<C-X>\<C-U>\<C-P>"
+function! s:LaunchCompletion()
+  let l:result = ""
+  if s:ShouldComplete()
+    let l:result = "\<C-X>\<C-U>"
+    if g:clang_auto_select != 2
+      let l:result .= "\<C-P>"
     endif
-  else
-    return ''
+    if g:clang_auto_select == 1
+      let l:result .= "\<C-R>=(pumvisible() ? \"\\<Down>\" : '')\<CR>"
+    endif
   endif
+  return l:result
 endfunction
 
-function! CompleteDot()
+function! s:CompleteDot()
   if g:clang_complete_auto == 1
-    return '.' . LaunchCompletion()
+    return '.' . s:LaunchCompletion()
   endif
   return '.'
 endfunction
 
-function! CompleteArrow()
+function! s:CompleteArrow()
   if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != '-'
     return '>'
   endif
-  return '>' . LaunchCompletion()
+  return '>' . s:LaunchCompletion()
 endfunction
 
-function! CompleteColon()
+function! s:CompleteColon()
   if g:clang_complete_auto != 1 || getline('.')[col('.') - 2] != ':'
     return ':'
   endif
-  return ':' . LaunchCompletion()
-endfunction
-
-function! UpdateSnips()
-  let l:line = getline('.')
-  let l:pattern = '<#[^#]*#>'
-  if match(l:line, l:pattern) == -1
-    return ''
-  endif
-  let l:linenb = line('.')
-  if &selection == "exclusive"
-    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>ll\<C-G>"
-  else
-    return "\<esc>/\\%" . l:linenb . "l<#\<CR>v/#>\<CR>l\<C-G>"
-  endif
-endfunction
-
-function! BeginSnips()
-  if pumvisible() != 0
-    return ''
-  endif
-  augroup ClangComplete
-    au! CursorMovedI <buffer>
-  augroup end
-
-  " Do we need to launch UpdateSnippets()?
-  let l:line = getline('.')
-  let l:pattern = '<#[^#]*#>'
-  if match(l:line, l:pattern) == -1
-    return ''
-  endif
-  call feedkeys("\<esc>^\<tab>")
-  return ''
+  return ':' . s:LaunchCompletion()
 endfunction
 
 " May be used in a mapping to update the quickfix window.
 function! g:ClangUpdateQuickFix()
   call s:DoPeriodicQuickFix()
   return ''
+endfunction
+
+function! g:ClangSetSnippetEngine(engine_name)
+  try
+    call eval('snippets#' . a:engine_name . '#init()')
+    let b:AddSnip = function('snippets#' . a:engine_name . '#add_snippet')
+    let b:ResetSnip = function('snippets#' . a:engine_name . '#reset')
+    let b:TriggerSnip = function('snippets#' . a:engine_name . '#trigger')
+  catch /^Vim\%((\a\+)\)\=:E117/
+    echoe 'Snippets engine ' . a:engine_name . ' not found.'
+    let g:clang_snippets = 0
+  endtry
 endfunction
 
 " vim: set ts=2 sts=2 sw=2 expandtab :

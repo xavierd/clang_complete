@@ -1,116 +1,15 @@
-This plugin use clang for accurately completing C and C++ code.
+This plugin uses clang for accurately completing C and C++ code.
 
-How-to use it? Simply put it on ~/.vim/plugin
-It should work immediately.
+To build and install in one step, type:
+$ make install
 
-Configuration:
-  - g:clang_complete_auto:
-       if equal to 1, automatically complete after ->, ., ::
-       Default: 1
+To build and install in two steps, type:
+$ make
+$ vim clang_complete.vmb -c 'so %' -c 'q'
 
-  - g:clang_complete_copen:
-       if equal to 1, open quickfix window on error.
-       Default: 0
+Alternatively, you can also put the files in ~/.vim/
 
-  - g:clang_hl_errors:
-       if equal to 1, it will highlight the warnings and errors the
-       same way clang does it.
-       Default: 1
+You need Vim 7.3 or higher, compiled with python support and ideally, with
+the conceal feature.
 
-  - g:clang_periodic_quickfix:
-       if equal to 1, it will periodically update the quickfix window
-       Note: You could use the g:ClangUpdateQuickFix() to do the same
-             with a mapping.
-       Default: 0
-
-  - g:clang_snippets:
-       if equal to 1, it will do some snippets magic after a ( or a ,
-       inside function call. Not currently fully working.
-       Default: 0
-
-   - g:clang_conceal_snippets:
-        if equal to 1, vim will use vim 7.3 conceal feature to hide <#
-        and #> which delimit a snippets.
-        Note: See concealcursor and conceallevel for conceal configuration.
-        Default: 1 (0 if conceal not available)
-
-   - g:clang_exec:
-        Name or path of clang executable.
-        Note: Use this if clang has a non-standard name, or isn't in the
-        path.
-        Default: 'clang'
-
-   - g:clang_user_options:
-        Option added at the end of clang command. Useful if you want to
-        filter the result, or if you want to ignore the error code
-        returned by clang: on error, the completion is not shown.
-        Default: ''
-        Example: '|| exit 0' (it will discard clang return value)
-
-    - g:clang_use_library:
-	Instead of calling the clang/clang++ tool use libclang directly. This
-	gives access to many more clang features. Furthermore it automatically
-	caches all includes in memory. Updates after changes in the same file
-	will therefore be a lot faster.
-  	Default : 0
-
-    - g:clang_library_path:
-	If libclang.[dll/so/dylib] is not in your library search path, set
-	this to the absolute path where libclang is available.
-	Default : ''
-
-Thanks to:
-    Xaizek
-
-Note:
- - This plugin is incompatible with omnicppcomplete due to the
- unconditionnaly set mapping done by omnicppcomplete. So don't forget to
- suppress it before using this plugin.
-
- - If you find that completion is slow, please read the PCH section
- below.
-
- - The LICENSE file does not cover the files that come from the LLVM
- project, namely, cindex.py and __init__.py, which are covered by the
- LLVM license.
-
- - Because libclang provides a lot of information about completion, there
- are some additional kinds of completion along with standard ones (see
- ':help complete-items' for details):
- '+' - constructor
- '~' - destructor
- 'e' - enumerator constant
- 'a' - parameter ('a' from "argument") of a function, method or template
- 'u' - unknown or buildin type (int, float, ...)
- 'n' - namespace or its alias
- 'p' - template ('p' from "pattern")
-
-PCH:
-In case you can not or you do not want to install libclang, a precompiled header
-file is another way to accelerate compilation, and so, to accelerate the
-completion. It is however more complicated to install and is still slower
-than the use of libclang.
-
-Here is how to create the <vector> pch,
-on linux (OSX users may use -fnext-runtime instead of -fgnu-runtime):
-
-clang -x c++-header /path/to/c++/vector -fno-exceptions -fgnu-runtime -o vector.pch
-You just have to insert it into your .clang_complete:
-echo '-include-pch /path/to/vector.pch -fgnu-runtime' >> .clang_complete
-
-One of the major problem is that you cannot include more that one pch,
-the solution is to put the system headers or non changing headers
-into another header and then compile it to pch:
-
-echo '#include <iostream>\n#include <vector>' > pchheader.h
-clang -x c++-header ./pchheader.h -fno-exceptions -fnu-runtime -o ./pchheader.pch
-And then add it to the .clang_complete file.
-
-Known Issues:
- - If clang is not able to compile your file, it cannot complete
- anything. Since clang is not supporting every C++0x features, this is
- normal if it can do any completion on C++0x file.
-
- - There is no difference in clang's output between private
- methods/members and public ones. Which means that I cannot filter
- private methods on the completion list.
+See doc/clang_complete.txt for help and license.
