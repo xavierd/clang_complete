@@ -4,8 +4,12 @@ import time
 import re
 import threading
 
-def initClangComplete(clang_complete_flags):
+def initClangComplete(clang_complete_flags, library_path = None):
   global index
+  if library_path:
+    Config.set_library_path(library_path)
+
+  Config.set_compatibility_check(False)
   index = Index.create()
   global translationUnits
   translationUnits = dict()
@@ -83,7 +87,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
 
   if debug:
     start = time.time()
-  flags = TranslationUnit.PrecompiledPreamble | TranslationUnit.CXXPrecompiledPreamble # | TranslationUnit.CacheCompletionResults
+  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
