@@ -3,6 +3,7 @@ import vim
 import time
 import re
 import threading
+import types
 
 def initClangComplete(include_macros=False, include_code_patterns=False,
                       include_brief_comments=False, library_path=None):
@@ -361,7 +362,50 @@ def getCurrentCompletions(base):
   result = map(formatResult, results)
 
   timer.registerEvent("Format")
-  return (str(result), timer)
+  return (result, timer)
+
+def toVimRepr(v):
+  t = type(v)
+  if t in [types.IntType, types.LongType, types.FloatType]:
+    return repr(v)
+  if t in [types.StringType, types.UnicodeType]:
+    return stringToVimRepr(v)
+  if t is types.ListType:
+    return listToVimRepr(v)
+  if t is types.DictType:
+    return dictToVimRepr(v)
+
+def stringToVimRepr(s):
+  result = '\''
+  for c in s:
+    if c != '\'':
+      result += c
+    else:
+      result += '\'\''
+  result += '\''
+  return result
+
+def listToVimRepr(l):
+  result = '['
+  for i in xrange(len(l)):
+    result += toVimRepr(l[i])
+    if i != len(l) - 1:
+      result += ', '
+  result += ']'
+  return result
+
+def dictToVimRepr(d):
+  result = '{'
+  keys = d.keys()
+  for i in xrange(len(keys)):
+    k = keys[i]
+    result += toVimRepr(k)
+    result += ': '
+    result += toVimRepr(d[k])
+    if i != len(keys) - 1:
+      result += ', '
+  result += '}'
+  return result
 
 def getAbbr(strings):
   tmplst = filter(lambda x: x.isKindTypedText(), strings)
