@@ -84,6 +84,10 @@ function! s:ClangCompleteInit()
     let g:clang_complete_patterns = 0
   endif
 
+  if !exists('g:clang_include_brief_comments')
+    let g:clang_include_brief_comments = 1
+  endif
+
   if !exists('g:clang_debug')
     let g:clang_debug = 0
   endif
@@ -136,16 +140,12 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '-header'
   endif
 
-  let g:clang_complete_lib_flags = 0
-
   if g:clang_complete_macros == 1
     let b:clang_parameters .= ' -code-completion-macros'
-    let g:clang_complete_lib_flags = 1
   endif
 
   if g:clang_complete_patterns == 1
     let b:clang_parameters .= ' -code-completion-patterns'
-    let g:clang_complete_lib_flags += 2
   endif
 
   setlocal completefunc=ClangComplete
@@ -239,9 +239,16 @@ function! s:initClangCompletePython()
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . s:plugin_path . '/libclang.py'
     if exists('g:clang_library_path')
-      python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_library_path'))
+      python initClangComplete(
+                \ include_macros=vim.eval('g:clang_complete_macros'),
+                \ include_code_patterns=vim.eval('g:clang_complete_patterns'),
+                \ include_brief_comments=vim.eval('g:clang_include_brief_comments'),
+                \ library_path=vim.eval('g:clang_library_path'))
     else
-      python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
+      python initClangComplete(
+                \ include_macros=vim.eval('g:clang_complete_macros'),
+                \ include_code_patterns=vim.eval('g:clang_complete_patterns'),
+                \ include_brief_comments=vim.eval('g:clang_include_brief_comments'))
     endif
     let s:libclang_loaded = 1
   endif
@@ -582,6 +589,7 @@ function! ClangComplete(findstart, base)
         let item['word'] = b:AddSnip(item['info'], item['args_pos'])
       else
         let item['word'] = item['abbr']
+        let item['info'] = item['info'] . "\n" . item['brief_comment']
       endif
     endfor
 

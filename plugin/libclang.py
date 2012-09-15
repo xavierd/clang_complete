@@ -4,7 +4,8 @@ import time
 import re
 import threading
 
-def initClangComplete(clang_complete_flags, library_path = None):
+def initClangComplete(include_macros=False, include_code_patterns=False,
+                      include_brief_comments=False, library_path=None):
   global index
   if library_path:
     Config.set_library_path(library_path)
@@ -14,7 +15,11 @@ def initClangComplete(clang_complete_flags, library_path = None):
   global translationUnits
   translationUnits = dict()
   global complete_flags
-  complete_flags = int(clang_complete_flags)
+  complete_flags = {
+    'include_macros': include_macros,
+    'include_code_patterns': include_code_patterns,
+    'include_brief_comments': include_brief_comments
+  }
   global libclangLock
   libclangLock = threading.Lock()
 
@@ -87,7 +92,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
 
   if debug:
     start = time.time()
-  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
+          TranslationUnit.PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
@@ -220,7 +226,7 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
   timer.registerEvent("Get TU")
 
   cr = tu.codeComplete(fileName, line, column, [currentFile],
-      complete_flags)
+      **complete_flags)
   timer.registerEvent("Code Complete")
   return cr
 
@@ -263,6 +269,7 @@ def formatResult(result):
   completion['info'] = word
   completion['args_pos'] = args_pos
   completion['dup'] = 0
+  completion['brief_comment'] = result.string.briefComment.spelling or ""
 
   # Replace the number that represents a specific kind with a better
   # textual representation.
