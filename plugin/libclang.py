@@ -422,10 +422,10 @@ def needsSpecialConversion(v):
       if needsSpecialConversion(e):
         return True
   if t is types.DictType:
-    for k, v in enumerate(v):
+    for k, val in v.items():
       if needsSpecialConversion(k):
         return True
-      if needsSpecialConversion(v):
+      if needsSpecialConversion(val):
         return True
   return False
 
