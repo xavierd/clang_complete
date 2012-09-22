@@ -93,8 +93,9 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
 
   if debug:
     start = time.time()
-  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
-          TranslationUnit.PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
+  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+  if complete_flags['include_brief_comments']:
+    flags |= TranslationUnit.PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
