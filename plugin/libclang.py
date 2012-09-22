@@ -365,48 +365,77 @@ def getCurrentCompletions(base):
   timer.registerEvent("Format")
   return (result, timer)
 
-def toVimRepr(v):
+class VimReprHelper:
+  def __init__(self):
+    self._result = []
+
+  def getResult(self):
+    return ''.join(self._result)
+
+  def append(self, v):
+    t = type(v)
+    if t in [types.IntType, types.LongType, types.FloatType]:
+      self._result.append(repr(v))
+    if t in [types.StringType, types.UnicodeType]:
+      self.appendString(v)
+    if t is types.ListType:
+      self.appendList(v)
+    if t is types.DictType:
+      self.appendDict(v)
+
+  def appendString(self, s):
+    if '\'' in s:
+      self._result.append('\'')
+      self._result.append(s.replace('\'', '\'\''))
+      self._result.append('\'')
+    else:
+      self._result.append(repr(s))
+
+  def appendList(self, l):
+    self._result.append('[')
+    for i in xrange(len(l)):
+      self.append(l[i])
+      if i != len(l) - 1:
+        self._result.append(',')
+    self._result.append(']')
+
+  def appendDict(self, d):
+    self._result.append('{')
+    keys = d.keys()
+    for i in xrange(len(keys)):
+      k = keys[i]
+      self.append(k)
+      self._result.append(':')
+      self.append(d[k])
+      if i != len(keys) - 1:
+        self._result.append(',')
+    self._result.append('}')
+
+def needsSpecialConversion(v):
   t = type(v)
   if t in [types.IntType, types.LongType, types.FloatType]:
-    return repr(v)
+    return False
   if t in [types.StringType, types.UnicodeType]:
-    return stringToVimRepr(v)
+    return '\'' in v
   if t is types.ListType:
-    return listToVimRepr(v)
+    for e in v:
+      if needsSpecialConversion(e):
+        return True
   if t is types.DictType:
-    return dictToVimRepr(v)
+    for k, v in enumerate(v):
+      if needsSpecialConversion(k):
+        return True
+      if needsSpecialConversion(v):
+        return True
+  return False
 
-def stringToVimRepr(s):
-  result = '\''
-  for c in s:
-    if c != '\'':
-      result += c
-    else:
-      result += '\'\''
-  result += '\''
-  return result
-
-def listToVimRepr(l):
-  result = '['
-  for i in xrange(len(l)):
-    result += toVimRepr(l[i])
-    if i != len(l) - 1:
-      result += ', '
-  result += ']'
-  return result
-
-def dictToVimRepr(d):
-  result = '{'
-  keys = d.keys()
-  for i in xrange(len(keys)):
-    k = keys[i]
-    result += toVimRepr(k)
-    result += ': '
-    result += toVimRepr(d[k])
-    if i != len(keys) - 1:
-      result += ', '
-  result += '}'
-  return result
+def toVimRepr(v):
+  if needsSpecialConversion(v):
+    helper = VimReprHelper()
+    helper.append(v)
+    return helper.getResult()
+  else:
+    return repr(v)
 
 def getAbbr(strings):
   tmplst = filter(lambda x: x.isKindTypedText(), strings)
