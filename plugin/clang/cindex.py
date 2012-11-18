@@ -654,7 +654,7 @@ CursorKind.TEMPLATE_TYPE_PARAMETER = CursorKind(27)
 CursorKind.TEMPLATE_NON_TYPE_PARAMETER = CursorKind(28)
 
 # A C++ template template parameter.
-CursorKind.TEMPLATE_TEMPLATE_PARAMTER = CursorKind(29)
+CursorKind.TEMPLATE_TEMPLATE_PARAMETER = CursorKind(29)
 
 # A C++ function template.
 CursorKind.FUNCTION_TEMPLATE = CursorKind(30)
@@ -1271,6 +1271,12 @@ class Cursor(Structure):
         # created.
         return self._tu
 
+    def get_arguments(self):
+        """Return an iterator for accessing the arguments of this cursor."""
+        num_args = conf.lib.clang_Cursor_getNumArguments(self)
+        for i in range(0, num_args):
+            yield conf.lib.clang_Cursor_getArgument(self, i)
+
     def get_children(self):
         """Return an iterator for accessing the children of this cursor."""
 
@@ -1735,15 +1741,23 @@ class CompletionString(ClangObject):
         res = conf.lib.clang_getCompletionAvailability(self.obj)
         return availabilityKinds[res]
 
+    @property
+    def briefComment(self):
+        if conf.function_exists("clang_getCompletionBriefComment"):
+            return conf.lib.clang_getCompletionBriefComment(self.obj)
+        return _CXString()
+
     def __repr__(self):
         return " | ".join([str(a) for a in self]) \
                + " || Priority: " + str(self.priority) \
-               + " || Availability: " + str(self.availability)
+               + " || Availability: " + str(self.availability) \
+               + " || Brief comment: " + str(self.briefComment.spelling)
 
 availabilityKinds = {
             0: CompletionChunk.Kind("Available"),
             1: CompletionChunk.Kind("Deprecated"),
-            2: CompletionChunk.Kind("NotAvailable")}
+            2: CompletionChunk.Kind("NotAvailable"),
+            3: CompletionChunk.Kind("NotAccessible")}
 
 class CodeCompletionResult(Structure):
     _fields_ = [('cursorKind', c_int), ('completionString', c_object_p)]
@@ -1876,6 +1890,10 @@ class TranslationUnit(ClangObject):
     # Do not parse function bodies. This is useful if you only care about
     # searching for declarations/definitions.
     PARSE_SKIP_FUNCTION_BODIES = 64
+
+    # Used to indicate that brief documentation comments should be included
+    # into the set of code completions returned from this translation unit.
+    PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION = 128
 
     @classmethod
     def from_source(cls, filename, args=None, unsaved_files=None, options=0,
@@ -2149,7 +2167,9 @@ class TranslationUnit(ClangObject):
             raise TranslationUnitSaveError(result,
                 'Error saving TranslationUnit.')
 
-    def codeComplete(self, path, line, column, unsaved_files=None, options=0):
+    def codeComplete(self, path, line, column, unsaved_files=None,
+                     include_macros=False, include_code_patterns=False,
+                     include_brief_comments=False):
         """
         Code complete in this translation unit.
 
@@ -2158,6 +2178,17 @@ class TranslationUnit(ClangObject):
         and the second should be the contents to be substituted for the
         file. The contents may be passed as strings or file objects.
         """
+        options = 0
+
+        if include_macros:
+            options += 1
+
+        if include_code_patterns:
+            options += 2
+
+        if include_brief_comments:
+            options += 4
+
         if unsaved_files is None:
             unsaved_files = []
 
@@ -2556,6 +2587,10 @@ functionList = [
    [c_void_p],
    c_int),
 
+  ("clang_getCompletionBriefComment",
+   [c_void_p],
+   _CXString),
+
   ("clang_getCompletionChunkCompletionString",
    [c_void_p, c_int],
    c_object_p),
@@ -2944,6 +2979,15 @@ functionList = [
   ("clang_visitChildren",
    [Cursor, callbacks['cursor_visit'], py_object],
    c_uint),
+
+  ("clang_Cursor_getNumArguments",
+   [Cursor],
+   c_int),
+
+  ("clang_Cursor_getArgument",
+   [Cursor, c_uint],
+   Cursor,
+   Cursor.from_result),
 ]
 
 class LibclangError(Exception):
@@ -3071,6 +3115,13 @@ class Config:
 
         return library
 
+    def function_exists(self, name):
+        try:
+            getattr(self.lib, name)
+        except AttributeError:
+            return False
+
+        return True
 
 def register_enumerations():
     for name, value in clang.enumerations.TokenKinds:
