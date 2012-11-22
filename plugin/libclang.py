@@ -3,8 +3,10 @@ import vim
 import time
 import re
 import threading
+import types
 
-def initClangComplete(clang_complete_flags, library_path = None):
+def initClangComplete(include_macros=False, include_code_patterns=False,
+                      include_brief_comments=False, library_path=None):
   global index
   if library_path:
     Config.set_library_path(library_path)
@@ -14,7 +16,11 @@ def initClangComplete(clang_complete_flags, library_path = None):
   global translationUnits
   translationUnits = dict()
   global complete_flags
-  complete_flags = int(clang_complete_flags)
+  complete_flags = {
+    'include_macros': include_macros,
+    'include_code_patterns': include_code_patterns,
+    'include_brief_comments': include_brief_comments
+  }
   global libclangLock
   libclangLock = threading.Lock()
 
@@ -88,6 +94,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   if debug:
     start = time.time()
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+  if complete_flags['include_brief_comments']:
+    flags |= TranslationUnit.PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
     elapsed = (time.time() - start)
@@ -220,7 +228,7 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
   timer.registerEvent("Get TU")
 
   cr = tu.codeComplete(fileName, line, column, [currentFile],
-      complete_flags)
+      **complete_flags)
   timer.registerEvent("Code Complete")
   return cr
 
@@ -263,6 +271,7 @@ def formatResult(result):
   completion['info'] = word
   completion['args_pos'] = args_pos
   completion['dup'] = 0
+  completion['brief_comment'] = result.string.briefComment.spelling or ""
 
   # Replace the number that represents a specific kind with a better
   # textual representation.
@@ -354,7 +363,79 @@ def getCurrentCompletions(base):
   result = map(formatResult, results)
 
   timer.registerEvent("Format")
-  return (str(result), timer)
+  return (result, timer)
+
+class VimReprHelper:
+  def __init__(self):
+    self._result = []
+
+  def getResult(self):
+    return ''.join(self._result)
+
+  def append(self, v):
+    t = type(v)
+    if t in [types.IntType, types.LongType, types.FloatType]:
+      self._result.append(repr(v))
+    if t in [types.StringType, types.UnicodeType]:
+      self.appendString(v)
+    if t is types.ListType:
+      self.appendList(v)
+    if t is types.DictType:
+      self.appendDict(v)
+
+  def appendString(self, s):
+    if '\'' in s:
+      self._result.append('\'')
+      self._result.append(s.replace('\'', '\'\''))
+      self._result.append('\'')
+    else:
+      self._result.append(repr(s))
+
+  def appendList(self, l):
+    self._result.append('[')
+    for i in xrange(len(l)):
+      self.append(l[i])
+      if i != len(l) - 1:
+        self._result.append(',')
+    self._result.append(']')
+
+  def appendDict(self, d):
+    self._result.append('{')
+    keys = d.keys()
+    for i in xrange(len(keys)):
+      k = keys[i]
+      self.append(k)
+      self._result.append(':')
+      self.append(d[k])
+      if i != len(keys) - 1:
+        self._result.append(',')
+    self._result.append('}')
+
+def needsSpecialConversion(v):
+  t = type(v)
+  if t in [types.IntType, types.LongType, types.FloatType]:
+    return False
+  if t in [types.StringType, types.UnicodeType]:
+    return '\'' in v
+  if t is types.ListType:
+    for e in v:
+      if needsSpecialConversion(e):
+        return True
+  if t is types.DictType:
+    for k, val in v.items():
+      if needsSpecialConversion(k):
+        return True
+      if needsSpecialConversion(val):
+        return True
+  return False
+
+def toVimRepr(v):
+  if needsSpecialConversion(v):
+    helper = VimReprHelper()
+    helper.append(v)
+    return helper.getResult()
+  else:
+    return repr(v)
 
 def getAbbr(strings):
   tmplst = filter(lambda x: x.isKindTypedText(), strings)
