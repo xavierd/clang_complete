@@ -86,9 +86,13 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
     return tu
 
   if debug:
+    print ""
+    print "Command: clang " + " ".join(args) + " " + fileName
     start = time.time()
+
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
+
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First parse: %.3f" % elapsed
