@@ -1,4 +1,4 @@
-from clang.cindex import Index, TranslationUnit, CachedProperty
+from clang.cindex import Index, TranslationUnit
 import vim
 import time
 import threading
@@ -28,18 +28,14 @@ def getCurrentFile():
   file = "\n".join(vim.eval("getline(1, '$')"))
   return (vim.current.buffer.name, file)
 
-def getCurrentTranslationUnit(args, currentFile, fileName, update = False, silent = False):
+def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   fileNames = [name for name, tu in translationUnits]
   if fileName in fileNames:
     tu = translationUnits[fileNames.index(fileName)][1]
     if update:
       if debug:
         start = time.time()
-      if not silent:
-        vim.command('echom "Parsing started"')
       tu.reparse([currentFile])
-      if not silent:
-        vim.command('echom "Parsing done"')
       if debug:
         elapsed = (time.time() - start)
         print "LibClang - Reparsing: %.3f" % elapsed
@@ -50,8 +46,6 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False, silen
 
   if debug:
     start = time.time()
-  if not silent:
-    vim.command('echom "Parsing started"')
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
   if debug:
@@ -71,8 +65,6 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False, silen
   if debug:
     start = time.time()
   tu.reparse([currentFile])
-  if not silent:
-    vim.command('echom "Parsing done"')
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
@@ -173,17 +165,15 @@ def getCurrentQuickFixList():
   return []
 
 def evalArgs():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
   userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
   parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
   return userOptionsGlobal + userOptionsLocal + parametersLocal
 
 def updateCurrentDiagnostics():
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
-  with libclangLock:
-    getCurrentTranslationUnit(evalArgs(), getCurrentFile(), vim.current.buffer.name,
-                                                       update = True, silent = True)
+  parse(evalArgs(), getCurrentFile(), vim.current.buffer.name)
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName):
   tu = getCurrentTranslationUnit(args, currentFile, fileName)
@@ -249,35 +239,13 @@ class CompleteThread(threading.Thread):
     self.column = column
     self.currentFile = currentFile
     self.fileName = fileName
+    self.args = evalArgs()
     self.result = None
 
-  @CachedProperty
-  def args(self):
-      return evalArgs()
-
   def run(self):
-    try:
-      libclangLock.acquire()
-      if self.line == -1:
-        # Warm up the caches. For this it is sufficient to get the current
-        # translation unit. No need to retrieve completion results.
-        # This short pause is necessary to allow vim to initialize itself.
-        # Otherwise we would get: E293: block was not locked
-        # The user does not see any delay, as we just pause a background thread.
-        time.sleep(0.1)
-        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
-      else:
-        self.result = getCurrentCompletionResults(self.line, self.column,
-                                          self.args, self.currentFile, self.fileName)
-    except Exception:
-      pass
-    libclangLock.release()
-
-def WarmupCache():
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
-  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
-  t.start()
+    with libclangLock:
+      self.result = getCurrentCompletionResults(self.line, self.column,
+                                                self.args, self.currentFile, self.fileName)
 
 class Completion:
   def __init__(self):
@@ -339,13 +307,12 @@ def getAbbr(strings):
       return s.spelling
   return ""
 
-def sleepAndParse():
-  time.sleep(0.1) # Needed to avoid E293. Is it safe?
+def parse(args, currentFile, fileName):
   with libclangLock:
-    getCurrentTranslationUnit(evalArgs(), getCurrentFile(), vim.current.buffer.name, update = True)
+    getCurrentTranslationUnit(args, currentFile, fileName, update = True)
 
 def backgroundParse():
-  threading.Thread(target=sleepAndParse).start()
+  threading.Thread(target=parse, args=(evalArgs(), getCurrentFile(), vim.current.buffer.name)).start()
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \

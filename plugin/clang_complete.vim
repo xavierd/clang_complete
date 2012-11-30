@@ -253,7 +253,6 @@ function! s:initClangCompletePython()
     python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
     let s:libclang_loaded = 1
   endif
-  python WarmupCache()
 endfunction
 
 function! s:GetKind(proto)
