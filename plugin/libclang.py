@@ -201,13 +201,16 @@ def getCurrentQuickFixList():
     return getQuickFixList(translationUnits[vim.current.buffer.name])
   return []
 
-def updateCurrentDiagnostics():
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
+def getCompileArgs():
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
   userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
   parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-  args = userOptionsGlobal + userOptionsLocal + parametersLocal
+  return userOptionsGlobal + userOptionsLocal + parametersLocal
+
+def updateCurrentDiagnostics():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  args = getCompileArgs()
   libclangLock.acquire()
   getCurrentTranslationUnit(args, getCurrentFile(),
                           vim.current.buffer.name, update = True)
@@ -279,10 +282,7 @@ class CompleteThread(threading.Thread):
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-    userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-    parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-    self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
+    self.args = getCompileArgs()
     self.timer = timer
 
   def run(self):
