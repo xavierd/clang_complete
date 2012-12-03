@@ -177,6 +177,12 @@ Set sources for user options passed to clang. Available sources are:
   ignored);
 - .clang_complete - use information from .clang_complete file Multiple options
   are separated by comma;
+- compile_commands.json - get the compilation arguments for the sources from a
+  compilation database. For example, recent versions of CMake (>=2.8.7) can
+  output this information. clang_complete will search upwards from where vi
+  was started for a database named 'compile_commands.json'.
+  Note : compilation databases can only be used when 'g:clang_use_library'
+  equals 1 and the clang libraries are recent enough (clang>=3.2).
 - {anything} else will be treaded as a custom option source in the following
   manner: clang_complete will try to load the autoload-function named
   getopts#{anything}#getopts, which then will be able to modify
@@ -195,6 +201,13 @@ needs to reread buffers using the :edit command or something equivalent).
 Since list of included paths can depend on user options "clang" and "gcc"
 should appear at the end of the list of sources.
 Default: "path, .clang_complete, clang"
+
+                                        *clang_complete-compilation_database*
+                                        *g:clang_compilation_database*
+By default, clang_complete will search upwards from where it was started to
+find a compilation database. In case this behaviour does not match your needs,
+you can set |g:clang_compilation_database| to the directory where the database
+can be loaded from.
 
        				       	*clang_complete-use_library*
        				       	*g:clang_use_library*
