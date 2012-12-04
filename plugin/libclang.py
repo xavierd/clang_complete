@@ -241,6 +241,20 @@ def getCompilationDBParams(fileName):
         args += [arg]
   return { 'args': args, 'cwd': cwd }
 
+# A context manager to handle directory changes safely
+from contextlib import contextmanager
+@contextmanager
+def workingDir(dir):
+  savedPath = None
+  if dir != None:
+    savedPath = os.getcwd()
+    os.chdir(dir)
+  try:
+    yield
+  finally:
+    if savedPath != None:
+      os.chdir(savedPath)
+
 def getCompileParams(fileName):
   params = getCompilationDBParams(fileName)
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
@@ -254,18 +268,12 @@ def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
-  wd = None
-  if params['cwd'] != None:
-    wd = os.getcwd()
-    os.chdir(params['cwd'])
 
-  libclangLock.acquire()
-  getCurrentTranslationUnit(params['args'], getCurrentFile(),
-                          vim.current.buffer.name, update = True)
-  libclangLock.release()
-
-  if wd != None:
-    os.chdir(wd)
+  with workingDir(params['cwd']):
+    libclangLock.acquire()
+    getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                            vim.current.buffer.name, update = True)
+    libclangLock.release()
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName,
                                 timer):
@@ -339,30 +347,24 @@ class CompleteThread(threading.Thread):
     self.timer = timer
 
   def run(self):
-    wd = None
-    if self.cwd != None:
-      wd = os.getcwd()
-      os.chdir(self.cwd)
-
-    try:
-      libclangLock.acquire()
-      if self.line == -1:
-        # Warm up the caches. For this it is sufficient to get the current
-        # translation unit. No need to retrieve completion results.
-        # This short pause is necessary to allow vim to initialize itself.
-        # Otherwise we would get: E293: block was not locked
-        # The user does not see any delay, as we just pause a background thread.
-        time.sleep(0.1)
-        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
-      else:
-        self.result = getCurrentCompletionResults(self.line, self.column,
-                                                  self.args, self.currentFile,
-                                                  self.fileName, self.timer)
-    except Exception:
-      pass
-    libclangLock.release()
-    if wd != None:
-      os.chdir(wd)
+    with workingDir(self.cwd):
+      try:
+        libclangLock.acquire()
+        if self.line == -1:
+          # Warm up the caches. For this it is sufficient to get the current
+          # translation unit. No need to retrieve completion results.
+          # This short pause is necessary to allow vim to initialize itself.
+          # Otherwise we would get: E293: block was not locked
+          # The user does not see any delay, as we just pause a background thread.
+          time.sleep(0.1)
+          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
+        else:
+          self.result = getCurrentCompletionResults(self.line, self.column,
+                                                    self.args, self.currentFile,
+                                                    self.fileName, self.timer)
+      except Exception:
+        pass
+      libclangLock.release()
 
 def WarmupCache():
   global debug
