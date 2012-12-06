@@ -181,13 +181,8 @@ def highlightDiagnostic(diagnostic):
   command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
   vim.command(command)
 
-  # Use this wired kind of iterator as the python clang libraries
-        # have a bug in the range iterator that stops us to use:
-        #
-        # | for range in diagnostic.ranges
-        #
-  for i in range(len(diagnostic.ranges)):
-    highlightRange(diagnostic.ranges[i], hlGroup)
+  for range in diagnostic.ranges:
+    highlightRange(range, hlGroup)
 
 def highlightDiagnostics(tu):
   map (highlightDiagnostic, tu.diagnostics)
