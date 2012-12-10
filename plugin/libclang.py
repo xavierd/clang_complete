@@ -358,6 +358,7 @@ kinds = dict({                                                                 \
 33 : 'n',  # CXCursor_NamespaceAlias (A C++ namespace alias declaration)       \
 34 : '34', # CXCursor_UsingDirective (A C++ using directive)                   \
 35 : '35', # CXCursor_UsingDeclaration (A using declaration)                   \
+36 : '36', # CXCursor_TypeAliasDecl (A C++ alias declaration)                  \
                                                                                \
 # References                                                                   \
 40 : '40', # CXCursor_ObjCSuperClassRef                                        \
