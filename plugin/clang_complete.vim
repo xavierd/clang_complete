@@ -100,7 +100,19 @@ function! s:ClangCompleteInit()
     let g:clang_auto_user_options = 'path, .clang_complete, clang'
   endif
 
+  if !exists('g:clang_complete_include_current_directory_recursively')
+    let g:clang_complete_include_current_directory_recursively = 0
+  endif
+
+  if !exists('g:clang_complete_ignore_include_directories')
+    let g:clang_complete_ignore_include_directories = ["^\.git", "\.xcodeproj"]
+  endif
+
   call LoadUserOptions()
+
+  if g:clang_complete_include_current_directory_recursively
+    call s:AddCurrentDirectoryToIncludePathsRecursively()
+  endif
 
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
   inoremap <expr> <buffer> . <SID>CompleteDot()
@@ -705,6 +717,41 @@ function! s:CompleteColon()
     return ':'
   endif
   return ':' . s:LaunchCompletion()
+endfunction
+
+function! s:AddCurrentDirectoryToIncludePathsRecursively()
+  let dirs = s:GetDirectoriesRecursively("**")
+  call s:AddIncludePathsToUserOptions(dirs)
+endfunction
+
+function! s:GetDirectoriesRecursively(dirname)
+  let files = split(glob(a:dirname), "\n")
+  let dirs = []
+  for file in files
+    if isdirectory(file) && !s:IsIgnoreDirectory(file)
+      call add(dirs, file)
+    endif
+  endfor
+  return dirs
+endfunction
+
+function! s:IsIgnoreDirectory(dir)
+  let dir = a:dir
+  let ignore_dirs = g:clang_complete_ignore_include_directories
+  for ignore_dir in ignore_dirs
+    if dir =~ ignore_dir
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+
+function! s:AddIncludePathsToUserOptions(dirs)
+  let dirs = a:dirs
+  for dir in dirs
+    let opt = '-I' . dir
+    let b:clang_user_options .= ' ' . opt
+  endfor
 endfunction
 
 " May be used in a mapping to update the quickfix window.

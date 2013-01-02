@@ -239,6 +239,17 @@ Default: 0
 If clang should complete code patterns, i.e loop constructs etc.
 Defaut: 0
 
+					*clang_complete-include_current_directory_recursively*
+					g:clang_complete_include_current_directory_recursively
+If clang should include current directory recursively.
+Defaut: 0
+
+					*clang_complete-ignore_include_directories*
+					g:clang_complete_ignore_include_directories
+If you are using g:clang_complete_include_current_directory_recursivel option, 
+this option allows you to specify the directories that you want to ignore. 
+Defaut: ["^\.git", "\.xcodeproj"]
+
 ==============================================================================
 5. Known issues					*clang_complete-issues*
 
