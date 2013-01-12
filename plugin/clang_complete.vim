@@ -517,7 +517,7 @@ function! s:ClangCompleteBinary(base)
           \ 'abbr': l:wabbr,
           \ 'menu': l:menu,
           \ 'info': l:proto,
-          \ 'dup': 0,
+          \ 'dup': 1,
           \ 'kind': l:kind,
           \ 'args_pos': l:args_pos }
 

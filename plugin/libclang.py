@@ -262,7 +262,7 @@ def formatResult(result):
   completion['menu'] = menu
   completion['info'] = word
   completion['args_pos'] = args_pos
-  completion['dup'] = 0
+  completion['dup'] = 1
 
   # Replace the number that represents a specific kind with a better
   # textual representation.
