@@ -275,7 +275,7 @@ function! s:CallClangBinaryForDiagnostics(tempfile)
     return
   endtry
 
-  let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+  let l:command = g:clang_exec . ' -fsyntax-only'
         \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
         \ . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
@@ -430,9 +430,9 @@ function! s:ClangCompleteBinary(base)
   endtry
   let l:escaped_tempfile = shellescape(l:tempfile)
 
-  let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+  let l:command = g:clang_exec . ' -fsyntax-only'
         \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
-        \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
+        \ . ' -Xclang -code-completion-at=' . l:escaped_tempfile . ':'
         \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
