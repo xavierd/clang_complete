@@ -35,6 +35,8 @@ class CodeCompleteTimer:
     print " "
     print "libclang code completion"
     print "========================"
+    print "Command: clang %s -fsyntax-only " % " ".join(getCompileArgs()),
+    print "-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file)
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
