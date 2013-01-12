@@ -11,7 +11,17 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, library_
     Config.set_library_path(library_path)
 
   Config.set_compatibility_check(False)
-  index = Index.create()
+
+  try:
+    index = Index.create()
+  except Exception, e:
+    print "Loading libclang failed, falling back to clang executable. ",
+    if library_path == "":
+      print "Consider setting g:clang_library_path"
+    else:
+      print "Are you sure '%s' contains libclang?" % library_path
+    return 0
+
   global translationUnits
   translationUnits = dict()
   global complete_flags
@@ -23,6 +33,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, library_
     compilation_database = None
   global libclangLock
   libclangLock = threading.Lock()
+  return 1
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
