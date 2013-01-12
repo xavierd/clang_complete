@@ -93,7 +93,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_auto_user_options')
-    let g:clang_auto_user_options = 'path, .clang_complete, clang'
+    let g:clang_auto_user_options = 'path, .clang_complete'
   endif
 
   call LoadUserOptions()
@@ -178,6 +178,10 @@ function! LoadUserOptions()
   let l:option_sources = map(l:option_sources, l:remove_spaces_cmd)
 
   for l:source in l:option_sources
+    if l:source == 'gcc' || l:source == 'clang'
+      echo "'" . l:source . "' in clang_auto_user_options is deprecated."
+      continue
+    endif
     if l:source == 'path'
       call s:parsePathOption()
     elseif l:source == '.clang_complete'
