@@ -75,11 +75,6 @@ function! s:ClangCompleteInit()
     let g:clang_compilation_database = ''
   endif
 
-  " Only use libclang if the user clearly show intent to do so for now
-  if !exists('g:clang_use_library')
-    let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
-  endif
-
   if !exists('g:clang_library_path')
     let g:clang_library_path = ''
   endif
@@ -165,11 +160,10 @@ function! s:ClangCompleteInit()
     augroup end
   endif
 
-  if g:clang_use_library == 1
-    let l:initialized = s:initClangCompletePython()
-    if l:initialized == 0
-      let g:clang_use_library = 0
-    endif
+  if !exists('g:clang_use_library') || g:clang_use_library == 1
+    " Try to use libclang. On failure, we fall back to the clang executable.
+    let l:initialized = s:initClangCompletePython(exists('g:clang_use_library'))
+    let g:clang_use_library = l:initialized
   endif
 endfunction
 
@@ -249,11 +243,13 @@ function! s:parsePathOption()
   endfor
 endfunction
 
-function! s:initClangCompletePython()
+function! s:initClangCompletePython(user_requested)
   if !has('python')
-    echoe 'clang_complete: No python support available.'
-    echoe 'Cannot use clang library, using executable'
-    echoe 'Compile vim with python support to use libclang'
+    if a:user_requested || g:clang_debug
+      echoe 'clang_complete: No python support available.'
+      echoe 'Cannot use clang library, using executable'
+      echoe 'Compile vim with python support to use libclang'
+    endif
     return 0
   endif
 
@@ -263,7 +259,7 @@ function! s:initClangCompletePython()
 
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . s:plugin_path . '/libclang.py'
-    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'))))
+    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'), vim.eval('a:user_requested'))))
     if l:res == 0
       return 0
     endif
