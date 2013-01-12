@@ -41,6 +41,8 @@ class CodeCompleteTimer:
     print " "
     print "libclang code completion"
     print "========================"
+    print "Command: clang %s -fsyntax-only " % " ".join(getCompileArgs()),
+    print "-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file)
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
@@ -92,9 +94,13 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
     return tu
 
   if debug:
+    print ""
+    print "Command: clang " + " ".join(args) + " " + fileName
     start = time.time()
+
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
+
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First parse: %.3f" % elapsed
@@ -187,13 +193,8 @@ def highlightDiagnostic(diagnostic):
   command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
   vim.command(command)
 
-  # Use this wired kind of iterator as the python clang libraries
-        # have a bug in the range iterator that stops us to use:
-        #
-        # | for range in diagnostic.ranges
-        #
-  for i in range(len(diagnostic.ranges)):
-    highlightRange(diagnostic.ranges[i], hlGroup)
+  for range in diagnostic.ranges:
+    highlightRange(range, hlGroup)
 
 def highlightDiagnostics(tu):
   map (highlightDiagnostic, tu.diagnostics)
