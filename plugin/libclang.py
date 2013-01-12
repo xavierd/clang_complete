@@ -3,8 +3,9 @@ import vim
 import time
 import re
 import threading
+import os
 
-def initClangComplete(clang_complete_flags, library_path = None):
+def initClangComplete(clang_complete_flags, clang_compilation_database, library_path = None):
   global index
   if library_path:
     Config.set_library_path(library_path)
@@ -15,6 +16,11 @@ def initClangComplete(clang_complete_flags, library_path = None):
   translationUnits = dict()
   global complete_flags
   complete_flags = int(clang_complete_flags)
+  global compilation_database
+  if clang_compilation_database != '':
+    compilation_database = CompilationDatabase.fromDirectory(clang_compilation_database)
+  else:
+    compilation_database = None
   global libclangLock
   libclangLock = threading.Lock()
 
@@ -201,17 +207,73 @@ def getCurrentQuickFixList():
     return getQuickFixList(translationUnits[vim.current.buffer.name])
   return []
 
-def updateCurrentDiagnostics():
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
+# Get the compilation parameters from the compilation database for source
+# 'fileName'. The parameters are returned as map with the following keys :
+#
+#   'args' : compiler arguments.
+#            Compilation database returns the complete command line. We need
+#            to filter at least the compiler invocation, the '-o' + output
+#            file, the input file and the '-c' arguments. Note : we behave
+#            differently from cc_args.py which only keeps '-I', '-D' and
+#            '-include' options.
+#
+#    'cwd' : the compiler working directory
+#
+def getCompilationDBParams(fileName):
+  args = []
+  cwd = None
+  if compilation_database:
+    cmds = compilation_database.getCompileCommands(fileName)
+    if cmds != None:
+      cwd = cmds[0].directory
+      skip_next = 1 # Skip compiler invocation
+      for arg in cmds[0].arguments:
+        if skip_next:
+          skip_next = 0;
+          continue
+        if arg == '-c':
+          continue
+        if arg == fileName or os.path.realpath(arg) == fileName:
+          continue
+        if arg == '-o':
+          skip_next = 1;
+          continue
+        args += [arg]
+  return { 'args': args, 'cwd': cwd }
+
+# A context manager to handle directory changes safely
+from contextlib import contextmanager
+@contextmanager
+def workingDir(dir):
+  savedPath = None
+  if dir != None:
+    savedPath = os.getcwd()
+    os.chdir(dir)
+  try:
+    yield
+  finally:
+    if savedPath != None:
+      os.chdir(savedPath)
+
+def getCompileParams(fileName):
+  params = getCompilationDBParams(fileName)
   userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
   userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
   parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-  args = userOptionsGlobal + userOptionsLocal + parametersLocal
-  libclangLock.acquire()
-  getCurrentTranslationUnit(args, getCurrentFile(),
-                          vim.current.buffer.name, update = True)
-  libclangLock.release()
+  return { 'args' : params['args'] + userOptionsGlobal
+                      + userOptionsLocal + parametersLocal,
+           'cwd' : params['cwd'] }
+
+def updateCurrentDiagnostics():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  params = getCompileParams(vim.current.buffer.name)
+
+  with workingDir(params['cwd']):
+    libclangLock.acquire()
+    getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                            vim.current.buffer.name, update = True)
+    libclangLock.release()
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName,
                                 timer):
@@ -279,30 +341,30 @@ class CompleteThread(threading.Thread):
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-    userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-    parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-    self.args = userOptionsGlobal + userOptionsLocal + parametersLocal
+    params = getCompileParams(fileName)
+    self.args = params['args']
+    self.cwd = params['cwd']
     self.timer = timer
 
   def run(self):
-    try:
-      libclangLock.acquire()
-      if self.line == -1:
-        # Warm up the caches. For this it is sufficient to get the current
-        # translation unit. No need to retrieve completion results.
-        # This short pause is necessary to allow vim to initialize itself.
-        # Otherwise we would get: E293: block was not locked
-        # The user does not see any delay, as we just pause a background thread.
-        time.sleep(0.1)
-        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
-      else:
-        self.result = getCurrentCompletionResults(self.line, self.column,
-                                                  self.args, self.currentFile,
-                                                  self.fileName, self.timer)
-    except Exception:
-      pass
-    libclangLock.release()
+    with workingDir(self.cwd):
+      try:
+        libclangLock.acquire()
+        if self.line == -1:
+          # Warm up the caches. For this it is sufficient to get the current
+          # translation unit. No need to retrieve completion results.
+          # This short pause is necessary to allow vim to initialize itself.
+          # Otherwise we would get: E293: block was not locked
+          # The user does not see any delay, as we just pause a background thread.
+          time.sleep(0.1)
+          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
+        else:
+          self.result = getCurrentCompletionResults(self.line, self.column,
+                                                    self.args, self.currentFile,
+                                                    self.fileName, self.timer)
+      except Exception:
+        pass
+      libclangLock.release()
 
 def WarmupCache():
   global debug
