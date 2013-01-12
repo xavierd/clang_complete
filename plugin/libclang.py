@@ -4,9 +4,9 @@ import time
 import re
 import threading
 
-def initClangComplete(clang_complete_flags, library_path = None):
+def initClangComplete(clang_complete_flags, library_path):
   global index
-  if library_path:
+  if library_path != "":
     Config.set_library_path(library_path)
 
   Config.set_compatibility_check(False)
