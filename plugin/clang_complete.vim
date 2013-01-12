@@ -71,6 +71,10 @@ function! s:ClangCompleteInit()
     let g:clang_trailing_placeholder = 0
   endif
 
+  if !exists('g:clang_compilation_database')
+    let g:clang_compilation_database = ''
+  endif
+
   " Only use libclang if the user clearly show intent to do so for now
   if !exists('g:clang_use_library')
     let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
@@ -180,6 +184,8 @@ function! LoadUserOptions()
   for l:source in l:option_sources
     if l:source == 'path'
       call s:parsePathOption()
+    elseif l:source == 'compile_commands.json' && g:clang_use_library == 1
+      call s:findCompilationDatase(l:source)
     elseif l:source == '.clang_complete'
       call s:parseConfig()
     else
@@ -216,6 +222,15 @@ function! s:parseConfig()
   endfor
 endfunction
 
+function! s:findCompilationDatase(cdb)
+  if g:clang_compilation_database == ''
+    let l:local_conf = findfile(a:cdb, getcwd() . ',.;')
+    if l:local_conf != '' && filereadable(l:local_conf)
+      let g:clang_compilation_database = fnamemodify(l:local_conf, ":p:h")
+    endif
+  endif
+endfunction
+
 function! s:parsePathOption()
   let l:dirs = split(&path, ',')
   for l:dir in l:dirs
@@ -239,9 +254,9 @@ function! s:initClangCompletePython()
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . s:plugin_path . '/libclang.py'
     if exists('g:clang_library_path')
-      python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_library_path'))
+      python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'))
     else
-      python initClangComplete(vim.eval('g:clang_complete_lib_flags'))
+      python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'))
     endif
     let s:libclang_loaded = 1
   endif
