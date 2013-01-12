@@ -5,9 +5,9 @@ import re
 import threading
 import os
 
-def initClangComplete(clang_complete_flags, clang_compilation_database, library_path = None):
+def initClangComplete(clang_complete_flags, clang_compilation_database, library_path):
   global index
-  if library_path:
+  if library_path != "":
     Config.set_library_path(library_path)
 
   Config.set_compatibility_check(False)
