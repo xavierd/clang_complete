@@ -165,14 +165,9 @@ function! s:ClangCompleteInit()
     augroup end
   endif
 
-  " Load the python bindings of libclang
   if g:clang_use_library == 1
-    if has('python')
-      call s:initClangCompletePython()
-    else
-      echoe 'clang_complete: No python support available.'
-      echoe 'Cannot use clang library, using executable'
-      echoe 'Compile vim with python support to use libclang'
+    let l:initialized = s:initClangCompletePython()
+    if l:initialized == 0
       let g:clang_use_library = 0
     endif
   endif
@@ -255,6 +250,13 @@ function! s:parsePathOption()
 endfunction
 
 function! s:initClangCompletePython()
+  if !has('python')
+    echoe 'clang_complete: No python support available.'
+    echoe 'Cannot use clang library, using executable'
+    echoe 'Compile vim with python support to use libclang'
+    return 0
+  endif
+
   " Only parse the python library once
   if !exists('s:libclang_loaded')
     python import sys
@@ -265,6 +267,7 @@ function! s:initClangCompletePython()
     let s:libclang_loaded = 1
   endif
   python WarmupCache()
+  return 1
 endfunction
 
 function! s:GetKind(proto)
