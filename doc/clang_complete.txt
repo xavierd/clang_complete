@@ -186,16 +186,6 @@ Set sources for user options passed to clang. Available sources are:
 This option is processed and all sources are used on buffer loading, not each
 time before doing completion.
 
-Two examples of custom option sources is bundled with clang_complete and are
-called "clang" and "gcc". These sources run clang and gcc, respectively, to
-get a list of include paths. The list of include paths for each of supported
-filetypes (c, cpp, objc and objcpp) is cached on a disk and can be removed by
-calling the ClearIncludeCaches() function (for changes to take affect one
-needs to reread buffers using the :edit command or something equivalent).
-Since list of included paths can depend on user options "clang" and "gcc"
-should appear at the end of the list of sources.
-Default: "path, .clang_complete, clang"
-
        				       	*clang_complete-use_library*
        				       	*g:clang_use_library*
 Instead of calling the clang/clang++ tool use libclang directly. This gives

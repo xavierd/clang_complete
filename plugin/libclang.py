@@ -3,20 +3,80 @@ import vim
 import time
 import re
 import threading
+import os
 
-def initClangComplete(clang_complete_flags, library_path = None):
+# Check if libclang is able to find the builtin include files.
+#
+# libclang sometimes fails to correctly locate its builtin include files. This
+# happens especially if libclang is not installed at a standard location. This
+# function checks if the builtin includes are available.
+def canFindBuiltinHeaders(index, args = []):
+  flags = 0
+  currentFile = ("test.c", '#include "stddef.h"')
+  tu = index.parse("test.c", args, [currentFile], flags)
+  return len(tu.diagnostics) == 0
+
+# Derive path to clang builtin headers.
+#
+# This function tries to derive a path to clang's builtin header files. We are
+# just guessing, but the guess is very educated. In fact, we should be right
+# for all manual installations (the ones where the builtin header path problem
+# is very common).
+def getBuiltinHeaderPath(library_path):
+  path = library_path + "/../lib/clang"
+  try:
+    files = os.listdir(path)
+  except:
+    return None
+
+  files = sorted(files)
+  path = path + "/" + files[-1] + "/include/"
+  arg = "-I" + path
+  if canFindBuiltinHeaders(index, [arg]):
+    return path
+  return None
+
+def initClangComplete(clang_complete_flags, library_path, user_requested):
   global index
-  if library_path:
+
+  debug = int(vim.eval("g:clang_debug")) == 1
+  printWarnings = (user_requested != "0") or debug
+
+  if library_path != "":
     Config.set_library_path(library_path)
 
   Config.set_compatibility_check(False)
-  index = Index.create()
+
+  try:
+    index = Index.create()
+  except Exception, e:
+    if printWarnings:
+      print "Loading libclang failed, falling back to clang executable. ",
+      if library_path == "":
+        print "Consider setting g:clang_library_path"
+      else:
+        print "Are you sure '%s' contains libclang?" % library_path
+    return 0
+
+  global builtinHeaderPath
+  builtinHeaderPath = None
+  if not canFindBuiltinHeaders(index):
+    builtinHeaderPath = getBuiltinHeaderPath(library_path)
+
+    if not builtinHeaderPath and printWarnings:
+      print "WARNING: libclang can not find the builtin includes."
+      print "         This will cause slow code completion."
+      print "         Please report the problem."
+      print "         To work around this issue you can add the path of the"
+      print "         clang builtin includes to g:clang_user_options."
+
   global translationUnits
   translationUnits = dict()
   global complete_flags
   complete_flags = int(clang_complete_flags)
   global libclangLock
   libclangLock = threading.Lock()
+  return 1
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -203,10 +263,16 @@ def getCurrentQuickFixList():
   return []
 
 def getCompileArgs():
-  userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-  userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-  parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-  return userOptionsGlobal + userOptionsLocal + parametersLocal
+  global builtinHeaderPath
+  args = []
+  args += splitOptions(vim.eval("g:clang_user_options"))
+  args += splitOptions(vim.eval("b:clang_user_options"))
+  args += splitOptions(vim.eval("b:clang_parameters"))
+
+  if builtinHeaderPath:
+    args.append("-I" + builtinHeaderPath)
+
+  return args
 
 def updateCurrentDiagnostics():
   global debug
