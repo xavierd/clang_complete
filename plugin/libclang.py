@@ -1,8 +1,8 @@
 from clang.cindex import *
-import vim
-import time
 import re
+import time
 import threading
+import vim
 
 def initClangComplete(clang_complete_flags, library_path = None):
   global index
@@ -24,56 +24,10 @@ def getCurrentFile():
   file = "\n".join(vim.eval("getline(1, '$')"))
   return (vim.current.buffer.name, file)
 
-class CodeCompleteTimer:
-  def __init__(self, debug, file, line, column):
-    self._debug = debug
+def getCurrentTranslationUnit(update = False):
+  currentFile = getCurrentFile()
+  fileName = vim.current.buffer.name
 
-    if not debug:
-      return
-
-    content = vim.eval("getline('.')");
-    print " "
-    print "libclang code completion"
-    print "========================"
-    print "File: %s" % file
-    print "Line: %d, Column: %d" % (line, column)
-    print " "
-    print "%s" % content
-
-    print " "
-
-    current = time.time()
-    self._start = current
-    self._last = current
-    self._events = []
-
-  def registerEvent(self, event):
-    if not self._debug:
-      return
-
-    current = time.time()
-    since_last = current - self._last
-    self._last = current
-    self._events.append((event, since_last))
-
-  def finish(self):
-    if not self._debug:
-      return
-
-    overall = self._last - self._start
-
-    for event in self._events:
-      name, since_last = event
-      percent = 1 / overall * since_last * 100
-      print "libclang code completion - %25s: %.3fs (%5.1f%%)" % \
-        (name, since_last, percent)
-
-    print " "
-    print "Overall: %.3f s" % overall
-    print "========================"
-    print " "
-
-def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   if fileName in translationUnits:
     tu = translationUnits[fileName]
     if update:
@@ -85,10 +39,29 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
         print "LibClang - Reparsing: %.3f" % elapsed
     return tu
 
+  userOptionsGlobal = vim.eval("g:clang_user_options").split(" ")
+  userOptionsLocal = vim.eval("b:clang_user_options").split(" ")
+  userOptionsPerFileDict = vim.eval(
+      "g:clang_per_file_user_options('%s')" % fileName)
+  userOptionsPerFile = userOptionsPerFileDict.get("flags", "").split(" ")
+  args = userOptionsGlobal + userOptionsLocal + userOptionsPerFile
+
+  old_cwd = vim.eval('getcwd()')
+  new_cwd = userOptionsPerFileDict.get('cwd', old_cwd)
+  print old_cwd, new_cwd
+
   if debug:
     start = time.time()
-  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
-  tu = index.parse(fileName, args, [currentFile], flags)
+  try:
+    vim.command('cd ' + new_cwd)
+    #vim.command('cd base')
+    #print vim.eval('getcwd()')
+    flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+    tu = index.parse(fileName, args, [currentFile], flags)
+    tu.cwd = new_cwd
+  finally:
+    vim.command('cd ' + old_cwd)
+
   if debug:
     elapsed = (time.time() - start)
     print "LibClang - First parse: %.3f" % elapsed
@@ -219,8 +192,13 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
   tu = getCurrentTranslationUnit(args, currentFile, fileName)
   timer.registerEvent("Get TU")
 
-  cr = tu.codeComplete(fileName, line, column, [currentFile],
-      complete_flags)
+  old_cwd = vim.eval('getcwd()')
+  try:
+    vim.command('cd ' + tu.cwd)
+    cr = tu.codeComplete(fileName, line, column, [currentFile],
+        complete_flags)
+  finally:
+    vim.command('cd ' + old_cwd)
   timer.registerEvent("Code Complete")
   return cr
 

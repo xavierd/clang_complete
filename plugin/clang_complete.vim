@@ -4,7 +4,99 @@
 "
 " Description: Use of clang to complete in C/C++.
 "
-" Help: Use :help clang_complete
+" Configuration: Each project can have a .clang_complete at his root,
+"                containing the compiler options. This is useful if
+"                you're using some non-standard include paths.
+"                For simplicity, please don't put relative and
+"                absolute include path on the same line. It is not
+"                currently correctly handled.
+"
+" Options:
+"  - g:clang_complete_auto:
+"       if equal to 1, automatically complete after ->, ., ::
+"       Default: 1
+"
+"  - g:clang_complete_copen:
+"       if equal to 1, open quickfix window on error.
+"       Default: 0
+"
+"  - g:clang_hl_errors:
+"       if equal to 1, it will highlight the warnings and errors the
+"       same way clang does it.
+"       Default: 1
+"
+"  - g:clang_periodic_quickfix:
+"       if equal to 1, it will periodically update the quickfix window
+"       Note: You could use the g:ClangUpdateQuickFix() to do the same
+"             with a mapping.
+"       Default: 0
+"
+"  - g:clang_snippets:
+"       if equal to 1, it will do some snippets magic after a ( or a ,
+"       inside function call. Not currently fully working.
+"       Default: 0
+"
+"  - g:clang_conceal_snippets:
+"       if equal to 1, vim will use vim 7.3 conceal feature to hide <#
+"       and #> which delimit a snippets.
+"       Note: See concealcursor and conceallevel for conceal configuration.
+"       Default: 1 (0 if conceal not available)
+"
+"  - g:clang_exec:
+"       Name or path of clang executable.
+"       Note: Use this if clang has a non-standard name, or isn't in the
+"       path. Not used if |g:clang_use_library| is set.
+"       Default: 'clang'
+"
+"  - g:clang_user_options:
+"       Option added at the end of clang command. Useful if you want to
+"       filter the result, or if you want to ignore the error code
+"       returned by clang: on error, the completion is not shown.
+"       Default: ''
+"       Example: '|| exit 0' (it will discard clang return value)
+"
+"  - g:clang_per_file_user_options:
+"       Can be set to a function that is called with the name of the current
+"       buffer. This should return a dictionary that can contain the following
+"       keys:
+"         'flags': list of additional flags for this file.  Useful if
+"                  compilation flags differ on a per-file or per-directory
+"                  base.
+"         'cwd': The working directory the compile job should be executed in.
+"       Works only if |g:clang_use_library| is set.
+"       Default: Not set.
+"       Example:
+"       fu! g:clang_per_file_user_options(path)
+"         if a:path =~? 'subfolder'
+"           return { 'flags': '-I/Users/thakis/src/myproject/subfolder/include' }
+"         else
+"           return {}
+"         endif
+"       endfu
+"
+"  - g:clang_use_library:
+"       Instead of calling the clang/clang++ tool use libclang directly. This
+"       should improve the performance, but is still experimental.
+"       Don't forget to set g:clang_library_path.
+"       Default: has('python') && exists('g:clang_library_path')
+"
+"  - g:clang_library_path:
+"       If libclang.[dll/so/dylib] is not in your library search path, set
+"       this to the absolute path where libclang is available.
+"       Default: variable doesn't exists
+"
+"  - g:clang_sort_algo:
+"       How results are sorted (alpha, priority).
+"       Currently only works with libclang.
+"       Default: 'priority'
+"
+"  - g:clang_debug:
+"       Output debugging informations, like timeing output of completion.
+"       Default: 0
+"
+" Todo: - Fix bugs
+"       - Parse fix-its and do something useful with it.
+"       - -code-completion-macros -code-completion-patterns
 "
 
 au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
@@ -63,12 +155,10 @@ function! s:ClangCompleteInit()
     let g:clang_user_options = ''
   endif
 
-  if !exists('g:clang_conceal_snippets')
-    let g:clang_conceal_snippets = has('conceal')
-  endif
-
-  if !exists('g:clang_trailing_placeholder')
-    let g:clang_trailing_placeholder = 0
+  if !exists('*g:clang_per_file_user_options')
+    function g:clang_per_file_user_options(path)
+      return ''
+    endfunction
   endif
 
   " Only use libclang if the user clearly show intent to do so for now
