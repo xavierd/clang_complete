@@ -248,7 +248,10 @@ function! s:initClangCompletePython()
 
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . s:plugin_path . '/libclang.py'
-    python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_library_path'))
+    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_library_path'))))
+    if l:res == 0
+      return 0
+    endif
     let s:libclang_loaded = 1
   endif
   python WarmupCache()
