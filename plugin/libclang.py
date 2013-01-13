@@ -36,7 +36,8 @@ def getBuiltinHeaderPath(library_path):
     return path
   return None
 
-def initClangComplete(clang_complete_flags, clang_compilation_database, library_path, user_requested):
+def initClangComplete(clang_complete_flags, clang_compilation_database, \
+                      library_path, user_requested):
   global index
 
   debug = int(vim.eval("g:clang_debug")) == 1
@@ -97,11 +98,13 @@ class CodeCompleteTimer:
       return
 
     content = vim.eval("getline('.')");
+    params = getCompileParams(file)
     print " "
     print "libclang code completion"
     print "========================"
-    print "Command: clang %s -fsyntax-only " % " ".join(getCompileParams(file)),
+    print "Command: clang %s -fsyntax-only " % " ".join(params['args']),
     print "-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file)
+    print "cwd: %s" % params['cwd']
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
@@ -318,16 +321,15 @@ def workingDir(dir):
 def getCompileParams(fileName):
   global builtinHeaderPath
   params = getCompilationDBParams(fileName)
-  userOptionsGlobal = splitOptions(vim.eval("g:clang_user_options"))
-  userOptionsLocal = splitOptions(vim.eval("b:clang_user_options"))
-  parametersLocal = splitOptions(vim.eval("b:clang_parameters"))
-  builtin = ""
+  args = params['args']
+  args += splitOptions(vim.eval("g:clang_user_options"))
+  args += splitOptions(vim.eval("b:clang_user_options"))
+  args += splitOptions(vim.eval("b:clang_parameters"))
 
   if builtinHeaderPath:
-    builtin = "-I" + builtinHeaderPath
+    args.append("-I" + builtinHeaderPath)
 
-  return { 'args' : params['args'] + userOptionsGlobal
-                      + userOptionsLocal + parametersLocal + builtin,
+  return { 'args' : args,
            'cwd' : params['cwd'] }
 
 def updateCurrentDiagnostics():

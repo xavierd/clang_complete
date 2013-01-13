@@ -192,6 +192,8 @@ Set sources for user options passed to clang. Available sources are:
 This option is processed and all sources are used on buffer loading, not each
 time before doing completion.
 
+Default: "path, .clang_complete"
+
                                         *clang_complete-compilation_database*
                                         *g:clang_compilation_database*
 By default, clang_complete will search upwards from where it was started to
