@@ -75,9 +75,8 @@ function! s:ClangCompleteInit()
     let g:clang_compilation_database = ''
   endif
 
-  " Only use libclang if the user clearly show intent to do so for now
-  if !exists('g:clang_use_library')
-    let g:clang_use_library = (has('python') && exists('g:clang_library_path'))
+  if !exists('g:clang_library_path')
+    let g:clang_library_path = ''
   endif
 
   if !exists('g:clang_complete_macros')
@@ -97,7 +96,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_auto_user_options')
-    let g:clang_auto_user_options = 'path, .clang_complete, clang'
+    let g:clang_auto_user_options = 'path, .clang_complete'
   endif
 
   call LoadUserOptions()
@@ -161,16 +160,10 @@ function! s:ClangCompleteInit()
     augroup end
   endif
 
-  " Load the python bindings of libclang
-  if g:clang_use_library == 1
-    if has('python')
-      call s:initClangCompletePython()
-    else
-      echoe 'clang_complete: No python support available.'
-      echoe 'Cannot use clang library, using executable'
-      echoe 'Compile vim with python support to use libclang'
-      let g:clang_use_library = 0
-    endif
+  if !exists('g:clang_use_library') || g:clang_use_library == 1
+    " Try to use libclang. On failure, we fall back to the clang executable.
+    let l:initialized = s:initClangCompletePython(exists('g:clang_use_library'))
+    let g:clang_use_library = l:initialized
   endif
 endfunction
 
@@ -182,6 +175,10 @@ function! LoadUserOptions()
   let l:option_sources = map(l:option_sources, l:remove_spaces_cmd)
 
   for l:source in l:option_sources
+    if l:source == 'gcc' || l:source == 'clang'
+      echo "'" . l:source . "' in clang_auto_user_options is deprecated."
+      continue
+    endif
     if l:source == 'path'
       call s:parsePathOption()
     elseif l:source == 'compile_commands.json' && g:clang_use_library == 1
@@ -246,21 +243,30 @@ function! s:parsePathOption()
   endfor
 endfunction
 
-function! s:initClangCompletePython()
+function! s:initClangCompletePython(user_requested)
+  if !has('python')
+    if a:user_requested || g:clang_debug
+      echoe 'clang_complete: No python support available.'
+      echoe 'Cannot use clang library, using executable'
+      echoe 'Compile vim with python support to use libclang'
+    endif
+    return 0
+  endif
+
   " Only parse the python library once
   if !exists('s:libclang_loaded')
     python import sys
 
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . s:plugin_path . '/libclang.py'
-    if exists('g:clang_library_path')
-      python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'))
-    else
-      python initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'))
+    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'), vim.eval('a:user_requested'))))
+    if l:res == 0
+      return 0
     endif
     let s:libclang_loaded = 1
   endif
   python WarmupCache()
+  return 1
 endfunction
 
 function! s:GetKind(proto)
@@ -290,7 +296,7 @@ function! s:CallClangBinaryForDiagnostics(tempfile)
     return
   endtry
 
-  let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+  let l:command = g:clang_exec . ' -fsyntax-only'
         \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
         \ . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
@@ -445,9 +451,9 @@ function! s:ClangCompleteBinary(base)
   endtry
   let l:escaped_tempfile = shellescape(l:tempfile)
 
-  let l:command = g:clang_exec . ' -cc1 -fsyntax-only'
+  let l:command = g:clang_exec . ' -fsyntax-only'
         \ . ' -fno-caret-diagnostics -fdiagnostics-print-source-range-info'
-        \ . ' -code-completion-at=' . l:escaped_tempfile . ':'
+        \ . ' -Xclang -code-completion-at=' . l:escaped_tempfile . ':'
         \ . line('.') . ':' . b:col . ' ' . l:escaped_tempfile
         \ . ' ' . b:clang_parameters . ' ' . b:clang_user_options . ' ' . g:clang_user_options
 
