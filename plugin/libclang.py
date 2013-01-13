@@ -38,11 +38,13 @@ class CodeCompleteTimer:
       return
 
     content = vim.eval("getline('.')");
+    params = getCompileParams(file)
     print " "
     print "libclang code completion"
     print "========================"
-    print "Command: clang %s -fsyntax-only " % " ".join(getCompileArgs()),
+    print "Command: clang %s -fsyntax-only " % " ".join(params['args']),
     print "-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file)
+    print "cwd: %s" % params['cwd']
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
