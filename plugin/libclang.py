@@ -402,14 +402,13 @@ def formatResult(result):
 
 
 class CompleteThread(threading.Thread):
-  def __init__(self, line, column, currentFile, fileName, timer=None):
+  def __init__(self, line, column, currentFile, fileName, params, timer=None):
     threading.Thread.__init__(self)
     self.line = line
     self.column = column
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    params = getCompileParams(fileName)
     self.args = params['args']
     self.cwd = params['cwd']
     self.timer = timer
@@ -437,8 +436,10 @@ class CompleteThread(threading.Thread):
 def WarmupCache():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
-  t.start()
+  if debug:
+    t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
+                       getCompileParams(vim.current.buffer.name))
+    t.start()
 
 
 def getCurrentCompletions(base):
@@ -451,7 +452,7 @@ def getCurrentCompletions(base):
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, column)
 
   t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name,
-                     timer)
+                     getCompileParams(vim.current.buffer.name), timer)
   t.start()
   while t.isAlive():
     t.join(0.01)
