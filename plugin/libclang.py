@@ -437,8 +437,9 @@ class CompleteThread(threading.Thread):
 def WarmupCache():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
-  t.start()
+  if debug:
+    t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name)
+    t.start()
 
 
 def getCurrentCompletions(base):
