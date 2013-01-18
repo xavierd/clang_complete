@@ -263,13 +263,15 @@ def getCurrentQuickFixList():
 #
 #    'cwd' : the compiler working directory
 #
+# The last found args and cwd are remembered and reused whenever a file is
+# not found in the compilation database. For example, this is the case for
+# all headers. This achieve very good results in practice.
 def getCompilationDBParams(fileName):
-  args = []
-  cwd = None
   if compilation_database:
     cmds = compilation_database.getCompileCommands(fileName)
     if cmds != None:
       cwd = cmds[0].directory
+      args = []
       skip_next = 1 # Skip compiler invocation
       for arg in cmds[0].arguments:
         if skip_next:
@@ -282,8 +284,11 @@ def getCompilationDBParams(fileName):
         if arg == '-o':
           skip_next = 1;
           continue
-        args += [arg]
-  return { 'args': args, 'cwd': cwd }
+        args.append(arg)
+      getCompilationDBParams.last_query = { 'args': args, 'cwd': cwd }
+  return getCompilationDBParams.last_query
+
+getCompilationDBParams.last_query = { 'args': [], 'cwd': None }
 
 # A context manager to handle directory changes safely
 from contextlib import contextmanager
