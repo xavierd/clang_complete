@@ -356,16 +356,16 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
 
 def formatResult(result):
   completion = dict()
-
   returnValue = None
   abbr = ""
-  chunks = filter(lambda x: not x.isKindInformative(), result.string)
-
   args_pos = []
   cur_pos = 0
   word = ""
 
-  for chunk in chunks:
+  for chunk in result.string:
+
+    if chunk.isKindInformative():
+      continue
 
     if chunk.isKindResultType():
       returnValue = chunk
