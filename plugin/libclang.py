@@ -487,11 +487,10 @@ def getCurrentCompletions(base):
   return (str(result), timer)
 
 def getAbbr(strings):
-  tmplst = filter(lambda x: x.isKindTypedText(), strings)
-  if len(tmplst) == 0:
-    return ""
-  else:
-    return tmplst[0].spelling
+  for chunks in strings:
+    if chunks.isKindTypedText():
+      return chunks.spelling
+  return ""
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \
