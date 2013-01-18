@@ -356,16 +356,16 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
 
 def formatResult(result):
   completion = dict()
-
   returnValue = None
   abbr = ""
-  chunks = filter(lambda x: not x.isKindInformative(), result.string)
-
   args_pos = []
   cur_pos = 0
   word = ""
 
-  for chunk in chunks:
+  for chunk in result.string:
+
+    if chunk.isKindInformative():
+      continue
 
     if chunk.isKindResultType():
       returnValue = chunk
@@ -487,11 +487,10 @@ def getCurrentCompletions(base):
   return (str(result), timer)
 
 def getAbbr(strings):
-  tmplst = filter(lambda x: x.isKindTypedText(), strings)
-  if len(tmplst) == 0:
-    return ""
-  else:
-    return tmplst[0].spelling
+  for chunks in strings:
+    if chunks.isKindTypedText():
+      return chunks.spelling
+  return ""
 
 kinds = dict({                                                                 \
 # Declarations                                                                 \
