@@ -91,14 +91,13 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 class CodeCompleteTimer:
-  def __init__(self, debug, file, line, column):
+  def __init__(self, debug, file, line, column, params):
     self._debug = debug
 
     if not debug:
       return
 
     content = vim.eval("getline('.')");
-    params = getCompileParams(file)
     print " "
     print "libclang code completion"
     print "========================"
@@ -143,33 +142,20 @@ class CodeCompleteTimer:
     print "========================"
     print " "
 
-def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
+def getCurrentTranslationUnit(args, currentFile, fileName, timer,
+                              update = False):
   if fileName in translationUnits:
     tu = translationUnits[fileName]
     if update:
-      if debug:
-        start = time.time()
       tu.reparse([currentFile])
-      if debug:
-        elapsed = (time.time() - start)
-        print "LibClang - Reparsing: %.3f" % elapsed
+      timer.registerEvent("Reparsing")
     return tu
-
-  if debug:
-    print ""
-    print "Command: clang " + " ".join(args) + " " + fileName
-    start = time.time()
 
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
-
-  if debug:
-    elapsed = (time.time() - start)
-    print "LibClang - First parse: %.3f" % elapsed
+  timer.registerEvent("First parse")
 
   if tu == None:
-    print "Cannot parse this source file. The following arguments " \
-        + "are used for clang: " + " ".join(args)
     return None
 
   translationUnits[fileName] = tu
@@ -177,12 +163,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
   # Reparse to initialize the PCH cache even for auto completion
   # This should be done by index.parse(), however it is not.
   # So we need to reparse ourselves.
-  if debug:
-    start = time.time()
   tu.reparse([currentFile])
-  if debug:
-    elapsed = (time.time() - start)
-    print "LibClang - First reparse (generate PCH cache): %.3f" % elapsed
+  timer.registerEvent("Generate PCH cache")
   return tu
 
 def splitOptions(options):
@@ -336,18 +318,23 @@ def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
 
   with workingDir(params['cwd']):
     libclangLock.acquire()
     getCurrentTranslationUnit(params['args'], getCurrentFile(),
-                            vim.current.buffer.name, update = True)
+                              vim.current.buffer.name, timer, update = True)
     libclangLock.release()
+  timer.finish()
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName,
                                 timer):
 
-  tu = getCurrentTranslationUnit(args, currentFile, fileName)
+  tu = getCurrentTranslationUnit(args, currentFile, fileName, timer)
   timer.registerEvent("Get TU")
+
+  if tu == None:
+    return None
 
   cr = tu.codeComplete(fileName, line, column, [currentFile],
       complete_flags)
@@ -402,7 +389,7 @@ def formatResult(result):
 
 
 class CompleteThread(threading.Thread):
-  def __init__(self, line, column, currentFile, fileName, params, timer=None):
+  def __init__(self, line, column, currentFile, fileName, params, timer):
     threading.Thread.__init__(self)
     self.line = line
     self.column = column
@@ -424,7 +411,8 @@ class CompleteThread(threading.Thread):
           # Otherwise we would get: E293: block was not locked
           # The user does not see any delay, as we just pause a background thread.
           time.sleep(0.1)
-          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName)
+          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
+                                    self.timer)
         else:
           self.result = getCurrentCompletionResults(self.line, self.column,
                                                     self.args, self.currentFile,
@@ -434,10 +422,10 @@ class CompleteThread(threading.Thread):
       libclangLock.release()
 
 def WarmupCache():
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
+  params = getCompileParams(vim.current.buffer.name)
+  timer = CodeCompleteTimer(0, "", -1, -1, params)
   t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
-                     getCompileParams(vim.current.buffer.name))
+                     params, timer)
   t.start()
 
 
@@ -447,19 +435,24 @@ def getCurrentCompletions(base):
   sorting = vim.eval("g:clang_sort_algo")
   line = int(vim.eval("line('.')"))
   column = int(vim.eval("b:col"))
+  params = getCompileParams(vim.current.buffer.name)
 
-  timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, column)
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, column,
+                            params)
 
   t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name,
-                     getCompileParams(vim.current.buffer.name), timer)
+                     params, timer)
   t.start()
   while t.isAlive():
     t.join(0.01)
     cancel = int(vim.eval('complete_check()'))
     if cancel != 0:
       return (str([]), timer)
+
   cr = t.result
   if cr is None:
+    print "Cannot parse this source file. The following arguments " \
+        + "are used for clang: " + " ".join(params['args'])
     return (str([]), timer)
 
   results = cr.results
