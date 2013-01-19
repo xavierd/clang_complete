@@ -1,7 +1,6 @@
 from clang.cindex import *
 import vim
 import time
-import re
 import threading
 import os
 
@@ -144,8 +143,8 @@ class CodeCompleteTimer:
     print " "
 
 def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
-  if fileName in translationUnits:
-    tu = translationUnits[fileName]
+  tu = translationUnits.get(fileName)
+  if tu != None:
     if update:
       if debug:
         start = time.time()
@@ -467,8 +466,7 @@ def getCurrentCompletions(base):
   timer.registerEvent("Count # Results (%s)" % str(len(results)))
 
   if base != "":
-    regexp = re.compile("^" + base)
-    results = filter(lambda x: regexp.match(getAbbr(x.string)), results)
+    results = filter(lambda x: getAbbr(x.string).startswith(base), results)
 
   timer.registerEvent("Filter")
 
