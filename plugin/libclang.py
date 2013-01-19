@@ -143,8 +143,8 @@ class CodeCompleteTimer:
     print " "
 
 def getCurrentTranslationUnit(args, currentFile, fileName, update = False):
-  if fileName in translationUnits:
-    tu = translationUnits[fileName]
+  tu = translationUnits.get(fileName)
+  if tu != None:
     if update:
       if debug:
         start = time.time()
