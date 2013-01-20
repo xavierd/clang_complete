@@ -391,7 +391,7 @@ def formatResult(result):
   if returnValue:
     menu = returnValue.spelling + " " + menu
 
-  completion['word'] = word
+  completion['word'] = abbr
   completion['abbr'] = abbr
   completion['menu'] = menu
   completion['info'] = word

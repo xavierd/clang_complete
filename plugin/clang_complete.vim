@@ -343,13 +343,11 @@ function! ClangComplete(findstart, base)
     python vim.command('let l:res = ' + completions)
     python timer.registerEvent("Load into vimscript")
 
-    for item in l:res
-      if g:clang_snippets == 1
+    if g:clang_snippets == 1
+      for item in l:res
         let item['word'] = b:AddSnip(item['info'], item['args_pos'])
-      else
-        let item['word'] = item['abbr']
-      endif
-    endfor
+      endfor
+    endif
 
     inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
     augroup ClangComplete
