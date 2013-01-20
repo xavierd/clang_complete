@@ -536,7 +536,7 @@ function! s:ClangCompleteBinary(base)
     endif
 
     let l:item = {
-          \ 'word': l:word,
+          \ 'word': l:wabbr,
           \ 'abbr': l:wabbr,
           \ 'menu': l:menu,
           \ 'info': l:proto,
@@ -600,13 +600,11 @@ function! ClangComplete(findstart, base)
       let l:res = s:ClangCompleteBinary(a:base)
     endif
 
-    for item in l:res
-      if g:clang_snippets == 1
+    if g:clang_snippets == 1
+      for item in l:res
         let item['word'] = b:AddSnip(item['info'], item['args_pos'])
-      else
-        let item['word'] = item['abbr']
-      endif
-    endfor
+      endfor
+    endif
 
     inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
     augroup ClangComplete
