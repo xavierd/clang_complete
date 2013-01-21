@@ -90,7 +90,7 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 class CodeCompleteTimer:
-  def __init__(self, debug, file, line, column, params):
+  def __init__(self, debug, file, line, column, args):
     self._debug = debug
 
     if not debug:
@@ -100,9 +100,9 @@ class CodeCompleteTimer:
     print " "
     print "libclang code completion"
     print "========================"
-    print "Command: clang %s -fsyntax-only " % " ".join(params['args']),
+    print "Command: clang %s -fsyntax-only " % " ".join(args),
     print "-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file)
-    print "cwd: %s" % params['cwd']
+    print "cwd: %s" % "FIXME: params['cwd']"
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
@@ -299,29 +299,29 @@ def workingDir(dir):
     if savedPath != None:
       os.chdir(savedPath)
 
-def getCompileParams(fileName):
+def getUserCompileParams(fileName):
   global builtinHeaderPath
-  params = getCompilationDBParams(fileName)
-  args = params['args']
-  args += splitOptions(vim.eval("g:clang_user_options"))
+  args = splitOptions(vim.eval("g:clang_user_options"))
   args += splitOptions(vim.eval("b:clang_user_options"))
   args += splitOptions(vim.eval("b:clang_parameters"))
 
   if builtinHeaderPath:
     args.append("-I" + builtinHeaderPath)
 
-  return { 'args' : args,
-           'cwd' : params['cwd'] }
+  return args
 
 def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
-  params = getCompileParams(vim.current.buffer.name)
-  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
+  args = getUserCompileParams(vim.current.buffer.name)
+  params = getCompilationDBParams(vim.current.buffer.name)
+
+  args += params['args']
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, args)
 
   with workingDir(params['cwd']):
     with libclangLock:
-      getCurrentTranslationUnit(params['args'], getCurrentFile(),
+      getCurrentTranslationUnit(args, getCurrentFile(),
                                 vim.current.buffer.name, timer, update = True)
   timer.finish()
 
@@ -387,18 +387,21 @@ def formatResult(result):
 
 
 class CompleteThread(threading.Thread):
-  def __init__(self, line, column, currentFile, fileName, params, timer):
+  def __init__(self, line, column, currentFile, fileName, args, timer):
     threading.Thread.__init__(self)
     self.line = line
     self.column = column
     self.currentFile = currentFile
     self.fileName = fileName
     self.result = None
-    self.args = params['args']
-    self.cwd = params['cwd']
+    self.args = args
+    self.cwd = ""
     self.timer = timer
 
   def run(self):
+    params = getCompilationDBParams(self.fileName)
+    self.args += params['args']
+    self.cwd = params['cwd']
     with workingDir(self.cwd):
       with libclangLock:
         if self.line == -1:
@@ -417,10 +420,10 @@ class CompleteThread(threading.Thread):
                                                     self.fileName, self.timer)
 
 def WarmupCache():
-  params = getCompileParams(vim.current.buffer.name)
-  timer = CodeCompleteTimer(0, "", -1, -1, params)
+  args = getUserCompileParams(vim.current.buffer.name)
+  timer = CodeCompleteTimer(0, "", -1, -1, args)
   t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
-                     params, timer)
+                     args, timer)
   t.start()
 
 
@@ -430,13 +433,13 @@ def getCurrentCompletions(base):
   sorting = vim.eval("g:clang_sort_algo")
   line, _ = vim.current.window.cursor
   column = int(vim.eval("b:col"))
-  params = getCompileParams(vim.current.buffer.name)
+  args = getUserCompileParams(vim.current.buffer.name)
 
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, column,
-                            params)
+                            args)
 
   t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name,
-                     params, timer)
+                     args, timer)
   t.start()
   while t.isAlive():
     t.join(0.01)
