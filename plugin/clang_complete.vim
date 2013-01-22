@@ -167,6 +167,11 @@ function! s:ClangCompleteInit()
     let l:initialized = s:initClangCompletePython(exists('g:clang_use_library'))
     let g:clang_use_library = l:initialized
   endif
+
+  if g:clang_use_library != 1
+    echoe 'clang_complete: Not using libclang is deprecated,'
+    echoe 'You should switch to libclang now and report all the bugs.'
+  endif
 endfunction
 
 function! LoadUserOptions()
