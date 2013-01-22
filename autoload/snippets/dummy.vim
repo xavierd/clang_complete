@@ -22,3 +22,14 @@ endfunction
 function! snippets#dummy#reset()
   echo 'Resetting all snippets'
 endfunction
+
+" Python functions to speed up snippet handling
+python << endpython
+def snippets__dummy__formatSnippet(word):
+  print "Creating snippet for placeholder " + word
+  return word
+
+def snippets__dummy__trailingPlaceholder():
+  print 'Trailing placeholder is ""'
+  return ""
+endpython

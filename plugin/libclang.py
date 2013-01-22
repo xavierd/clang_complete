@@ -340,7 +340,7 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
   timer.registerEvent("Code Complete")
   return cr
 
-def formatResult(result):
+def formatResultPlain(result):
   completion = dict()
   returnValue = None
   abbr = ""
@@ -377,6 +377,55 @@ def formatResult(result):
   completion['abbr'] = abbr
   completion['menu'] = menu
   completion['info'] = word
+  completion['args_pos'] = args_pos
+  completion['dup'] = 1
+
+  # Replace the number that represents a specific kind with a better
+  # textual representation.
+  completion['kind'] = kinds[result.cursorKind]
+
+  return completion
+
+def formatResultSnippets(result, formatSnippet, trailingPlaceholder):
+  completion = dict()
+  returnValue = None
+  abbr = ""
+  args_pos = []
+  cur_pos = 0
+  word = ""
+  info = ""
+
+  for chunk in result.string:
+    if chunk.isKindInformative():
+      continue
+
+    if chunk.isKindResultType():
+      returnValue = chunk
+      continue
+
+    chunk_spelling = chunk.spelling
+
+    if chunk.isKindTypedText():
+      abbr = chunk_spelling
+
+    if chunk.isKindPlaceHolder():
+      word += formatSnippet(chunk_spelling)
+    else:
+      word += chunk_spelling
+
+    info += chunk_spelling
+
+  menu = info
+
+  if returnValue:
+    menu = returnValue.spelling + " " + menu
+
+  word += trailingPlaceholder
+
+  completion['word'] = word
+  completion['abbr'] = abbr
+  completion['menu'] = menu
+  completion['info'] = info
   completion['args_pos'] = args_pos
   completion['dup'] = 1
 
@@ -427,8 +476,14 @@ def WarmupCache():
                      params, timer)
   t.start()
 
+def formatResultsPlain(results):
+    return map(formatResultPlain, results)
 
-def getCurrentCompletions(base):
+def formatResultsSnippets(results, formatSnippet, trailingPlaceholder):
+    f = lambda x: formatResultSnippets(x, formatSnippet, trailingPlaceholder)
+    return map(f, results)
+
+def getCurrentCompletions(base, formatSnippet, trailingPlaceholder):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   sorting = vim.eval("g:clang_sort_algo")
@@ -472,7 +527,10 @@ def getCurrentCompletions(base):
 
   timer.registerEvent("Sort")
 
-  result = map(formatResult, results)
+  if formatSnippet:
+    result = formatResultsSnippets(results, formatSnippet, trailingPlaceholder)
+  else:
+    result = formatResultsPlain(results)
 
   timer.registerEvent("Format")
   return (str(result), timer)

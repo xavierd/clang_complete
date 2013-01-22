@@ -593,14 +593,36 @@ function! ClangComplete(findstart, base)
     endif
 
     if g:clang_use_library == 1
-      python completions, timer = getCurrentCompletions(vim.eval('a:base'))
-      python vim.command('let l:res = ' + completions)
-      python timer.registerEvent("Load into vimscript")
+
+python << endpython
+snippetsEnabled = int(vim.eval("g:clang_snippets")) == 1
+
+formatSnippets = None
+trailingPlaceholder = ""
+
+if snippetsEnabled:
+  formatSnippets = globals().get("snippets__" + vim.eval("g:clang_snippets_engine") + "__formatSnippet")
+  getPlaceholder = globals().get("snippets__" + vim.eval("g:clang_snippets_engine") + "__trailingPlaceholder")
+  if getPlaceholder:
+    trailingPlaceholder = getPlaceholder()
+
+completions, timer = getCurrentCompletions(vim.eval('a:base'), formatSnippets, trailingPlaceholder)
+vim.command('let l:res = ' + completions)
+
+if formatSnippets:
+  vim.command('let l:embedded_snippets = 1')
+else:
+  vim.command('let l:embedded_snippets = 0')
+
+timer.registerEvent("Load into vimscript")
+endpython
+
     else
+      let l:embedded_snippets = 0
       let l:res = s:ClangCompleteBinary(a:base)
     endif
 
-    if g:clang_snippets == 1
+    if g:clang_snippets == 1 && !l:embedded_snippets
       for item in l:res
         let item['word'] = b:AddSnip(item['info'], item['args_pos'])
       endfor
