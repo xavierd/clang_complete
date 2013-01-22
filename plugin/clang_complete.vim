@@ -137,7 +137,7 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '++'
   endif
 
-  if expand('%:e') =~ 'h*'
+  if expand('%:e') =~ 'h.*'
     let b:clang_parameters .= '-header'
   endif
 
