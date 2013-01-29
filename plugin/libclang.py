@@ -86,7 +86,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
 def getCurrentFile():
-  file = "\n".join(vim.eval("getline(1, '$')"))
+  file = "\n".join(vim.current.buffer[:])
   return (vim.current.buffer.name, file)
 
 class CodeCompleteTimer:
@@ -96,7 +96,7 @@ class CodeCompleteTimer:
     if not debug:
       return
 
-    content = vim.eval("getline('.')");
+    content = vim.current.line
     print " "
     print "libclang code completion"
     print "========================"
@@ -432,7 +432,7 @@ def getCurrentCompletions(base):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   sorting = vim.eval("g:clang_sort_algo")
-  line = int(vim.eval("line('.')"))
+  line, _ = vim.current.window.cursor
   column = int(vim.eval("b:col"))
   params = getCompileParams(vim.current.buffer.name)
 
