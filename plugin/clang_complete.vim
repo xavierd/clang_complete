@@ -139,6 +139,7 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
+  nnoremap <expr> <buffer> <C-]> <SID>GotoDeclaration()
 
   if g:clang_snippets == 1
     call g:ClangSetSnippetEngine(g:clang_snippets_engine)
@@ -454,6 +455,14 @@ function! s:CompleteColon()
     return ':'
   endif
   return ':' . s:LaunchCompletion()
+endfunction
+
+function! s:GotoDeclaration()
+  " I would like to mimic <C-]> and <C-T> when using tags.
+  " It would be much easier if the tag stack could be modified, but alas
+  " that is not possible. All the handling should be done by hand...
+  python gotoDeclaration()
+  return ''
 endfunction
 
 " May be used in a mapping to update the quickfix window.
