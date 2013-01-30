@@ -413,8 +413,8 @@ class CompleteThread(threading.Thread):
                                     self.timer)
         else:
           self.result = getCurrentCompletionResults(self.line, self.column,
-                                                  self.args, self.currentFile,
-                                                  self.fileName, self.timer)
+                                                    self.args, self.currentFile,
+                                                    self.fileName, self.timer)
 
 def WarmupCache():
   params = getCompileParams(vim.current.buffer.name)
