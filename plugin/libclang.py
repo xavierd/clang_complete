@@ -320,10 +320,9 @@ def updateCurrentDiagnostics():
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
 
   with workingDir(params['cwd']):
-    libclangLock.acquire()
-    getCurrentTranslationUnit(params['args'], getCurrentFile(),
-                              vim.current.buffer.name, timer, update = True)
-    libclangLock.release()
+    with libclangLock:
+      getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                                vim.current.buffer.name, timer, update = True)
   timer.finish()
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName,
@@ -401,24 +400,21 @@ class CompleteThread(threading.Thread):
 
   def run(self):
     with workingDir(self.cwd):
-      try:
-        libclangLock.acquire()
+      with libclangLock:
         if self.line == -1:
-          # Warm up the caches. For this it is sufficient to get the current
-          # translation unit. No need to retrieve completion results.
-          # This short pause is necessary to allow vim to initialize itself.
-          # Otherwise we would get: E293: block was not locked
-          # The user does not see any delay, as we just pause a background thread.
+          # Warm up the caches. For this it is sufficient to get the
+          # current translation unit. No need to retrieve completion
+          # results.  This short pause is necessary to allow vim to
+          # initialize itself.  Otherwise we would get: E293: block was
+          # not locked The user does not see any delay, as we just pause
+          # a background thread.
           time.sleep(0.1)
           getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
                                     self.timer)
         else:
           self.result = getCurrentCompletionResults(self.line, self.column,
-                                                    self.args, self.currentFile,
-                                                    self.fileName, self.timer)
-      except Exception:
-        pass
-      libclangLock.release()
+                                                  self.args, self.currentFile,
+                                                  self.fileName, self.timer)
 
 def WarmupCache():
   params = getCompileParams(vim.current.buffer.name)
