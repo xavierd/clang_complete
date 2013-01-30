@@ -89,6 +89,8 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
     compilation_database = None
   global libclangLock
   libclangLock = threading.Lock()
+  global jumpStack
+  jumpStack = []
   return 1
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
@@ -498,6 +500,21 @@ def getAbbr(strings):
       return chunks.spelling
   return ""
 
+def pushLocation(loc):
+  global jumpStack
+  jumpStack.append(loc)
+
+def popLocation():
+  if jumpStack == []:
+    print "Empty jump stack!"
+    return None
+  return jumpStack.pop()
+
+def jumpToLocation(loc):
+  if loc.file.name != vim.current.buffer.name:
+    vim.command("edit! %s" % loc.file.name)
+  vim.current.window.cursor = (loc.line, loc.column - 1)
+
 def gotoDeclaration():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
@@ -505,19 +522,25 @@ def gotoDeclaration():
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
 
   with workingDir(params['cwd']):
-    libclangLock.acquire()
-    tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
-                                   vim.current.buffer.name, timer, update = True)
-    f = File.from_name(tu, vim.current.buffer.name)
-    line, col = vim.current.window.cursor
-    loc = SourceLocation.from_position(tu, f, line, col + 1)
-    cursor = Cursor.from_location(tu, loc)
-    cursor = cursor.get_definition()
-    if cursor is not None:
-      print cursor.location
-    libclangLock.release()
+    with libclangLock:
+      tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                                     vim.current.buffer.name, timer,
+                                     update = True)
+      f = File.from_name(tu, vim.current.buffer.name)
+      line, col = vim.current.window.cursor
+      loc = SourceLocation.from_position(tu, f, line, col + 1)
+      cursor = Cursor.from_location(tu, loc)
+      if cursor.referenced is not None:
+        pushLocation(loc)
+        loc = cursor.referenced.location
+        jumpToLocation(loc)
 
-  #timer.finish()
+  timer.finish()
+
+def gotoBack():
+  loc = popLocation()
+  if loc is not None:
+    jumpToLocation(loc)
 
 # Manually extracted from Index.h
 # Doing it by hand is long, error prone and horrible, we must find a way
