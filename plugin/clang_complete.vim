@@ -171,7 +171,13 @@ function! s:ClangCompleteInit()
   if g:clang_use_library != 1
     echoe 'clang_complete: Not using libclang is deprecated,'
     echoe 'You should switch to libclang now and report all the bugs.'
+
+    if g:clang_compilation_database != ''
+      echoe 'The use of the compile_commands.json file is only available'
+      echoe 'when using libclang.'
+    endif
   endif
+
 endfunction
 
 function! LoadUserOptions()
@@ -188,7 +194,7 @@ function! LoadUserOptions()
     endif
     if l:source == 'path'
       call s:parsePathOption()
-    elseif l:source == 'compile_commands.json' && g:clang_use_library == 1
+    elseif l:source == 'compile_commands.json'
       call s:findCompilationDatase(l:source)
     elseif l:source == '.clang_complete'
       call s:parseConfig()
