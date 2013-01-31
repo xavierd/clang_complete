@@ -13,7 +13,12 @@ def canFindBuiltinHeaders(index, args = []):
   flags = 0
   currentFile = ("test.c", '#include "stddef.h"')
   tu = index.parse("test.c", args, [currentFile], flags)
-  return len(tu.diagnostics) == 0
+  for diag in tu.diagnostics:
+    if diag.severity >= diag.Error:
+      # Maybe we should print the diagnostic? This would speedup the
+      # time to fix a issue, both for the user and for us.
+      return False
+  return True
 
 # Derive path to clang builtin headers.
 #
@@ -21,7 +26,7 @@ def canFindBuiltinHeaders(index, args = []):
 # just guessing, but the guess is very educated. In fact, we should be right
 # for all manual installations (the ones where the builtin header path problem
 # is very common).
-def getBuiltinHeaderPath(library_path):
+def getBuiltinHeaderPath(library_path, user_options):
   path = library_path + "/../lib/clang"
   try:
     files = os.listdir(path)
@@ -30,8 +35,8 @@ def getBuiltinHeaderPath(library_path):
 
   files = sorted(files)
   path = path + "/" + files[-1] + "/include/"
-  arg = "-I" + path
-  if canFindBuiltinHeaders(index, [arg]):
+  arg = ["-I" + path] + user_options
+  if canFindBuiltinHeaders(index, arg):
     return path
   return None
 
@@ -58,10 +63,19 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
         print "Are you sure '%s' contains libclang?" % library_path
     return 0
 
+  global compilation_database
+  if clang_compilation_database != '':
+    compilation_database = CompilationDatabase.fromDirectory(clang_compilation_database)
+  else:
+    compilation_database = None
+
+
   global builtinHeaderPath
   builtinHeaderPath = None
-  if not canFindBuiltinHeaders(index):
-    builtinHeaderPath = getBuiltinHeaderPath(library_path)
+  params = getCompileParams(vim.current.buffer.name)
+
+  if not canFindBuiltinHeaders(index, params["args"]):
+    builtinHeaderPath = getBuiltinHeaderPath(library_path, params["args"])
 
     if not builtinHeaderPath and printWarnings:
       print "WARNING: libclang can not find the builtin includes."
@@ -74,11 +88,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   translationUnits = dict()
   global complete_flags
   complete_flags = int(clang_complete_flags)
-  global compilation_database
-  if clang_compilation_database != '':
-    compilation_database = CompilationDatabase.fromDirectory(clang_compilation_database)
-  else:
-    compilation_database = None
   global libclangLock
   libclangLock = threading.Lock()
   return 1
