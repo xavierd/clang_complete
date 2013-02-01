@@ -81,6 +81,10 @@ function! s:ClangCompleteInit()
     let g:clang_library_path = ''
   endif
 
+  if !exists('g:clang_library_file')
+    let g:clang_library_file = ''
+  endif
+
   if !exists('g:clang_complete_macros')
     let g:clang_complete_macros = 0
   endif
@@ -272,7 +276,7 @@ function! s:initClangCompletePython(user_requested)
 
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . s:plugin_path . '/libclang.py'
-    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'), vim.eval('a:user_requested'))))
+    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'), vim.eval('g:clang_library_file'), vim.eval('a:user_requested'))))
     if l:res == 0
       return 0
     endif

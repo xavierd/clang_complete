@@ -36,7 +36,7 @@ def getBuiltinHeaderPath(library_path):
   return None
 
 def initClangComplete(clang_complete_flags, clang_compilation_database, \
-                      library_path, user_requested):
+                      library_path, library_file, user_requested):
   global index
 
   debug = int(vim.eval("g:clang_debug")) == 1
@@ -44,6 +44,8 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   if library_path != "":
     Config.set_library_path(library_path)
+  if library_file != "":
+    Config.set_library_file(library_file)
 
   Config.set_compatibility_check(False)
 

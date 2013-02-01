@@ -214,6 +214,10 @@ Default: 0
 If libclang.[dll/so/dylib] is not in your library search path, set this to the
 absolute path where libclang is available.
 Default: ""
+                                        *clang_complete-library_file*
+                                        *g:clang_library_file*
+If libclang.[dll/so/dylib] has a special name, use this option.
+Default: ""
 
 					*clang_complete-sort_algo*
 					*g:clang_sort_algo*
