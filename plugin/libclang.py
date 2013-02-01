@@ -72,10 +72,12 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   global builtinHeaderPath
   builtinHeaderPath = None
-  params = getCompileParams(vim.current.buffer.name)
+  args = getUserCompileParams(vim.current.buffer.name)
+  params = getCompilationDBParams(vim.current.buffer.name)
+  args += params['args']
 
-  if not canFindBuiltinHeaders(index, params["args"]):
-    builtinHeaderPath = getBuiltinHeaderPath(library_path, params["args"])
+  if not canFindBuiltinHeaders(index, args):
+    builtinHeaderPath = getBuiltinHeaderPath(library_path, args)
 
     if not builtinHeaderPath and printWarnings:
       print "WARNING: libclang can not find the builtin includes."
