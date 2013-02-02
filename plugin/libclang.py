@@ -73,8 +73,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   global builtinHeaderPath
   builtinHeaderPath = None
   args = getUserCompileParams(vim.current.buffer.name)
-  params = getCompilationDBParams(vim.current.buffer.name)
-  args += params['args']
 
   if not canFindBuiltinHeaders(index, args):
     builtinHeaderPath = getBuiltinHeaderPath(library_path, args)
