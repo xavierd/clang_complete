@@ -20,19 +20,30 @@ def canFindBuiltinHeaders(index, args = []):
 # This function tries to derive a path to clang's builtin header files. We are
 # just guessing, but the guess is very educated. In fact, we should be right
 # for all manual installations (the ones where the builtin header path problem
-# is very common).
+# is very common) as well as a set of very common distributions.
 def getBuiltinHeaderPath(library_path):
-  path = library_path + "/../lib/clang"
-  try:
-    files = os.listdir(path)
-  except:
-    return None
+  knownPaths = [
+          library_path + "/../lib/clang",  # default value
+          library_path + "/../clang",      # gentoo
+          library_path + "/clang",         # opensuse
+          library_path + "/"               # Google
+  ]
 
-  files = sorted(files)
-  path = path + "/" + files[-1] + "/include/"
-  arg = "-I" + path
-  if canFindBuiltinHeaders(index, [arg]):
-    return path
+  for path in knownPaths:
+    try:
+      files = os.listdir(path)
+      if len(files) >= 1:
+        files = sorted(files)
+        subDir = files[-1]
+      else:
+        subDir = '.'
+      path = path + "/" + subDir + "/include/"
+      arg = "-I" + path
+      if canFindBuiltinHeaders(index, [arg]):
+        return path
+    except:
+      pass
+
   return None
 
 def initClangComplete(clang_complete_flags, clang_compilation_database, \
