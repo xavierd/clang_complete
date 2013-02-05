@@ -26,7 +26,8 @@ def getBuiltinHeaderPath(library_path):
           library_path + "/../lib/clang",  # default value
           library_path + "/../clang",      # gentoo
           library_path + "/clang",         # opensuse
-          library_path + "/"               # Google
+          library_path + "/",              # Google
+          "/usr/lib/clang"
   ]
 
   for path in knownPaths:
