@@ -79,8 +79,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
       print "WARNING: libclang can not find the builtin includes."
       print "         This will cause slow code completion."
       print "         Please report the problem."
-      print "         To work around this issue you can add the path of the"
-      print "         clang builtin includes to g:clang_user_options."
 
   global translationUnits
   translationUnits = dict()
