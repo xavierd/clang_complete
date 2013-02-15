@@ -182,7 +182,10 @@ Set sources for user options passed to clang. Available sources are:
   output this information. clang_complete will search upwards from where vi
   was started for a database named 'compile_commands.json'.
   Note : compilation databases can only be used when 'g:clang_use_library'
-  equals 1 and the clang libraries are recent enough (clang>=3.2).
+  equals 1 and the clang libraries are recent enough (clang>=3.2). The 
+  compilation database only contains information for the C/C++ sources files,
+  so when editing a header, clang_complete will reuse the compilation
+  arguments from the last file found in the database.
 - {anything} else will be treaded as a custom option source in the following
   manner: clang_complete will try to load the autoload-function named
   getopts#{anything}#getopts, which then will be able to modify
