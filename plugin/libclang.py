@@ -197,15 +197,11 @@ def getQuickFix(diagnostic):
   elif diagnostic.severity == diagnostic.Note:
     type = 'I'
   elif diagnostic.severity == diagnostic.Warning:
-    if "argument unused during compilation" in diagnostic.spelling:
-      return None
     type = 'W'
   elif diagnostic.severity == diagnostic.Error:
     type = 'E'
   elif diagnostic.severity == diagnostic.Fatal:
     type = 'E'
-  else:
-    return None
 
   return dict({ 'bufnr' : int(vim.eval("bufnr('" + filename + "', 1)")),
     'lnum' : diagnostic.location.line,
@@ -214,7 +210,7 @@ def getQuickFix(diagnostic):
     'type' : type})
 
 def getQuickFixList(tu):
-  return filter (None, map (getQuickFix, tu.diagnostics))
+  return map (getQuickFix, tu.diagnostics)
 
 def highlightRange(range, hlGroup):
   pattern = '/\%' + str(range.start.line) + 'l' + '\%' \

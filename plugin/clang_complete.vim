@@ -351,7 +351,7 @@ function! s:ClangQuickFix(clang_output, tempfname)
   if g:clang_use_library == 0
     let l:list = s:ClangUpdateQuickFix(a:clang_output, a:tempfname)
   else
-    python vim.command('let l:list = ' + str(getCurrentQuickFixList()))
+    let l:list = pyeval('getCurrentQuickFixList()')
     python highlightCurrentDiagnostics()
   endif
 
