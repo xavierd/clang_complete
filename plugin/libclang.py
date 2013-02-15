@@ -502,18 +502,18 @@ def getAbbr(strings):
 
 def pushLocation(loc):
   global jumpStack
-  jumpStack.append(loc)
+  jumpStack.append((loc.file.name, loc.line, loc.column))
 
 def popLocation():
   if jumpStack == []:
     print "Empty jump stack!"
-    return None
+    return (None, 0, 0)
   return jumpStack.pop()
 
-def jumpToLocation(loc):
-  if loc.file.name != vim.current.buffer.name:
-    vim.command("edit! %s" % loc.file.name)
-  vim.current.window.cursor = (loc.line, loc.column - 1)
+def jumpToLocation(filename, line, column):
+  if filename != vim.current.buffer.name:
+    vim.command("edit! %s" % filename)
+  vim.current.window.cursor = (line, column - 1)
 
 def gotoDeclaration():
   global debug
@@ -533,14 +533,14 @@ def gotoDeclaration():
       if cursor.referenced is not None:
         pushLocation(loc)
         loc = cursor.referenced.location
-        jumpToLocation(loc)
+        jumpToLocation(loc.file.name, loc.line, loc.column)
 
   timer.finish()
 
 def gotoBack():
-  loc = popLocation()
-  if loc is not None:
-    jumpToLocation(loc)
+  filename, line, column = popLocation()
+  if filename is not None:
+    jumpToLocation(filename, line, column)
 
 # Manually extracted from Index.h
 # Doing it by hand is long, error prone and horrible, we must find a way
