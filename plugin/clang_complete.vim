@@ -276,6 +276,7 @@ function! s:initClangCompletePython(user_requested)
     if l:res == 0
       return 0
     endif
+    au VimLeavePre * python FinishClangComplete()
     let s:libclang_loaded = 1
   endif
   python WarmupCache()
