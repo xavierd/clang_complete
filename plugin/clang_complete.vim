@@ -15,7 +15,7 @@ let b:my_changedtick = 0
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
-let s:plugin_path = escape(expand('<sfile>:p:h'), ' \')
+let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
 function! s:ClangCompleteInit()
   let l:bufname = bufname("%")
