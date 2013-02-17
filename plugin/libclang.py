@@ -530,7 +530,7 @@ def gotoDeclaration():
       line, col = vim.current.window.cursor
       loc = SourceLocation.from_position(tu, f, line, col + 1)
       cursor = Cursor.from_location(tu, loc)
-      if cursor.referenced is not None:
+      if cursor.referenced is not None and loc != cursor.referenced.location:
         pushLocation(loc)
         loc = cursor.referenced.location
         jumpToLocation(loc.file.name, loc.line, loc.column)
