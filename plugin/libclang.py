@@ -494,6 +494,9 @@ def getAbbr(strings):
       return chunks.spelling
   return ""
 
+# Manually extracted from Index.h
+# Doing it by hand is long, error prone and horrible, we must find a way
+# to do that automatically.
 kinds = dict({                                                                 \
 # Declarations                                                                 \
  1 : 't',  # CXCursor_UnexposedDecl (A declaration whose specific kind is not  \
@@ -537,7 +540,11 @@ kinds = dict({                                                                 \
            # partial specialization)                                           \
 33 : 'n',  # CXCursor_NamespaceAlias (A C++ namespace alias declaration)       \
 34 : '34', # CXCursor_UsingDirective (A C++ using directive)                   \
-35 : '35', # CXCursor_UsingDeclaration (A using declaration)                   \
+35 : '35', # CXCursor_UsingDeclaration (A C++ using declaration)               \
+36 : 't',  # CXCursor_TypeAliasDecl (A C++ alias declaration)                  \
+37 : '37', # CXCursor_ObjCSynthesizeDecl (An Objective-C synthesize definition)\
+38 : '38', # CXCursor_ObjCDynamicDecl (An Objective-C dynamic definition)      \
+39 : '39', # CXCursor_CXXAccessSpecifier (An access specifier)                 \
                                                                                \
 # References                                                                   \
 40 : '40', # CXCursor_ObjCSuperClassRef                                        \
@@ -557,6 +564,7 @@ kinds = dict({                                                                 \
 49 : '49', # CXCursor_OverloadedDeclRef (A reference to a set of overloaded    \
            # functions or function templates that has not yet been resolved to \
            # a specific function or function template)                         \
+50 : '50', # CXCursor_VariableRef                                              \
                                                                                \
 # Error conditions                                                             \
 #70 : '70', # CXCursor_FirstInvalid                                            \
@@ -577,11 +585,112 @@ kinds = dict({                                                                 \
               # to an Objective-C object or class)                             \
 105 : '105',  # CXCursor_BlockExpr (An expression that represents a block      \
               # literal)                                                       \
+106 : '106',  # CXCursor_IntegerLiteral (An integer literal)                   \
+107 : '107',  # CXCursor_FloatingLiteral (A floating point number literal)     \
+108 : '108',  # CXCursor_ImaginaryLiteral (An imaginary number literal)        \
+109 : '109',  # CXCursor_StringLiteral (A string literal)                      \
+110 : '110',  # CXCursor_CharacterLiteral (A character literal)                \
+111 : '111',  # CXCursor_ParenExpr (A parenthesized expression, e.g. "(1)")    \
+112 : '112',  # CXCursor_UnaryOperator (This represents the unary-expression's \
+              # (except sizeof and alignof))                                   \
+113 : '113',  # CXCursor_ArraySubscriptExpr ([C99 6.5.2.1] Array Subscripting) \
+114 : '114',  # CXCursor_BinaryOperator (A builtin binary operation expression \
+              # such as "x + y" or "x <= y")                                   \
+115 : '115',  # CXCursor_CompoundAssignOperator (Compound assignment such as   \
+              # "+=")                                                          \
+116 : '116',  # CXCursor_ConditionalOperator (The ?: ternary operator)         \
+117 : '117',  # CXCursor_CStyleCastExpr (An explicit cast in C (C99 6.5.4) or a\
+              # C-style cast in C++ (C++ [expr.cast]), which uses the syntax   \
+              # (Type)expr)                                                    \
+118 : '118',  # CXCursor_CompoundLiteralExpr ([C99 6.5.2.5])                   \
+119 : '119',  # CXCursor_InitListExpr (Describes an C or C++ initializer list) \
+120 : '120',  # CXCursor_AddrLabelExpr (The GNU address of label extension,    \
+              # representing &&label)                                          \
+121 : '121',  # CXCursor_StmtExpr (This is the GNU Statement Expression        \
+              # extension: ({int X=4; X;})                                     \
+122 : '122',  # CXCursor_GenericSelectionExpr (brief Represents a C11 generic  \
+              # selection)                                                     \
+123 : '123',  # CXCursor_GNUNullExpr (Implements the GNU __null extension)     \
+124 : '124',  # CXCursor_CXXStaticCastExpr (C++'s static_cast<> expression)    \
+125 : '125',  # CXCursor_CXXDynamicCastExpr (C++'s dynamic_cast<> expression)  \
+126 : '126',  # CXCursor_CXXReinterpretCastExpr (C++'s reinterpret_cast<>      \
+              # expression)                                                    \
+127 : '127',  # CXCursor_CXXConstCastExpr (C++'s const_cast<> expression)      \
+128 : '128',  # CXCursor_CXXFunctionalCastExpr (Represents an explicit C++ type\
+              # conversion that uses "functional" notion                       \
+              # (C++ [expr.type.conv]))                                        \
+129 : '129',  # CXCursor_CXXTypeidExpr (A C++ typeid expression                \
+              # (C++ [expr.typeid]))                                           \
+130 : '130',  # CXCursor_CXXBoolLiteralExpr (brief [C++ 2.13.5] C++ Boolean    \
+              # Literal)                                                       \
+131 : '131',  # CXCursor_CXXNullPtrLiteralExpr ([C++0x 2.14.7] C++ Pointer     \
+              # Literal)                                                       \
+132 : '132',  # CXCursor_CXXThisExpr (Represents the "this" expression in C+)  \
+133 : '133',  # CXCursor_CXXThrowExpr ([C++ 15] C++ Throw Expression)          \
+134 : '134',  # CXCursor_CXXNewExpr (A new expression for memory allocation    \
+              # and constructor calls)                                         \
+135 : '135',  # CXCursor_CXXDeleteExpr (A delete expression for memory         \
+              # deallocation and destructor calls)                             \
+136 : '136',  # CXCursor_UnaryExpr (A unary expression)                        \
+137 : '137',  # CXCursor_ObjCStringLiteral (An Objective-C string literal      \
+              # i.e. @"foo")                                                   \
+138 : '138',  # CXCursor_ObjCEncodeExpr (An Objective-C \@encode expression)   \
+139 : '139',  # CXCursor_ObjCSelectorExpr (An Objective-C \@selector expression)\
+140 : '140',  # CXCursor_ObjCProtocolExpr (An Objective-C \@protocol expression)\
+141 : '141',  # CXCursor_ObjCBridgedCastExpr (An Objective-C "bridged" cast    \
+              # expression, which casts between Objective-C pointers and C     \
+              # pointers, transferring ownership in the process)               \
+142 : '142',  # CXCursor_PackExpansionExpr (Represents a C++0x pack expansion  \
+              # that produces a sequence of expressions)                       \
+143 : '143',  # CXCursor_SizeOfPackExpr (Represents an expression that computes\
+              # the length of a parameter pack)                                \
+144 : '144',  # CXCursor_LambdaExpr (Represents a C++ lambda expression that   \
+              # produces a local function object)                              \
+145 : '145',  # CXCursor_ObjCBoolLiteralExpr (Objective-c Boolean Literal)     \
                                                                                \
 # Statements                                                                   \
 200 : '200',  # CXCursor_UnexposedStmt (A statement whose specific kind is not \
               # exposed via this interface)                                    \
 201 : '201',  # CXCursor_LabelStmt (A labelled statement in a function)        \
+202 : '202',  # CXCursor_CompoundStmt (A group of statements like              \
+              # { stmt stmt }.                                                 \
+203 : '203',  # CXCursor_CaseStmt (A case statment)                            \
+204 : '204',  # CXCursor_DefaultStmt (A default statement)                     \
+205 : '205',  # CXCursor_IfStmt (An if statemen)                               \
+206 : '206',  # CXCursor_SwitchStmt (A switch statement)                       \
+207 : '207',  # CXCursor_WhileStmt (A while statement)                         \
+208 : '208',  # CXCursor_DoStmt (A do statement)                               \
+209 : '209',  # CXCursor_ForStmt (A for statement)                             \
+210 : '210',  # CXCursor_GotoStmt (A goto statement)                           \
+211 : '211',  # CXCursor_IndirectGotoStmt (An indirect goto statement)         \
+212 : '212',  # CXCursor_ContinueStmt (A continue statement)                   \
+213 : '213',  # CXCursor_BreakStmt (A break statement)                         \
+214 : '214',  # CXCursor_ReturnStmt (A return statement)                       \
+215 : '215',  # CXCursor_GCCAsmStmt (A GCC inline assembly statement extension)\
+216 : '216',  # CXCursor_ObjCAtTryStmt (Objective-C's overall try-catch-finally\
+              # statement.                                                     \
+217 : '217',  # CXCursor_ObjCAtCatchStmt (Objective-C's catch statement)       \
+218 : '218',  # CXCursor_ObjCAtFinallyStmt (Objective-C's finally statement)   \
+219 : '219',  # CXCursor_ObjCAtThrowStmt (Objective-C's throw statement)       \
+220 : '220',  # CXCursor_ObjCAtSynchronizedStmt (Objective-C's synchronized    \
+              # statement)                                                     \
+221 : '221',  # CXCursor_ObjCAutoreleasePoolStmt (Objective-C's autorelease    \
+              # pool statement)                                                \
+222 : '222',  # CXCursor_ObjCForCollectionStmt (Objective-C's collection       \
+              # statement)                                                     \
+223 : '223',  # CXCursor_CXXCatchStmt (C++'s catch statement)                  \
+224 : '224',  # CXCursor_CXXTryStmt (C++'s try statement)                      \
+225 : '225',  # CXCursor_CXXForRangeStmt (C++'s for (* : *) statement)         \
+226 : '226',  # CXCursor_SEHTryStmt (Windows Structured Exception Handling's   \
+              # try statement)                                                 \
+227 : '227',  # CXCursor_SEHExceptStmt (Windows Structured Exception Handling's\
+              # except statement.                                              \
+228 : '228',  # CXCursor_SEHFinallyStmt (Windows Structured Exception          \
+              # Handling's finally statement)                                  \
+229 : '229',  # CXCursor_MSAsmStmt (A MS inline assembly statement extension)  \
+230 : '230',  # CXCursor_NullStmt (The null satement ";": C99 6.8.3p3)         \
+231 : '231',  # CXCursor_DeclStmt (Adaptor class for mixing declarations with  \
+              # statements and expressions)                                    \
                                                                                \
 # Translation unit                                                             \
 300 : '300',  # CXCursor_TranslationUnit (Cursor that represents the           \
@@ -593,12 +702,19 @@ kinds = dict({                                                                 \
 401 : '401',  # CXCursor_IBActionAttr                                          \
 402 : '402',  # CXCursor_IBOutletAttr                                          \
 403 : '403',  # CXCursor_IBOutletCollectionAttr                                \
+404 : '404',  # CXCursor_CXXFinalAttr                                          \
+405 : '405',  # CXCursor_CXXOverrideAttr                                       \
+406 : '406',  # CXCursor_AnnotateAttr                                          \
+407 : '407',  # CXCursor_AsmLabelAttr                                          \
                                                                                \
 # Preprocessing                                                                \
 500 : '500', # CXCursor_PreprocessingDirective                                 \
 501 : 'd',   # CXCursor_MacroDefinition                                        \
 502 : '502', # CXCursor_MacroInstantiation                                     \
-503 : '503'  # CXCursor_InclusionDirective                                     \
+503 : '503', # CXCursor_InclusionDirective                                     \
+                                                                               \
+# Modules                                                                      \
+600 : '600', # CXCursor_ModuleImportDecl (A module import declaration)         \
 })
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
