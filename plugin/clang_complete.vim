@@ -105,7 +105,6 @@ function! s:ClangCompleteInit()
 
   call LoadUserOptions()
 
-  let b:should_overload = 0
   let b:my_changedtick = b:changedtick
   let b:clang_parameters = '-x c'
 
@@ -321,25 +320,15 @@ function! ClangComplete(findstart, base)
   if a:findstart
     let l:line = getline('.')
     let l:start = col('.') - 1
-    let b:clang_complete_type = 1
     let l:wsstart = l:start
     if l:line[l:wsstart - 1] =~ '\s'
       while l:wsstart > 0 && l:line[l:wsstart - 1] =~ '\s'
         let l:wsstart -= 1
       endwhile
     endif
-    if l:line[l:wsstart - 1] =~ '[(,]'
-      let b:should_overload = 1
-      let b:col = l:wsstart + 1
-      return l:wsstart
-    endif
-    let b:should_overload = 0
     while l:start > 0 && l:line[l:start - 1] =~ '\i'
       let l:start -= 1
     endwhile
-    if l:line[l:start - 2:] =~ '->' || l:line[l:start - 1] == '.'
-      let b:clang_complete_type = 0
-    endif
     let b:col = l:start + 1
     return l:start
   else
