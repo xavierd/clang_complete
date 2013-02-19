@@ -47,6 +47,17 @@ endfunction
 function! snippets#clang_complete#reset()
 endfunction
 
+python << endpython
+def snippets__clang_complete__formatSnippet(word):
+  return "<#" + word + "#>"
+
+def snippets__clang_complete__trailingPlaceholder():
+  trailingPlaceholder = int(vim.eval("g:clang_trailing_placeholder")) == 1
+  if trailingPlaceholder:
+    return "<##>"
+  else:
+    return ""
+endpython
 
 " ---------------- Helpers ----------------
 
