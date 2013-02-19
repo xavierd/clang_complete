@@ -104,9 +104,9 @@ function! s:ClangCompleteInit()
   call LoadUserOptions()
 
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
-  inoremap <expr> <buffer> . <SID>CompleteDot()
-  inoremap <expr> <buffer> > <SID>CompleteArrow()
-  inoremap <expr> <buffer> : <SID>CompleteColon()
+  "inoremap <expr> <buffer> . <SID>CompleteDot()
+  "inoremap <expr> <buffer> > <SID>CompleteArrow()
+  "inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
 
   if g:clang_snippets == 1
@@ -161,6 +161,9 @@ function! s:ClangCompleteInit()
       au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
     augroup end
   endif
+
+  au CursorMovedI <buffer> call <SID>ReLaunchCompletion()
+  "au InsertCharPre <buffer> call <SID>ReLaunchCompletion()
 
   if !exists('g:clang_use_library') || g:clang_use_library == 1
     " Try to use libclang. On failure, we fall back to the clang executable.
@@ -590,6 +593,9 @@ function! ClangComplete(findstart, base)
     while l:start > 0 && l:line[l:start - 1] =~ '\i'
       let l:start -= 1
     endwhile
+    if l:start == 0
+      return -1
+    endif
     if l:line[l:start - 2:] =~ '->' || l:line[l:start - 1] == '.'
       let b:clang_complete_type = 0
     endif
@@ -605,37 +611,46 @@ function! ClangComplete(findstart, base)
     endif
 
     if g:clang_use_library == 1
-      python completions, timer = getCurrentCompletions(vim.eval('a:base'))
+      python thread = getThread(vim.current.buffer.name)
+      let l:str = 'tryComplete(thread,' . b:col . ', str(' . a:base . '))'
+      let l:shouldRetry = pyeval('tryComplete(thread,' . b:col . ', "' . a:base . '")')
+      if l:shouldRetry
+        return []
+      endif
+      
+      python completions, timer = getCurrentCompletions(thread)
       python vim.command('let l:res = ' + completions)
       python timer.registerEvent("Load into vimscript")
     else
       let l:res = s:ClangCompleteBinary(a:base)
     endif
 
-    for item in l:res
-      if g:clang_snippets == 1
-        let item['word'] = b:AddSnip(item['info'], item['args_pos'])
-      else
-        let item['word'] = item['abbr']
+    if l:res != []
+      for item in l:res
+        if g:clang_snippets == 1
+          let item['word'] = b:AddSnip(item['info'], item['args_pos'])
+        else
+          let item['word'] = item['abbr']
+        endif
+      endfor
+
+      inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
+      augroup ClangComplete
+        au CursorMovedI <buffer> call <SID>TriggerSnippet()
+      augroup end
+      let b:snippet_chosen = 0
+
+      if g:clang_use_library == 1
+        python timer.registerEvent("vimscript + snippets")
+        python timer.finish()
       endif
-    endfor
 
-    inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
-    augroup ClangComplete
-      au CursorMovedI <buffer> call <SID>TriggerSnippet()
-    augroup end
-    let b:snippet_chosen = 0
-
-  if g:clang_use_library == 1
-    python timer.registerEvent("vimscript + snippets")
-    python timer.finish()
+      if g:clang_debug == 1
+        echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
+      endif
+    endif
+    return l:res
   endif
-
-  if g:clang_debug == 1
-    echom 'clang_complete: completion time (' . (g:clang_use_library == 1 ? 'library' : 'binary') . ') '. split(reltimestr(reltime(l:time_start)))[0]
-  endif
-  return l:res
-endif
 endfunction
 
 function! s:HandlePossibleSelectionEnter()
@@ -727,9 +742,19 @@ function! s:CompleteColon()
   return ':' . s:LaunchCompletion()
 endfunction
 
+let b:prev_line = ""
+
+function! s:ReLaunchCompletion()
+  if s:ShouldComplete() && b:prev_line != getline('.')
+    let b:prev_line = getline('.')
+    call feedkeys("\<C-X>\<C-U>")
+  endif
+  return ''
+endfunction
+
 " May be used in a mapping to update the quickfix window.
 function! g:ClangUpdateQuickFix()
-  call s:DoPeriodicQuickFix()
+  "call s:DoPeriodicQuickFix()
   return ''
 endfunction
 

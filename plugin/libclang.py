@@ -121,7 +121,7 @@ class CodeCompleteTimer:
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
-    print "%s" % vim.current.buffer[line]
+    print "%s" % vim.current.buffer[line - 1]
 
     print " "
 
@@ -415,7 +415,9 @@ class CompleteThread(threading.Thread):
     threading.Thread.__init__(self)
     self.line = -1
     self.column = -1
-    self.fileContent = None
+    self.base = ""
+    self.sorting = ""
+    self.fileContent = ""
     self.fileName = fileName
     self.result = None
     self.shouldTerminate = False
@@ -424,6 +426,7 @@ class CompleteThread(threading.Thread):
     self.timer = CodeCompleteTimer()
     self.event = threading.Event()
     self.doneEvent = threading.Event()
+    self.restartEvent = threading.Event()
 
   def run(self):
     global threadsShouldTerminate
@@ -437,93 +440,110 @@ class CompleteThread(threading.Thread):
       while True:
         # FIXME: put a timeout and background reparse.
         self.event.wait()
+        self.restartEvent.clear()
         if self.shouldTerminate:
           return
 
-        self.event.clear()
         with libclangLock:
-          self.result = getCurrentCompletionResults(self.line, self.column,
-                                                    self.args, self.fileContent,
-                                                    self.fileName, self.timer)
-          self.doneEvent.set()
+          results = getCurrentCompletionResults(self.line, self.column,
+                                                self.args, self.fileContent,
+                                                self.fileName, self.timer)
+          if results is not None:
+            res = results.results
+            self.timer.registerEvent("Count # Results (%d)" % len(res))
 
-  def getResult(self):
-    res = self.result
-    self.doneEvent.clear()
-    return res
+            if self.base != "":
+              res = filter(lambda x: getAbbr(x.string).startswith(self.base), res)
+
+            self.timer.registerEvent("Filter")
+
+            if self.sorting == 'priority':
+              getPriority = lambda x: x.string.priority
+              res = sorted(res, None, getPriority)
+            if self.sorting == 'alpha':
+              getAbbrevation = lambda x: getAbbr(x.string).lower()
+              res = sorted(res, None, getAbbrevation)
+            self.timer.registerEvent("Sort")
+
+          self.result = res
+          self.doneEvent.set()
+          self.event.clear()
+          self.restartEvent.wait()
+          if self.shouldTerminate:
+            return
+          self.doneEvent.clear()
+
+  STATE_WAITING  = 0
+  STATE_RUNNING  = 1
+  STATE_FINISHED = 2
+  def getCompletionState(self):
+    if self.doneEvent.is_set():
+      return CompleteThread.STATE_FINISHED
+    
+    if self.event.is_set():
+      return CompleteThread.STATE_RUNNING
+    else:
+      return CompleteThread.STATE_WAITING
+
 
 def getThread(filename):
-  line, _ = vim.current.window.cursor
-  column = int(vim.eval("b:col"))
-  fileContent = getCurrentFile()
-
   t = threads.get(filename)
   if t is None:
-    params = getCompileParams(vim.current.buffer.name)
-    t = CompleteThread(vim.current.buffer.name, params)
+    params = getCompileParams(filename)
+    t = CompleteThread(filename, params)
     threads[filename] = t
-
-  t.line = line
-  t.column = column
-  t.fileContent = fileContent
-  t.timer.start(filename, line, column, t.args, t.cwd)
-
-  if not t.is_alive():
-    t.start()
 
   return t
 
 def FinishClangComplete():
   # I've got no idea why threadsShouldTerminate is not enough for the
-  # threads…
+  # threads.
   threadsShouldTerminate = True
   for t in threads.itervalues():
     t.shouldTerminate = True
     t.event.set()
+    t.restartEvent.set()
 
 def WarmupCache():
-  getThread(vim.current.buffer.name)
-
-def getCurrentCompletions(base):
-  sorting = vim.eval("g:clang_sort_algo")
-
   t = getThread(vim.current.buffer.name)
-  timer = t.timer
+  t.fileContent = getCurrentFile()
+  t.timer.start(vim.current.buffer.name, -1, -1, t.args, t.cwd)
+  t.start()
+
+def tryComplete(t, column, base):
+  state = t.getCompletionState()
+  if state == CompleteThread.STATE_FINISHED and column == t.column:
+    return False
+
+  if state == CompleteThread.STATE_RUNNING:
+    return True
+
+  if not t.is_alive():
+    t.start()
+
+  # The thread is waiting, give him some work!
+  line, _ = vim.current.window.cursor
+  t.line = line
+  t.column = column
+  t.base = base
+  t.sorting = vim.eval("g:clang_sort_algo")
+  t.fileContent = getCurrentFile()
+  t.timer.start(vim.current.buffer.name, line, column, t.args, t.cwd)
   t.event.set()
 
-  while True:
-    if t.doneEvent.wait(0.1):
-      break
+  return True
 
-    cancel = int(vim.eval('complete_check()'))
-    if cancel != 0:
-      return (str([]), timer)
+def getCurrentCompletions(t):
+  timer = t.timer
+  cr = t.result
+  t.restartEvent.set()
 
-  cr = t.getResult()
   if cr is None:
     print "Cannot parse this source file. The following arguments " \
-        + "are used for clang: " + " ".join(params['args'])
+        + "are used for clang: " + " ".join(t.args)
     return (str([]), timer)
 
-  results = cr.results
-
-  timer.registerEvent("Count # Results (%s)" % str(len(results)))
-
-  if base != "":
-    results = filter(lambda x: getAbbr(x.string).startswith(base), results)
-
-  timer.registerEvent("Filter")
-
-  if sorting == 'priority':
-    getPriority = lambda x: x.string.priority
-    results = sorted(results, None, getPriority)
-  if sorting == 'alpha':
-    getAbbrevation = lambda x: getAbbr(x.string).lower()
-    results = sorted(results, None, getAbbrevation)
-
-  timer.registerEvent("Sort")
-
-  result = map(formatResult, results)
+  result = map(formatResult, cr)
 
   timer.registerEvent("Format")
   return (str(result), timer)
