@@ -296,7 +296,12 @@ def getCompilationDBParams(fileName):
           continue
         args.append(arg)
       getCompilationDBParams.last_query = { 'args': args, 'cwd': cwd }
-  return getCompilationDBParams.last_query
+
+  # Do not directly return last_query, but make sure we return a deep copy.
+  # Otherwise users of that result may accidently change it and store invalid
+  # values in our cache.
+  query = getCompilationDBParams.last_query
+  return { 'args': list(query['args']), 'cwd': query['cwd']}
 
 getCompilationDBParams.last_query = { 'args': [], 'cwd': None }
 
