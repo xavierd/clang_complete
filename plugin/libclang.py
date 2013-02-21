@@ -512,11 +512,12 @@ def WarmupCache():
 
 def tryComplete(t, column, base):
   state = t.getCompletionState()
+  column = int(column)
   if state == CompleteThread.STATE_FINISHED and column == t.column:
-    return False
+    return 0
 
   if state == CompleteThread.STATE_RUNNING:
-    return True
+    return 1
 
   if not t.is_alive():
     t.start()
@@ -531,7 +532,7 @@ def tryComplete(t, column, base):
   t.timer.start(vim.current.buffer.name, line, column, t.args, t.cwd)
   t.event.set()
 
-  return True
+  return 1
 
 def getCurrentCompletions(t):
   timer = t.timer

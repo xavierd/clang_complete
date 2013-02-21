@@ -612,9 +612,8 @@ function! ClangComplete(findstart, base)
 
     if g:clang_use_library == 1
       python thread = getThread(vim.current.buffer.name)
-      let l:str = 'tryComplete(thread,' . b:col . ', str(' . a:base . '))'
-      let l:shouldRetry = pyeval('tryComplete(thread,' . b:col . ', "' . a:base . '")')
-      if l:shouldRetry
+      python vim.command('let l:shouldRetry = ' + str(tryComplete(thread, vim.eval('b:col'), vim.eval("a:base"))))
+      if l:shouldRetry == 1
         return []
       endif
       
