@@ -605,7 +605,7 @@ function! ClangComplete(findstart, base)
 
     if g:clang_use_library == 1
       python completions, timer = getCurrentCompletions(vim.eval('a:base'))
-      python vim.command('let l:res = ' + completions)
+      let l:res = pyeval('completions')
       python timer.registerEvent("Load into vimscript")
     else
       let l:res = s:ClangCompleteBinary(a:base)

@@ -462,13 +462,13 @@ def getCurrentCompletions(base):
     t.join(0.01)
     cancel = int(vim.eval('complete_check()'))
     if cancel != 0:
-      return (str([]), timer)
+      return ([], timer)
 
   cr = t.result
   if cr is None:
     print "Cannot parse this source file. The following arguments " \
         + "are used for clang: " + " ".join(params['args'])
-    return (str([]), timer)
+    return ([], timer)
 
   results = cr.results
 
@@ -491,7 +491,7 @@ def getCurrentCompletions(base):
   result = map(formatResult, results)
 
   timer.registerEvent("Format")
-  return (str(result), timer)
+  return (result, timer)
 
 def getAbbr(strings):
   for chunks in strings:
