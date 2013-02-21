@@ -51,6 +51,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
                       library_path, user_requested):
   global index
 
+  global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   printWarnings = (user_requested != "0") or debug
 
@@ -82,6 +83,8 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   global translationUnits
   translationUnits = dict()
+  global threads
+  threads = dict()
   global complete_flags
   complete_flags = int(clang_complete_flags)
   global compilation_database
@@ -91,6 +94,8 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
     compilation_database = None
   global libclangLock
   libclangLock = threading.Lock()
+  global threadsShouldTerminate
+  threadsShouldTerminate = False
   return 1
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
@@ -100,23 +105,23 @@ def getCurrentFile():
   return (vim.current.buffer.name, file)
 
 class CodeCompleteTimer:
-  def __init__(self, debug, file, line, column, params):
+  def __init__(self):
     self._debug = debug
 
-    if not debug:
+  def start(self, file, line, column, args, cwd):
+    if not self._debug:
       return
 
-    content = vim.current.line
     print " "
     print "libclang code completion"
     print "========================"
-    print "Command: clang %s -fsyntax-only " % " ".join(params['args']),
+    print "Command: clang %s -fsyntax-only " % " ".join(args),
     print "-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file)
-    print "cwd: %s" % params['cwd']
+    print "cwd: %s" % cwd
     print "File: %s" % file
     print "Line: %d, Column: %d" % (line, column)
     print " "
-    print "%s" % content
+    print "%s" % vim.current.buffer[line - 1]
 
     print " "
 
@@ -160,11 +165,14 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
       timer.registerEvent("Reparsing")
     return tu
 
+  if threadsShouldTerminate:
+    return None
+
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
   tu = index.parse(fileName, args, [currentFile], flags)
   timer.registerEvent("First parse")
 
-  if tu == None:
+  if tu == None or threadsShouldTerminate:
     return None
 
   translationUnits[fileName] = tu
@@ -337,8 +345,9 @@ def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
-  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
+  timer = CodeCompleteTimer()
 
+  timer.start(vim.current.buffer.name, -1, -1, params['args'], params['cwd'])
   with workingDir(params['cwd']):
     with libclangLock:
       getCurrentTranslationUnit(params['args'], getCurrentFile(),
@@ -407,88 +416,140 @@ def formatResult(result):
 
 
 class CompleteThread(threading.Thread):
-  def __init__(self, line, column, currentFile, fileName, params, timer):
+  def __init__(self, fileName, params):
     threading.Thread.__init__(self)
-    self.line = line
-    self.column = column
-    self.currentFile = currentFile
+    self.line = -1
+    self.column = -1
+    self.base = ""
+    self.sorting = ""
+    self.fileContent = ""
     self.fileName = fileName
     self.result = None
+    self.shouldTerminate = False
     self.args = params['args']
     self.cwd = params['cwd']
-    self.timer = timer
+    self.timer = CodeCompleteTimer()
+    self.event = threading.Event()
+    self.doneEvent = threading.Event()
+    self.restartEvent = threading.Event()
 
   def run(self):
+    global threadsShouldTerminate
     with workingDir(self.cwd):
       with libclangLock:
-        if self.line == -1:
-          # Warm up the caches. For this it is sufficient to get the
-          # current translation unit. No need to retrieve completion
-          # results.  This short pause is necessary to allow vim to
-          # initialize itself.  Otherwise we would get: E293: block was
-          # not locked The user does not see any delay, as we just pause
-          # a background thread.
-          time.sleep(0.1)
-          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
-                                    self.timer)
-        else:
-          self.result = getCurrentCompletionResults(self.line, self.column,
-                                                    self.args, self.currentFile,
-                                                    self.fileName, self.timer)
+        # We need to sleep, otherwise vim become crazy and crash.
+        time.sleep(0.1)
+        getCurrentTranslationUnit(self.args, self.fileContent, self.fileName,
+                                  self.timer)
+
+      while True:
+        # FIXME: put a timeout and background reparse.
+        self.event.wait()
+        self.restartEvent.clear()
+        if self.shouldTerminate:
+          return
+
+        with libclangLock:
+          results = getCurrentCompletionResults(self.line, self.column,
+                                                self.args, self.fileContent,
+                                                self.fileName, self.timer)
+          if results is not None:
+            res = results.results
+            self.timer.registerEvent("Count # Results (%d)" % len(res))
+
+            if self.base != "":
+              res = filter(lambda x: getAbbr(x.string).startswith(self.base), res)
+
+            self.timer.registerEvent("Filter")
+
+            if self.sorting == 'priority':
+              getPriority = lambda x: x.string.priority
+              res = sorted(res, None, getPriority)
+            if self.sorting == 'alpha':
+              getAbbrevation = lambda x: getAbbr(x.string).lower()
+              res = sorted(res, None, getAbbrevation)
+            self.timer.registerEvent("Sort")
+
+          self.result = res
+          self.doneEvent.set()
+          self.event.clear()
+          self.restartEvent.wait()
+          if self.shouldTerminate:
+            return
+          self.doneEvent.clear()
+
+  STATE_WAITING  = 0
+  STATE_RUNNING  = 1
+  STATE_FINISHED = 2
+  def getCompletionState(self):
+    if self.doneEvent.is_set():
+      return CompleteThread.STATE_FINISHED
+    
+    if self.event.is_set():
+      return CompleteThread.STATE_RUNNING
+    else:
+      return CompleteThread.STATE_WAITING
+
+
+def getThread(filename):
+  t = threads.get(filename)
+  if t is None:
+    params = getCompileParams(filename)
+    t = CompleteThread(filename, params)
+    threads[filename] = t
+
+  return t
+
+def FinishClangComplete():
+  # I've got no idea why threadsShouldTerminate is not enough for the
+  # threads.
+  threadsShouldTerminate = True
+  for t in threads.itervalues():
+    t.shouldTerminate = True
+    t.event.set()
+    t.restartEvent.set()
 
 def WarmupCache():
-  params = getCompileParams(vim.current.buffer.name)
-  timer = CodeCompleteTimer(0, "", -1, -1, params)
-  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
-                     params, timer)
+  t = getThread(vim.current.buffer.name)
+  t.fileContent = getCurrentFile()
+  t.timer.start(vim.current.buffer.name, -1, -1, t.args, t.cwd)
   t.start()
 
+def tryComplete(t, column, base):
+  state = t.getCompletionState()
+  column = int(column)
+  if state == CompleteThread.STATE_FINISHED and column == t.column:
+    return 0
 
-def getCurrentCompletions(base):
-  global debug
-  debug = int(vim.eval("g:clang_debug")) == 1
-  sorting = vim.eval("g:clang_sort_algo")
+  if state == CompleteThread.STATE_RUNNING:
+    return 1
+
+  if not t.is_alive():
+    t.start()
+
+  # The thread is waiting, give him some work!
   line, _ = vim.current.window.cursor
-  column = int(vim.eval("b:col"))
-  params = getCompileParams(vim.current.buffer.name)
+  t.line = line
+  t.column = column
+  t.base = base
+  t.sorting = vim.eval("g:clang_sort_algo")
+  t.fileContent = getCurrentFile()
+  t.timer.start(vim.current.buffer.name, line, column, t.args, t.cwd)
+  t.event.set()
 
-  timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, column,
-                            params)
+  return 1
 
-  t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name,
-                     params, timer)
-  t.start()
-  while t.isAlive():
-    t.join(0.01)
-    cancel = int(vim.eval('complete_check()'))
-    if cancel != 0:
-      return (str([]), timer)
-
+def getCurrentCompletions(t):
+  timer = t.timer
   cr = t.result
+  t.restartEvent.set()
+
   if cr is None:
     print "Cannot parse this source file. The following arguments " \
-        + "are used for clang: " + " ".join(params['args'])
+        + "are used for clang: " + " ".join(t.args)
     return (str([]), timer)
 
-  results = cr.results
-
-  timer.registerEvent("Count # Results (%s)" % str(len(results)))
-
-  if base != "":
-    results = filter(lambda x: getAbbr(x.string).startswith(base), results)
-
-  timer.registerEvent("Filter")
-
-  if sorting == 'priority':
-    getPriority = lambda x: x.string.priority
-    results = sorted(results, None, getPriority)
-  if sorting == 'alpha':
-    getAbbrevation = lambda x: getAbbr(x.string).lower()
-    results = sorted(results, None, getAbbrevation)
-
-  timer.registerEvent("Sort")
-
-  result = map(formatResult, results)
+  result = map(formatResult, cr)
 
   timer.registerEvent("Format")
   return (str(result), timer)
