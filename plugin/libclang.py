@@ -3,6 +3,9 @@ import vim
 import time
 import threading
 import os
+import subprocess
+
+subprocess._cleanup = lambda: None
 
 # Check if libclang is able to find the builtin include files.
 #
