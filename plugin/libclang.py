@@ -289,7 +289,8 @@ def getCompilationDBParams(fileName):
           continue
         if arg == '-c':
           continue
-        if arg == fileName or os.path.realpath(arg) == fileName:
+        if arg == fileName or \
+           os.path.realpath(os.path.join(cwd, arg)) == fileName:
           continue
         if arg == '-o':
           skip_next = 1;
