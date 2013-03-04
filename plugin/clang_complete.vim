@@ -245,7 +245,7 @@ endfunction
 function! s:initClangCompletePython()
   if !has('python')
     echoe 'clang_complete: No python support available.'
-    echoe 'Cannot use clang library, using executable'
+    echoe 'Cannot use clang library'
     echoe 'Compile vim with python support to use libclang'
     return 0
   endif
