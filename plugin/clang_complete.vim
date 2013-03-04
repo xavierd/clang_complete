@@ -140,7 +140,7 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
   nnoremap <buffer> <silent> <C-]> :call <SID>GotoDeclaration()<CR>
-  nnoremap <buffer> <silent> <C-T> :call <SID>GotoBack()<CR>
+  nnoremap <buffer> <silent> <C-T> <C-O>
 
   if g:clang_snippets == 1
     call g:ClangSetSnippetEngine(g:clang_snippets_engine)
@@ -459,15 +459,7 @@ function! s:CompleteColon()
 endfunction
 
 function! s:GotoDeclaration()
-  " I would like to mimic <C-]> and <C-T> when using tags.
-  " It would be much easier if the tag stack could be modified, but alas
-  " that is not possible. All the handling should be done by hand...
   python gotoDeclaration()
-  return ''
-endfunction
-
-function! s:GotoBack()
-  python gotoBack()
   return ''
 endfunction
 

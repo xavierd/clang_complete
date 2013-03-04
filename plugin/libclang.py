@@ -89,8 +89,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
     compilation_database = None
   global libclangLock
   libclangLock = threading.Lock()
-  global jumpStack
-  jumpStack = []
   return 1
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
@@ -500,16 +498,6 @@ def getAbbr(strings):
       return chunks.spelling
   return ""
 
-def pushLocation(loc):
-  global jumpStack
-  jumpStack.append((loc.file.name, loc.line, loc.column))
-
-def popLocation():
-  if jumpStack == []:
-    print "Empty jump stack!"
-    return (None, 0, 0)
-  return jumpStack.pop()
-
 def jumpToLocation(filename, line, column):
   if filename != vim.current.buffer.name:
     vim.command("edit! %s" % filename)
@@ -531,16 +519,10 @@ def gotoDeclaration():
       loc = SourceLocation.from_position(tu, f, line, col + 1)
       cursor = Cursor.from_location(tu, loc)
       if cursor.referenced is not None and loc != cursor.referenced.location:
-        pushLocation(loc)
         loc = cursor.referenced.location
         jumpToLocation(loc.file.name, loc.line, loc.column)
 
   timer.finish()
-
-def gotoBack():
-  filename, line, column = popLocation()
-  if filename is not None:
-    jumpToLocation(filename, line, column)
 
 # Manually extracted from Index.h
 # Doing it by hand is long, error prone and horrible, we must find a way
