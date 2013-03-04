@@ -25,7 +25,7 @@ function! s:ClangCompleteInit()
 
   if exists('g:clang_use_library') && g:clang_use_library == 0
     echoe "clang_complete: You can't use clang binary anymore."
-    echoe 'Switch to libclang, and report bugs if you find any.'
+    echoe 'For more information see g:clang_use_library help.'
     return
   endif
 
@@ -130,41 +130,40 @@ function! s:ClangCompleteInit()
     let g:clang_complete_lib_flags += 2
   endif
 
-  let l:initialized = s:initClangCompletePython()
-  let g:clang_use_library = l:initialized
-
-  if g:clang_use_library == 1
-    inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
-    inoremap <expr> <buffer> . <SID>CompleteDot()
-    inoremap <expr> <buffer> > <SID>CompleteArrow()
-    inoremap <expr> <buffer> : <SID>CompleteColon()
-    inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
-
-    if g:clang_snippets == 1
-      call g:ClangSetSnippetEngine(g:clang_snippets_engine)
-    endif
-
-    " Force menuone. Without it, when there's only one completion result,
-    " it can be confusing (not completing and no popup)
-    if g:clang_auto_select != 2
-      set completeopt-=menu
-      set completeopt+=menuone
-    endif
-
-    " Disable every autocmd that could have been set.
-    augroup ClangComplete
-      autocmd!
-    augroup end
-
-    if g:clang_periodic_quickfix == 1
-      augroup ClangComplete
-        au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
-      augroup end
-    endif
-
-    setlocal completefunc=ClangComplete
-    setlocal omnifunc=ClangComplete
+  if s:initClangCompletePython() != 1
+    return
   endif
+
+  inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
+  inoremap <expr> <buffer> . <SID>CompleteDot()
+  inoremap <expr> <buffer> > <SID>CompleteArrow()
+  inoremap <expr> <buffer> : <SID>CompleteColon()
+  inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
+
+  if g:clang_snippets == 1
+    call g:ClangSetSnippetEngine(g:clang_snippets_engine)
+  endif
+
+  " Force menuone. Without it, when there's only one completion result,
+  " it can be confusing (not completing and no popup)
+  if g:clang_auto_select != 2
+    set completeopt-=menu
+    set completeopt+=menuone
+  endif
+
+  " Disable every autocmd that could have been set.
+  augroup ClangComplete
+    autocmd!
+  augroup end
+
+  if g:clang_periodic_quickfix == 1
+    augroup ClangComplete
+      au CursorHold,CursorHoldI <buffer> call <SID>DoPeriodicQuickFix()
+    augroup end
+  endif
+
+  setlocal completefunc=ClangComplete
+  setlocal omnifunc=ClangComplete
 endfunction
 
 function! LoadUserOptions()
