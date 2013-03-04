@@ -210,7 +210,9 @@ Instead of calling the clang/clang++ tool use libclang directly. This gives
 access to many more clang features. Furthermore it automatically caches all
 includes in memory. Updates after changes in the same file will therefore be a
 lot faster.
-Default: 0
+Note: This version doesn't support calling clang binary for completion. If you
+cannot use libclang, you should download clang_complete from vim.org website.
+Default: 1
 
        				       	*clang_complete-library_path*
        				       	*g:clang_library_path*
