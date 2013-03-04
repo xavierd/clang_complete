@@ -114,7 +114,7 @@ Default: 0
 
 				       	*clang_complete-snippets_engine*
 				       	*g:clang_snippets_engine*
-The snippets engine (clang_complete, snipmate, ultisnips... see the snippets
+The snippets engine (clang_complete, ultisnips... see the snippets
 subdirectory).
 Default: "clang_complete"
 
@@ -325,10 +325,10 @@ for example:
 let g:clang_snippets = 1
 let g:clang_snippets_engine = 'clang_complete'
 
-If you have snipmate installed, you can use
+If you have ultisnips installed, you can use
 
 let g:clang_snippets = 1
-let g:clang_snippets_engine = 'snipmate'
+let g:clang_snippets_engine = 'ultisnips'
 
 instead. After a completetion you can use <Tab> in normal mode to jump to the
 next parameter.
