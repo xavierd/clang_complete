@@ -48,11 +48,10 @@ def getBuiltinHeaderPath(library_path):
   return None
 
 def initClangComplete(clang_complete_flags, clang_compilation_database, \
-                      library_path, user_requested):
+                      library_path):
   global index
 
   debug = int(vim.eval("g:clang_debug")) == 1
-  printWarnings = (user_requested != "0") or debug
 
   if library_path != "":
     Config.set_library_path(library_path)
@@ -62,12 +61,11 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   try:
     index = Index.create()
   except Exception, e:
-    if printWarnings:
-      print "Loading libclang failed, falling back to clang executable. ",
-      if library_path == "":
-        print "Consider setting g:clang_library_path"
-      else:
-        print "Are you sure '%s' contains libclang?" % library_path
+    print "Loading libclang failed, completion won't be available"
+    if library_path == "":
+      print "Consider setting g:clang_library_path"
+    else:
+      print "Are you sure '%s' contains libclang?" % library_path
     return 0
 
   global builtinHeaderPath
@@ -75,7 +73,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   if not canFindBuiltinHeaders(index):
     builtinHeaderPath = getBuiltinHeaderPath(library_path)
 
-    if not builtinHeaderPath and printWarnings:
+    if not builtinHeaderPath:
       print "WARNING: libclang can not find the builtin includes."
       print "         This will cause slow code completion."
       print "         Please report the problem."
