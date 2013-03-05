@@ -158,7 +158,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
       timer.registerEvent("Reparsing")
     return tu
 
-  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE
+  flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
+          TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
   tu = index.parse(fileName, args, [currentFile], flags)
   timer.registerEvent("First parse")
 
@@ -501,13 +502,16 @@ def getAbbr(strings):
 def jumpToLocation(filename, line, column):
   if filename != vim.current.buffer.name:
     vim.command("edit! %s" % filename)
+  else:
+    vim.command("normal m'")
   vim.current.window.cursor = (line, column - 1)
 
 def gotoDeclaration():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
-  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
+  line, col = vim.current.window.cursor
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, col, params)
 
   with workingDir(params['cwd']):
     with libclangLock:
@@ -515,7 +519,6 @@ def gotoDeclaration():
                                      vim.current.buffer.name, timer,
                                      update = True)
       f = File.from_name(tu, vim.current.buffer.name)
-      line, col = vim.current.window.cursor
       loc = SourceLocation.from_position(tu, f, line, col + 1)
       cursor = Cursor.from_location(tu, loc)
       if cursor.referenced is not None and loc != cursor.referenced.location:

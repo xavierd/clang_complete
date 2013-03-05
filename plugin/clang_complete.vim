@@ -139,7 +139,7 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
-  nnoremap <buffer> <silent> <C-]> :call <SID>GotoDeclaration()<CR>
+  nnoremap <buffer> <silent> <C-]> :call <SID>GotoDeclaration()<CR><Esc>
   nnoremap <buffer> <silent> <C-T> <C-O>
 
   if g:clang_snippets == 1
