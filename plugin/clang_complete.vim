@@ -139,6 +139,8 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
+  nnoremap <buffer> <silent> <C-]> :call <SID>GotoDeclaration()<CR><Esc>
+  nnoremap <buffer> <silent> <C-T> <C-O>
 
   if g:clang_snippets == 1
     call g:ClangSetSnippetEngine(g:clang_snippets_engine)
@@ -452,6 +454,11 @@ function! s:CompleteColon()
     return ':'
   endif
   return ':' . s:LaunchCompletion()
+endfunction
+
+function! s:GotoDeclaration()
+  python gotoDeclaration()
+  return ''
 endfunction
 
 " May be used in a mapping to update the quickfix window.
