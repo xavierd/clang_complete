@@ -15,10 +15,8 @@ def snippetsFormatPlaceHolder(word):
 
 def snippetsAddSnippet(fullname, word):
   ultisnips_idx = 0
-  # FIXME: required?
-  snippet_id = re.sub(' ', '_', fullname)
-  UltiSnips_Manager.add_snippet(snippet_id, word, fullname, "i", "clang_complete")
-  return snippet_id
+  UltiSnips_Manager.add_snippet(fullname, word, fullname, "i", "clang_complete")
+  return fullname
 
 def snippetsTrigger():
   UltiSnips_Manager.expand()
