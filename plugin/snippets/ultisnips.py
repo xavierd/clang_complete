@@ -1,5 +1,6 @@
 import vim
 import re
+from UltiSnips import UltiSnips_Manager
 
 ultisnips_idx = 0
 
@@ -8,8 +9,9 @@ def snippetsInit():
 
 def snippetsFormatPlaceHolder(word):
   # Better way to do that?
-  ultisnips_idx++
-  return '${%d:%s}' % ultisnips_idx, word
+  global ultisnips_idx
+  ultisnips_idx += 1
+  return '${%d:%s}' % (ultisnips_idx, word)
 
 def snippetsAddSnippet(fullname, word):
   ultisnips_idx = 0
