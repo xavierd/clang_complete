@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2012 Aug 29
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2013 Mar 3
 
 
 		  clang_complete plugin documentation
@@ -108,8 +108,8 @@ Note: You could use the g:ClangUpdateQuickFix() to do the same with a mapping.
 
        				       	*clang_complete-snippets*
        				       	*g:clang_snippets*
-If equal to 1, it will do some snippets magic after a ( or a , inside function
-call. Not currently fully working.
+If equal to 1, it will do some snippets magic on code placeholders like
+function argument, template parameters, etc.
 Default: 0
 
 				       	*clang_complete-snippets_engine*
@@ -146,22 +146,9 @@ If equal to 1, the preview window will be close automatically after a
 completion.
 Default: 0
 
-       				       	*clang_complete-exec*
-       				       	*g:clang_exec*
-Name or path of clang executable.
-Note: Use this if clang has a non-standard name, or isn't in the path.
-Default: "clang"
-
        				      	*clang_complete-user_options*
        				       	*g:clang_user_options*
-When using clang executable the value of this option is added at the end of
-clang command. Useful if you want to filter the result, or do other stuffs.
-To ignore the error code returned by clang, set |g:clang_exec| to `"clang` and
-|g:clang_user_options| to `2>/dev/null || exit 0"` if you're on *nix, or to
-`2>NUL || exit 0"` if you are on windows.
-
-When using libclang the value of this option is passed to libclang as
-compilation arguments.
+Additionnal compilation argument passed to libclang.
 
 Example: >
  " compile all sources as c++11 (just for example, use .clang_complete for
@@ -239,47 +226,16 @@ Defaut: 0
 ==============================================================================
 5. Known issues					*clang_complete-issues*
 
-If you find that completion is slow, please read the |clang_complete-pch|
-section below.
-
 If you get following error message while trying to complete anything: >
  E121: Undefined variable: b:should_overload
 it means that your version of Vim is too old (this is an old bug and it has
 been fixed with one of patches for Vim 7.2) and you need to update it.
 
-If clang is not able to compile your file, it cannot complete anything. Since
-clang is not supporting every C++0x features, this is normal if it can do any
-completion on C++0x file.
-
-There is no difference in clang's output between private methods/members and
-public ones. Which means that I cannot filter private methods on the
-completion list.
+Ubuntu users may need to install libclang-dev: >
+ apt-get install libclang-dev
 
 ==============================================================================
-6. PCH      					*clang_complete-pch*
-
-In case you can not or you do not want to install libclang, a precompiled
-header file is another way to accelerate compilation, and so, to accelerate
-the completion. It is however more complicated to install and is still slower
-than the use of libclang.
-
-Here is how to create the <vector> pch, on linux (OSX users may use
--fnext-runtime instead of -fgnu-runtime): >
- clang -x c++-header /path/to/c++/vector -fno-exceptions -fgnu-runtime \
-    -o vector.pch
-You just have to insert it into your .clang_complete: >
- echo '-include-pch /path/to/vector.pch -fgnu-runtime' >> .clang_complete
-<
-One of the major problem is that you cannot include more that one pch, the
-solution is to put the system headers or non changing headers into another
-header and then compile it to pch: >
- echo '#include <iostream>\n#include <vector>' > pchheader.h
- clang -x c++-header ./pchheader.h -fno-exceptions -fnu-runtime \
-    -o ./pchheader.pch
-And then add it to the .clang_complete file.
-
-==============================================================================
-7. cc_args.py script				*clang_complete-cc_args*
+6. cc_args.py script				*clang_complete-cc_args*
 
 This script, installed at ~/.vim/bin/cc_args.py, could be used to generate or
 update the .clang_complete file. It works similar to gccsence's gccrec and
@@ -295,17 +251,14 @@ new options. If you don't want to update an existing configuration file,
 delete it before running make.
 
 ==============================================================================
-8. To do						*clang_complete-todo*
+7. To do						*clang_complete-todo*
 
 - Write some unit tests
-  - clang vs libclang accuracy for complex completions
-  - clang vs libclang timing
 - Explore "jump to declaration/definition" with libclang FGJ
 - Think about supertab (<C-X><C-U> with supertab and clang_auto_select)
-- Parse fix-its and do something useful with it
 
 ==============================================================================
-9. FAQ						*clang_complete-faq*
+8. FAQ						*clang_complete-faq*
 
 *) clang_complete doesn't work! I always get the message "pattern not found".
 
@@ -342,9 +295,9 @@ adding the following line to your vimrc:
 set completeopt=menu,longest
 
 ==============================================================================
-10. License					*clang_complete-license*
+9. License					*clang_complete-license*
 
-Copyright (c) 2010, 2011, Xavier Deguillard
+Copyright (c) 2010, 2011, 2012, 2013 Xavier Deguillard, Tobias Grosser
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -354,20 +307,20 @@ modification, are permitted provided that the following conditions are met:
     * Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    * Neither the name of Xavier Deguillard nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    * Neither the name of the copyright holders nor the names of their
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL XAVIER DEGUILLARD BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Note: This license does not cover the files that come from the LLVM project,
 namely, cindex.py and __init__.py, which are covered by the LLVM license.
