@@ -134,15 +134,15 @@ function! s:ClangCompleteInit()
     return
   endif
 
+  if g:clang_snippets == 1
+    python snippetsInit()
+  endif
+
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
   inoremap <expr> <buffer> . <SID>CompleteDot()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
-
-  if g:clang_snippets == 1
-    call g:ClangSetSnippetEngine(g:clang_snippets_engine)
-  endif
 
   " Force menuone. Without it, when there's only one completion result,
   " it can be confusing (not completing and no popup)
@@ -256,6 +256,23 @@ function! s:initClangCompletePython()
 
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . fnameescape(s:plugin_path) . '/libclang.py'
+
+    if g:clang_snippets == 1
+      "try
+        exe 'python from snippets.' . g:clang_snippets_engine . ' import *'
+        let l:snips_loaded = 1
+      "catch
+      "  let l:snips_loaded = 0
+      "endtry
+      if l:snips_loaded == 0
+        " Oh yeah, vimscript rocks!
+        " Putting that echoe inside the catch, will throw an error, and
+        " display spurious unwanted errors…
+        echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'
+        return 0
+      endif
+    endif
+
     py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'))))
     if l:res == 0
       return 0
@@ -336,18 +353,12 @@ function! ClangComplete(findstart, base)
     endif
 
     if g:clang_snippets == 1
-      call b:ResetSnip()
+      python snippetsReset()
     endif
 
     python completions, timer = getCurrentCompletions(vim.eval('a:base'))
     python vim.command('let l:res = ' + completions)
     python timer.registerEvent("Load into vimscript")
-
-    if g:clang_snippets == 1
-      for item in l:res
-        let item['word'] = b:AddSnip(item['info'], item['args_pos'])
-      endfor
-    endif
 
     inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
     augroup ClangComplete
@@ -355,7 +366,6 @@ function! ClangComplete(findstart, base)
     augroup end
     let b:snippet_chosen = 0
 
-    python timer.registerEvent("vimscript + snippets")
     python timer.finish()
 
     if g:clang_debug == 1
@@ -394,7 +404,7 @@ function! s:TriggerSnippet()
     augroup end
 
     " Trigger the snippet
-    call b:TriggerSnip()
+    python snippetsTrigger()
   endif
 
   if g:clang_close_preview
@@ -458,18 +468,6 @@ endfunction
 function! g:ClangUpdateQuickFix()
   call s:DoPeriodicQuickFix()
   return ''
-endfunction
-
-function! g:ClangSetSnippetEngine(engine_name)
-  try
-    call eval('snippets#' . a:engine_name . '#init()')
-    let b:AddSnip = function('snippets#' . a:engine_name . '#add_snippet')
-    let b:ResetSnip = function('snippets#' . a:engine_name . '#reset')
-    let b:TriggerSnip = function('snippets#' . a:engine_name . '#trigger')
-  catch /^Vim\%((\a\+)\)\=:E117/
-    echoe 'Snippets engine ' . a:engine_name . ' not found.'
-    let g:clang_snippets = 0
-  endtry
 endfunction
 
 " vim: set ts=2 sts=2 sw=2 expandtab :

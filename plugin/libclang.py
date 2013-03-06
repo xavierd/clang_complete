@@ -363,9 +363,8 @@ def formatResult(result):
   completion = dict()
   returnValue = None
   abbr = ""
-  args_pos = []
-  cur_pos = 0
   word = ""
+  info = ""
 
   for chunk in result.string:
 
@@ -381,22 +380,22 @@ def formatResult(result):
     if chunk.isKindTypedText():
       abbr = chunk_spelling
 
-    chunk_len = len(chunk_spelling)
     if chunk.isKindPlaceHolder():
-      args_pos += [[ cur_pos, cur_pos + chunk_len ]]
-    cur_pos += chunk_len
-    word += chunk_spelling
+      word += snippetsFormatPlaceHolder(chunk.spelling)
+    else:
+      word += chunk_spelling
 
-  menu = word
+    info += chunk_spelling
+
+  menu = info
 
   if returnValue:
     menu = returnValue.spelling + " " + menu
 
-  completion['word'] = abbr
+  completion['word'] = snippetsAddSnippet(info, word)
   completion['abbr'] = abbr
   completion['menu'] = menu
-  completion['info'] = word
-  completion['args_pos'] = args_pos
+  completion['info'] = info
   completion['dup'] = 1
 
   # Replace the number that represents a specific kind with a better
