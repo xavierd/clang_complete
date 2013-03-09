@@ -5,20 +5,20 @@ def snippetsInit():
   vim.command("noremap <silent> <buffer> <tab> :python updateSnips()<CR>")
   vim.command("snoremap <silent> <buffer> <tab> <ESC>:python updateSnips()<CR>")
   if int(vim.eval("g:clang_conceal_snippets")) == 1:
-    vim.command("syntax match placeHolder /\${.*}/ contains=placeHolderMark")
-    vim.command("syntax match placeHolderMark contained /\${/ conceal")
-    vim.command("syntax match placeHolderMark contained /}/ conceal")
+    vim.command("syntax match placeHolder /\$`[^`]*`/ contains=placeHolderMark")
+    vim.command("syntax match placeHolderMark contained /\$`/ conceal")
+    vim.command("syntax match placeHolderMark contained /`/ conceal")
 
 # The two following function are performance sensitive, do _nothing_
 # more that the strict necessary.
 
 def snippetsFormatPlaceHolder(word):
-  return "${%s}" % word
+  return "$`%s`" % word
 
 def snippetsAddSnippet(fullname, word):
   return word
 
-r = re.compile('\${[^}]*}')
+r = re.compile('\$`[^`]*`')
 
 def snippetsTrigger():
   if r.search(vim.current.line) is None:
