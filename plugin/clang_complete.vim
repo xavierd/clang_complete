@@ -460,9 +460,9 @@ function! s:GotoDeclaration()
   try
     python gotoDeclaration()
   catch /^Vim\%((\a\+)\)\=:E37/
-  endtry
     echoe "The current file is not saved, and 'hidden' is not set."
           \ "Either save the file or add 'set hidden' in your vimrc."
+  endtry
   return ''
 endfunction
 
