@@ -502,7 +502,13 @@ def getAbbr(strings):
 
 def jumpToLocation(filename, line, column):
   if filename != vim.current.buffer.name:
-    vim.command("edit! %s" % filename)
+    try:
+      vim.command("edit %s" % filename)
+    except:
+      # For some unknown reason, whenever an exception occurs in
+      # vim.command, vim goes crazy and output tons of useless python
+      # errors, catch those.
+      return
   else:
     vim.command("normal m'")
   vim.current.window.cursor = (line, column - 1)
