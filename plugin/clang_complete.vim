@@ -53,8 +53,8 @@ function! s:ClangCompleteInit()
     let g:clang_periodic_quickfix = 0
   endif
 
-  if !exists('g:clang_snippets')
-    let g:clang_snippets = 0
+  if !exists('g:clang_snippets') || g:clang_snippets == 0
+    let g:clang_snippets_engine = 'dummy'
   endif
 
   if !exists('g:clang_snippets_engine')
@@ -134,9 +134,7 @@ function! s:ClangCompleteInit()
     return
   endif
 
-  if g:clang_snippets == 1
-    python snippetsInit()
-  endif
+  python snippetsInit()
 
   inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
   inoremap <expr> <buffer> . <SID>CompleteDot()
@@ -257,20 +255,18 @@ function! s:initClangCompletePython()
     exe 'python sys.path = ["' . s:plugin_path . '"] + sys.path'
     exe 'pyfile ' . fnameescape(s:plugin_path) . '/libclang.py'
 
-    if g:clang_snippets == 1
-      "try
-        exe 'python from snippets.' . g:clang_snippets_engine . ' import *'
-        let l:snips_loaded = 1
-      "catch
-      "  let l:snips_loaded = 0
-      "endtry
-      if l:snips_loaded == 0
-        " Oh yeah, vimscript rocks!
-        " Putting that echoe inside the catch, will throw an error, and
-        " display spurious unwanted errors…
-        echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'
-        return 0
-      endif
+    try
+      exe 'python from snippets.' . g:clang_snippets_engine . ' import *'
+      let l:snips_loaded = 1
+    catch
+      let l:snips_loaded = 0
+    endtry
+    if l:snips_loaded == 0
+      " Oh yeah, vimscript rocks!
+      " Putting that echoe inside the catch, will throw an error, and
+      " display spurious unwanted errors…
+      echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'
+      return 0
     endif
 
     py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'))))
@@ -352,9 +348,7 @@ function! ClangComplete(findstart, base)
       let l:time_start = reltime()
     endif
 
-    if g:clang_snippets == 1
-      python snippetsReset()
-    endif
+    python snippetsReset()
 
     python completions, timer = getCurrentCompletions(vim.eval('a:base'))
     python vim.command('let l:res = ' + completions)
@@ -396,16 +390,14 @@ function! s:TriggerSnippet()
     return
   endif
 
-  if g:clang_snippets == 1
-    " Stop monitoring as we'll trigger a snippet
-    silent! iunmap <buffer> <C-Y>
-    augroup ClangComplete
-      au! CursorMovedI <buffer>
-    augroup end
+  " Stop monitoring as we'll trigger a snippet
+  silent! iunmap <buffer> <C-Y>
+  augroup ClangComplete
+    au! CursorMovedI <buffer>
+  augroup end
 
-    " Trigger the snippet
-    python snippetsTrigger()
-  endif
+  " Trigger the snippet
+  python snippetsTrigger()
 
   if g:clang_close_preview
     pclose

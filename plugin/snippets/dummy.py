@@ -1,18 +1,16 @@
 def snippetsInit():
-  print "Initializing stuffs"
+  pass
 
 def snippetsFormatPlaceHolder(word):
-  print "Creating snippet for placeholder " + word
-  return word
+  return ''
 
-def snippetsAddSnippet(fullname, word):
-  print "Adding snippet for " + fullname
-  return fullname
+def snippetsAddSnippet(fullname, word, abbr):
+  return abbr
 
 def snippetsTrigger():
-  print "Triggering snippets"
+  pass
 
 def snippetsReset():
-  print "Resetting all snippets"
+  pass
 
 # vim: set ts=2 sts=2 sw=2 expandtab :

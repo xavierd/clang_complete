@@ -381,7 +381,7 @@ def formatResult(result):
       abbr = chunk_spelling
 
     if chunk.isKindPlaceHolder():
-      word += snippetsFormatPlaceHolder(chunk.spelling)
+      word += snippetsFormatPlaceHolder(chunk_spelling)
     else:
       word += chunk_spelling
 
@@ -392,7 +392,7 @@ def formatResult(result):
   if returnValue:
     menu = returnValue.spelling + " " + menu
 
-  completion['word'] = snippetsAddSnippet(info, word)
+  completion['word'] = snippetsAddSnippet(info, word, abbr)
   completion['abbr'] = abbr
   completion['menu'] = menu
   completion['info'] = info

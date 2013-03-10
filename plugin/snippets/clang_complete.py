@@ -15,7 +15,7 @@ def snippetsInit():
 def snippetsFormatPlaceHolder(word):
   return "$`%s`" % word
 
-def snippetsAddSnippet(fullname, word):
+def snippetsAddSnippet(fullname, word, abbr):
   return word
 
 r = re.compile('\$`[^`]*`')

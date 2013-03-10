@@ -121,8 +121,8 @@ Default: "clang_complete"
        				       	*clang_complete-conceal_snippets*
        				       	*g:clang_conceal_snippets*
 Note: This option is specific to clang_complete snippets engine.
-If equal to 1, clang_complete will use vim 7.3 conceal feature to hide <#
-and #> which delimit snippet placeholders.
+If equal to 1, clang_complete will use vim 7.3 conceal feature to hide the
+snippet placeholders.
 
 Example of conceal configuration (see |'concealcursor'| and |'conceallevel'|
 for details): >

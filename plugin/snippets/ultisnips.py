@@ -2,9 +2,9 @@ import vim
 import re
 from UltiSnips import UltiSnips_Manager
 
-ultisnips_idx = 0
-
 def snippetsInit():
+  global ultisnips_idx
+  ultisnips_idx = 0
   UltiSnips_Manager.add_buffer_filetypes('%s.clang_complete' % vim.eval('&filetype'))
 
 def snippetsFormatPlaceHolder(word):
@@ -13,12 +13,14 @@ def snippetsFormatPlaceHolder(word):
   ultisnips_idx += 1
   return '${%d:%s}' % (ultisnips_idx, word)
 
-def snippetsAddSnippet(fullname, word):
+def snippetsAddSnippet(fullname, word, abbr):
+  global ultisnips_idx
   ultisnips_idx = 0
   UltiSnips_Manager.add_snippet(fullname, word, fullname, "i", "clang_complete")
   return fullname
 
 def snippetsTrigger():
+  print vim.current.line
   UltiSnips_Manager.expand()
 
 def snippetsReset():
