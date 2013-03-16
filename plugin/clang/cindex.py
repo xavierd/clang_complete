@@ -2255,7 +2255,7 @@ class TranslationUnit(ClangObject):
                     raise TypeError,'Unexpected unsaved file contents.'
                 unsaved_files_array[i].name = name
                 unsaved_files_array[i].contents = value
-                unsaved_files_array[i].length = len(value)
+                unsaved_files_array[i].length = len(value) + 1
         ptr = conf.lib.clang_codeCompleteAt(self, path, line, column,
                 unsaved_files_array, len(unsaved_files), options)
         if ptr:
