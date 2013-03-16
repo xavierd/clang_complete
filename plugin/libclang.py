@@ -161,10 +161,10 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
 
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
           TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
-  tu = index.parse(fileName, args, [currentFile], flags)
-  timer.registerEvent("First parse")
-
-  if tu == None:
+  try:
+    tu = index.parse(fileName, args, [currentFile], flags)
+    timer.registerEvent("First parse")
+  except TranslationUnitLoadError, e:
     return None
 
   translationUnits[fileName] = tu
@@ -524,6 +524,10 @@ def gotoDeclaration():
       tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
                                      vim.current.buffer.name, timer,
                                      update = True)
+      if tu is None:
+        print "Couldn't get the TranslationUnit"
+        return
+
       f = File.from_name(tu, vim.current.buffer.name)
       loc = SourceLocation.from_position(tu, f, line, col + 1)
       cursor = Cursor.from_location(tu, loc)
