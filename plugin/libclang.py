@@ -12,7 +12,10 @@ import os
 def canFindBuiltinHeaders(index, args = []):
   flags = 0
   currentFile = ("test.c", '#include "stddef.h"')
-  tu = index.parse("test.c", args, [currentFile], flags)
+  try:
+    tu = index.parse("test.c", args, [currentFile], flags)
+  except TranslationUnitLoadError, e:
+    return 0
   return len(tu.diagnostics) == 0
 
 # Derive path to clang builtin headers.
