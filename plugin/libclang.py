@@ -486,7 +486,7 @@ def getCurrentCompletions(base):
     getAbbrevation = lambda x: getAbbr(x.string).lower()
     results = sorted(results, None, getAbbrevation)
   if sorting == 'type':
-    getType = lambda x: kinds[x.kind.value]
+    getType = lambda x: kinds[x.kind.value] + getAbbr(x.string).lower()
     results = sorted(results, None, getType)
 
   timer.registerEvent("Sort")
