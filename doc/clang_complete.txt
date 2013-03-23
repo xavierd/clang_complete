@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2013 Mar 3
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2013 Mar 23
 
 
 		  clang_complete plugin documentation
@@ -232,6 +232,18 @@ Default: 0
 					*g:clang_complete_patterns*
 If clang should complete code patterns, i.e loop constructs etc.
 Defaut: 0
+
+					*clang_complete-jumpto_declaration_key*
+					*g:clang_jumpto_declaration_key*
+Set the key used to jump to declaration.
+Defaut: "<C-]>"
+
+					*clang_complete-jumpto_back_key*
+					*g:clang_jumpto_back_key*
+Set the key used to jump back.
+Note: Effectively this will be remapped to <C-O>. The default value is chosen
+to be coherent with ctags implementation.
+Defaut: "<C-T>"
 
 ==============================================================================
 6. Known issues					*clang_complete-issues*

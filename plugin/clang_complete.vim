@@ -103,6 +103,14 @@ function! s:ClangCompleteInit()
     let g:clang_auto_user_options = 'path, .clang_complete'
   endif
 
+  if !exists('g:clang_jumpto_declaration_key')
+    let g:clang_jumpto_declaration_key = '<C-]>'
+  endif
+
+  if !exists('g:clang_jumpto_back_key')
+    let g:clang_jumpto_back_key = '<C-T>'
+  endif
+
   call LoadUserOptions()
 
   let b:my_changedtick = b:changedtick
@@ -141,8 +149,8 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
-  nnoremap <buffer> <silent> <C-]> :call <SID>GotoDeclaration()<CR><Esc>
-  nnoremap <buffer> <silent> <C-T> <C-O>
+  execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration()<CR><Esc>"
+  execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
 
   " Force menuone. Without it, when there's only one completion result,
   " it can be confusing (not completing and no popup)
