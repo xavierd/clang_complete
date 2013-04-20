@@ -116,7 +116,7 @@ function! s:ClangCompleteInit()
   let b:my_changedtick = b:changedtick
   let b:clang_parameters = '-x c'
 
-  if &filetype == 'objc'
+  if &filetype =~ 'objc'
     let b:clang_parameters = '-x objective-c'
   endif
 
