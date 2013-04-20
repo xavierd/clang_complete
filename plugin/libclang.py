@@ -534,9 +534,13 @@ def gotoDeclaration():
       f = File.from_name(tu, vim.current.buffer.name)
       loc = SourceLocation.from_position(tu, f, line, col + 1)
       cursor = Cursor.from_location(tu, loc)
-      if cursor.referenced is not None and loc != cursor.referenced.location:
-        loc = cursor.referenced.location
-        jumpToLocation(loc.file.name, loc.line, loc.column)
+      defs = [cursor.get_definition(), cursor.referenced]
+
+      for d in defs:
+        if d is not None and loc != d.location:
+          loc = d.location
+          jumpToLocation(loc.file.name, loc.line, loc.column)
+          break
 
   timer.finish()
 
