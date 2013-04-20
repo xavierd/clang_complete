@@ -98,7 +98,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
 def getCurrentFile():
-  file = "\n".join(vim.current.buffer[:])
+  file = "\n".join(vim.current.buffer[:] + ["\n"])
   return (vim.current.buffer.name, file)
 
 class CodeCompleteTimer:
