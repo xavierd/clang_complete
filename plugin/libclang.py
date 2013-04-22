@@ -514,6 +514,31 @@ def jumpToLocation(filename, line, column):
   else:
     vim.command("normal m'")
   vim.current.window.cursor = (line, column - 1)
+  
+def gotoDefinition():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  params = getCompileParams(vim.current.buffer.name)
+  line, col = vim.current.window.cursor
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, col, params)
+
+  with workingDir(params['cwd']):
+    with libclangLock:
+      tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                                     vim.current.buffer.name, timer,
+                                     update = True)
+      if tu is None:
+        print "Couldn't get the TranslationUnit"
+        return
+
+      f = File.from_name(tu, vim.current.buffer.name)
+      loc = SourceLocation.from_position(tu, f, line, col + 1)
+      cursor = Cursor.from_location(tu, loc)
+      if cursor.referenced is not None and loc != cursor.referenced.location:
+        loc = cursor.referenced.location
+        jumpToLocation(loc.file.name, loc.line, loc.column) 
+        
+  timer.finish()
 
 def gotoDeclaration():
   global debug
