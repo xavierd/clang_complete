@@ -85,6 +85,11 @@ Example .clang_complete file: >
 ==============================================================================
 5. Options					*clang_complete-options*
 
+					*clang_complete-loaded*
+					*g:clang_complete_loaded*
+If set, clang_complete won't be loaded.
+Default: unset.
+
        				       	*clang_complete-auto_select*
 				       	*g:clang_auto_select*
 If equal to 0, nothing is selected.
