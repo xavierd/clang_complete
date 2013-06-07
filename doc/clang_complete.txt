@@ -250,6 +250,12 @@ Note: Effectively this will be remapped to <C-O>. The default value is chosen
 to be coherent with ctags implementation.
 Defaut: "<C-T>"
 
+					*clang_complete-make_default_keymappings*
+					*g:clang_make_default_keymappings*
+If this option is set, the default keymappings will be set by clang_complete.
+Otherwise none are set and the user will have to provide those keymappings.
+Default: 1
+
 ==============================================================================
 6. Known issues					*clang_complete-issues*
 
