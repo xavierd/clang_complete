@@ -539,8 +539,9 @@ def gotoDeclaration():
       for d in defs:
         if d is not None and loc != d.location:
           loc = d.location
-          jumpToLocation(loc.file.name, loc.line, loc.column)
-          break
+          if loc.file is not None:
+            jumpToLocation(loc.file.name, loc.line, loc.column)
+            break
 
   timer.finish()
 
