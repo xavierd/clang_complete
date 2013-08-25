@@ -17,6 +17,10 @@ let b:my_changedtick = 0
 " not during a function call.
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
+" Default filenames
+let s:default_compilation_database_filename = 'compile_commands.json'
+let s:default_clang_complete_filename = '.clang_complete'
+
 function! s:ClangCompleteInit()
   let l:bufname = bufname("%")
   if l:bufname == ''
@@ -58,7 +62,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_snippets_engine')
-    let g:clang_snippets_engine = 'clang_complete'
+    let g:clang_snippets_engine = s:default_clang_complete_filename
   endif
 
   if !exists('g:clang_user_options')
@@ -73,6 +77,14 @@ function! s:ClangCompleteInit()
 
   if !exists('g:clang_trailing_placeholder')
     let g:clang_trailing_placeholder = 0
+  endif
+
+  if !exists("g:clang_compilation_database_search_path")
+    let g:clang_compilation_database_search_path = s:default_compilation_database_filename
+  endif
+
+  if !exists('g:clang_complete_search_path')
+    let g:clang_complete_search_path = s:default_clang_complete_filename
   endif
 
   if !exists('g:clang_compilation_database')
@@ -100,7 +112,7 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_auto_user_options')
-    let g:clang_auto_user_options = 'path, .clang_complete'
+    let g:clang_auto_user_options = 'path, ' . s:default_clang_complete_filename
   endif
 
   if !exists('g:clang_jumpto_declaration_key')
@@ -187,10 +199,10 @@ function! LoadUserOptions()
     endif
     if l:source == 'path'
       call s:parsePathOption()
-    elseif l:source == 'compile_commands.json'
-      call s:findCompilationDatase(l:source)
-    elseif l:source == '.clang_complete'
-      call s:parseConfig()
+    elseif l:source == s:default_compilation_database_filename
+      call s:findCompilationDatase(g:clang_compilation_database_search_path)
+    elseif l:source == s:default_clang_complete_filename
+      call s:parseConfig(g:clang_complete_search_path)
     else
       let l:getopts = 'getopts#' . l:source . '#getopts'
       silent call eval(l:getopts . '()')
@@ -198,8 +210,8 @@ function! LoadUserOptions()
   endfor
 endfunction
 
-function! s:parseConfig()
-  let l:local_conf = findfile('.clang_complete', getcwd() . ',.;')
+function! s:parseConfig(ccpath)
+  let l:local_conf = findfile(a:ccpath, getcwd() . ',.;')
   if l:local_conf == '' || !filereadable(l:local_conf)
     return
   endif
