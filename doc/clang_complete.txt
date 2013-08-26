@@ -201,7 +201,7 @@ By default, when the compile_commands.json option is specified for
 name of this file or to search different subdirectories, you may set
 |g:clang_compilation_database_search_path|.  
 
-For example, specifing build/compile_commands.json will allow out of source
+For example, specifying build/compile_commands.json will allow out of source
 builds with cmake.
 
 Default: "compile_commands.json"
@@ -213,7 +213,7 @@ By default, when the .clang_complete option is specified for
 name of this file or to search different subdirectories, you may set
 |g:clang_complete_search_path|.  
 
-For example, specifing build/.clang_complete will allow out of source
+For example, specifying build/.clang_complete will allow out of source
 builds with cmake.
 
 Default: ".clang_complete"
