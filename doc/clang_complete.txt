@@ -243,6 +243,11 @@ Defaut: 0
 Set the key used to jump to declaration.
 Defaut: "<C-]>"
 
+					*clang_complete-jumpto_declaration_in_preview_key*
+					*g:clang_jumpto_declaration_in_preview_key*
+Set the key used to jump to declaration.
+Defaut: "<C-W>]"
+
 					*clang_complete-jumpto_back_key*
 					*g:clang_jumpto_back_key*
 Set the key used to jump back.
