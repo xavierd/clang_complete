@@ -8,6 +8,7 @@
 "
 
 au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
+au BufEnter * call<SID>ClangCompleteBufEnter()
 
 let b:clang_parameters = ''
 let b:clang_user_options = ''
@@ -16,6 +17,13 @@ let b:my_changedtick = 0
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
+
+function! s:ClangCompleteBufEnter()
+  if &filetype == 'c' || &filetype == 'cpp' || 
+        \ &filetype == 'objc' || &filetype == 'objcpp' 
+    call<SID>ClangQuickFix()
+  endif
+endfunction
 
 function! s:ClangCompleteInit()
   let l:bufname = bufname("%")
