@@ -235,7 +235,7 @@ function! s:findCompilationDatase(cdb)
 endfunction
 
 function! s:parsePathOption()
-  let l:dirs = split(&path, ',')
+  let l:dirs = map(split(&path, '\\\@<![, ]'), 'substitute(v:val, ''\\\([, ]\)'', ''\1'', ''g'')')
   for l:dir in l:dirs
     if len(l:dir) == 0 || !isdirectory(l:dir)
       continue
@@ -243,7 +243,7 @@ function! s:parsePathOption()
 
     " Add only absolute paths
     if matchstr(l:dir, '\s*/') != ''
-      let l:opt = '-I' . l:dir
+      let l:opt = '-I' . shellescape(l:dir)
       let b:clang_user_options .= ' ' . l:opt
     endif
   endfor
