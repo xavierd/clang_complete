@@ -107,6 +107,10 @@ function! s:ClangCompleteInit()
     let g:clang_jumpto_declaration_key = '<C-]>'
   endif
 
+  if !exists('g:clang_jumpto_definition_key')
+    let g:clang_jumpto_definition_key = ']<C-]>'
+  endif
+
   if !exists('g:clang_jumpto_back_key')
     let g:clang_jumpto_back_key = '<C-T>'
   endif
@@ -149,6 +153,7 @@ function! s:ClangCompleteInit()
   inoremap <expr> <buffer> > <SID>CompleteArrow()
   inoremap <expr> <buffer> : <SID>CompleteColon()
   execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration()<CR><Esc>"
+  execute "nnoremap <buffer> <silent> " . g:clang_jumpto_definition_key . " :call <SID>GotoDefinition()<CR><Esc>"
   execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
 
   " Force menuone. Without it, when there's only one completion result,
@@ -470,6 +475,16 @@ endfunction
 function! s:GotoDeclaration()
   try
     python gotoDeclaration()
+  catch /^Vim\%((\a\+)\)\=:E37/
+    echoe "The current file is not saved, and 'hidden' is not set."
+          \ "Either save the file or add 'set hidden' in your vimrc."
+  endtry
+  return ''
+endfunction
+
+function! s:GotoDefinition()
+  try
+    python gotoDefinition()
   catch /^Vim\%((\a\+)\)\=:E37/
     echoe "The current file is not saved, and 'hidden' is not set."
           \ "Either save the file or add 'set hidden' in your vimrc."

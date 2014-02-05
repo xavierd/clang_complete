@@ -34,8 +34,8 @@ suppress it before using this plugin.
 Completion is started with CTRL-X CTRL-U |i_CTRL-X_CTRL-U|, or automatically
 depending on the value of |clang_complete-auto|.
 
-You can also jump to the declaration of the symbol under the cursor with
-<CTRL-]>. Jumping back is done with <CTRL-T>. Since clang_complete uses
+You can also jump to the definition of the symbol under the cursor with
+<CTRL-]>, or to to declaration with ]<CTRL-]>. Jumping back is done with <CTRL-T>. Since clang_complete uses
 |jumplist|, you can navigate through the jumps with <CTRL-O> and <CTRL-I>
 
 ==============================================================================
@@ -233,10 +233,15 @@ Default: 0
 If clang should complete code patterns, i.e loop constructs etc.
 Defaut: 0
 
+					*clang_complete-jumpto_definition_key*
+					*g:clang_jumpto_definition_key*
+Set the key used to jump to definition.
+Defaut: "<C-]>"
+
 					*clang_complete-jumpto_declaration_key*
 					*g:clang_jumpto_declaration_key*
 Set the key used to jump to declaration.
-Defaut: "<C-]>"
+Defaut: "]<C-]>"
 
 					*clang_complete-jumpto_back_key*
 					*g:clang_jumpto_back_key*
