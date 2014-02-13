@@ -1,6 +1,15 @@
 import vim
 import re
-from UltiSnips import UltiSnips_Manager
+
+try:
+  from UltiSnips import UltiSnips_Manager
+except:
+  from UltiSnips import SnippetManager
+
+  UltiSnips_Manager = SnippetManager(
+      vim.eval('g:UltiSnipsExpandTrigger'),
+      vim.eval('g:UltiSnipsJumpForwardTrigger'),
+      vim.eval('g:UltiSnipsJumpBackwardTrigger'))
 
 def snippetsInit():
   global ultisnips_idx
@@ -24,6 +33,7 @@ def snippetsTrigger():
   UltiSnips_Manager.expand()
 
 def snippetsReset():
-  UltiSnips_Manager.clear_snippets(ft="clang_complete")
+  if "clang_complete" in UltiSnips_Manager._snippets:
+    UltiSnips_Manager._snippets["clang_complete"].clear_snippets([])
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
