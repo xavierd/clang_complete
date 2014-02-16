@@ -199,6 +199,30 @@ time before doing completion.
 
 Default: "path, .clang_complete"
 
+                                        *clang_complete-compilation_database_search_path*
+                                        *g:clang_compilation_database_search_path*
+By default, when the compile_commands.json option is specified for
+|g:clang_user_options| the upwards search is for that filename.  To change the
+name of this file or to search different subdirectories, you may set
+|g:clang_compilation_database_search_path|.  
+
+For example, specifying build/compile_commands.json will allow out of source
+builds with cmake.
+
+Default: "compile_commands.json"
+
+                                        *clang_complete-clang_complete_search_path*
+                                        *g:clang_complete_search_path*
+By default, when the .clang_complete option is specified for
+|g:clang_user_options| the upwards search is for that filename.  To change the
+name of this file or to search different subdirectories, you may set
+|g:clang_complete_search_path|.  
+
+For example, specifying build/.clang_complete will allow out of source
+builds with cmake.
+
+Default: ".clang_complete"
+
                                         *clang_complete-compilation_database*
                                         *g:clang_compilation_database*
 By default, clang_complete will search upwards from where it was started to
