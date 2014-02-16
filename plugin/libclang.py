@@ -57,7 +57,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   debug = int(vim.eval("g:clang_debug")) == 1
 
-  if library_path != "":
+  if library_path:
     Config.set_library_path(library_path)
 
   Config.set_compatibility_check(False)
@@ -65,11 +65,19 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   try:
     index = Index.create()
   except Exception, e:
-    print "Loading libclang failed, completion won't be available"
-    if library_path == "":
-      print "Consider setting g:clang_library_path"
+    if library_path:
+      suggestion = "Are you sure '%s' contains libclang?" % library_path
     else:
-      print "Are you sure '%s' contains libclang?" % library_path
+      suggestion = "Consider setting g:clang_library_path."
+
+    if debug:
+      exception_msg = str(e)
+    else:
+      exception_msg = ''
+
+    print '''Loading libclang failed, completion won't be available. %s
+    %s
+    ''' % (suggestion, exception_msg)
     return 0
 
   global builtinHeaderPath
