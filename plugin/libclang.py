@@ -513,7 +513,8 @@ def getAbbr(strings):
 def jumpToLocation(filename, line, column):
   if filename != vim.current.buffer.name:
     try:
-      vim.command("edit %s" % filename)
+      # use "%s" for spaces in paths
+      vim.command("edit \"%s\"" % filename)
     except:
       # For some unknown reason, whenever an exception occurs in
       # vim.command, vim goes crazy and output tons of useless python
