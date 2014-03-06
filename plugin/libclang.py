@@ -3,6 +3,7 @@ import vim
 import time
 import threading
 import os
+import shlex
 
 # Check if libclang is able to find the builtin include files.
 #
@@ -188,23 +189,11 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
   return tu
 
 def splitOptions(options):
-  optsList = []
-  opt = ""
-  quoted = False
-
-  for char in options:
-    if char == ' ' and not quoted:
-      if opt != "":
-        optsList += [opt]
-        opt = ""
-      continue
-    elif char == '"':
-      quoted = not quoted
-    opt += char
-
-  if opt != "":
-    optsList += [opt]
-  return optsList
+  # Use python's shell command lexer to correctly split the list of options in
+  # accordance with the POSIX standard if running a Unix system, or split
+  # according to Windows shell rules
+  posixMode = os.name == "posix"
+  return shlex.split(options, posix=posixMode)
 
 def getQuickFix(diagnostic):
   # Some diagnostics have no file, e.g. "too many errors emitted, stopping now"
