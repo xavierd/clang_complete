@@ -238,6 +238,11 @@ Default: 0
 If clang should complete code patterns, i.e loop constructs etc.
 Defaut: 0
 
+					*clang_complete-brief-comments
+					*g:clang_include_brief_comments
+If clang should show brief comments in the completion results.
+Defaut: 0
+
 					*clang_complete-jumpto_declaration_key*
 					*g:clang_jumpto_declaration_key*
 Set the key used to jump to declaration.
