@@ -52,9 +52,21 @@ def getBuiltinHeaderPath(library_path):
 
   return None
 
-def initClangComplete(clang_complete_flags, clang_compilation_database, \
-                      library_path):
+def initClangComplete(include_macros=False, include_code_patterns=False,
+                      clang_compilation_database=None,
+                      library_path=None):
   global index
+  global complete_flags
+
+  if (include_macros == "0"):
+    include_macros = False
+  if (include_code_patterns == "0"):
+    include_code_patterns = False
+
+  complete_flags = {
+    'include_macros': include_macros,
+    'include_code_patterns': include_code_patterns,
+  }
 
   debug = int(vim.eval("g:clang_debug")) == 1
 
@@ -93,8 +105,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   global translationUnits
   translationUnits = dict()
-  global complete_flags
-  complete_flags = int(clang_complete_flags)
   global compilation_database
   if clang_compilation_database != '':
     compilation_database = CompilationDatabase.fromDirectory(clang_compilation_database)
@@ -356,7 +366,7 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
     return None
 
   cr = tu.codeComplete(fileName, line, column, [currentFile],
-      complete_flags)
+      **complete_flags)
   timer.registerEvent("Code Complete")
   return cr
 

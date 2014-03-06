@@ -138,14 +138,12 @@ function! s:ClangCompleteInit()
     let b:clang_parameters .= '-header'
   endif
 
-  let g:clang_complete_lib_flags = 0
-
   if g:clang_complete_macros == 1
-    let g:clang_complete_lib_flags = 1
+    let g:clang_parameters = ' -code-completion-macros'
   endif
 
   if g:clang_complete_patterns == 1
-    let g:clang_complete_lib_flags += 2
+    let g:clang_parameters .= ' -code-completion-patterns'
   endif
 
   if s:initClangCompletePython() != 1
@@ -290,7 +288,11 @@ function! s:initClangCompletePython()
       return 0
     endif
 
-    py vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'), vim.eval('g:clang_compilation_database'), vim.eval('g:clang_library_path'))))
+    py vim.command('let l:res = ' + str(initClangComplete(
+      \ include_macros=vim.eval('g:clang_complete_macros'),
+      \ include_code_patterns=vim.eval('g:clang_complete_patterns'),
+      \ clang_compilation_database=vim.eval('g:clang_compilation_database'),
+      \ library_path=vim.eval('g:clang_library_path'))))
     if l:res == 0
       return 0
     endif
