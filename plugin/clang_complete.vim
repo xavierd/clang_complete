@@ -295,6 +295,8 @@ function! s:initClangCompletePython()
       return 0
     endif
     let s:libclang_loaded = 1
+
+    au VimLeavePre * python ForceExit()
   endif
   python WarmupCache()
   return 1
