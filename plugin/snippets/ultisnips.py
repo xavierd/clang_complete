@@ -33,7 +33,7 @@ def snippetsTrigger():
   UltiSnips_Manager.expand()
 
 def snippetsReset():
-  if "clang_complete" in UltiSnips_Manager._snippets:
-    UltiSnips_Manager._snippets["clang_complete"].clear_snippets([])
+  if "clang_complete" in UltiSnips_Manager._added_snippets_source._snippets:
+    UltiSnips_Manager._added_snippets_source._snippets["clang_complete"].clear_snippets([])
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
