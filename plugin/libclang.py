@@ -511,6 +511,15 @@ def getAbbr(strings):
       return chunks.spelling
   return ""
 
+def jumpInPreview(filename, line):
+    try:
+      vim.command("pedit +%d %s" % (line, filename))
+    except:
+      # For some unknown reason, whenever an exception occurs in
+      # vim.command, vim goes crazy and output tons of useless python
+      # errors, catch those.
+      return
+
 def jumpToLocation(filename, line, column):
   if filename != vim.current.buffer.name:
     try:
@@ -524,7 +533,7 @@ def jumpToLocation(filename, line, column):
     vim.command("normal m'")
   vim.current.window.cursor = (line, column - 1)
 
-def gotoDeclaration():
+def gotoDeclaration(preview=True):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
@@ -549,8 +558,11 @@ def gotoDeclaration():
         if d is not None and loc != d.location:
           loc = d.location
           if loc.file is not None:
-            jumpToLocation(loc.file.name, loc.line, loc.column)
-            break
+            if preview:
+              jumpInPreview(loc.file.name, loc.line)
+            else:
+              jumpToLocation(loc.file.name, loc.line, loc.column)
+          break
 
   timer.finish()
 
