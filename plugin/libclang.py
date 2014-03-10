@@ -511,27 +511,22 @@ def getAbbr(strings):
       return chunks.spelling
   return ""
 
-def jumpInPreview(filename, line):
-    try:
-      vim.command("pedit +%d %s" % (line, filename))
-    except:
-      # For some unknown reason, whenever an exception occurs in
-      # vim.command, vim goes crazy and output tons of useless python
-      # errors, catch those.
-      return
-
-def jumpToLocation(filename, line, column):
-  if filename != vim.current.buffer.name:
-    try:
-      vim.command("edit %s" % filename)
-    except:
-      # For some unknown reason, whenever an exception occurs in
-      # vim.command, vim goes crazy and output tons of useless python
-      # errors, catch those.
-      return
+def jumpToLocation(filename, line, column, preview):
+  if preview:
+    command = "pedit +%d %s" % (line, filename)
+  elif filename != vim.current.buffer.name:
+    command = "edit %s" % filename
   else:
-    vim.command("normal m'")
-  vim.current.window.cursor = (line, column - 1)
+    command = "normal m"
+  try:
+    vim.command(command)
+  except:
+    # For some unknown reason, whenever an exception occurs in
+    # vim.command, vim goes crazy and output tons of useless python
+    # errors, catch those.
+    return
+  if not preview:
+    vim.current.window.cursor = (line, column - 1)
 
 def gotoDeclaration(preview=True):
   global debug
@@ -558,10 +553,7 @@ def gotoDeclaration(preview=True):
         if d is not None and loc != d.location:
           loc = d.location
           if loc.file is not None:
-            if preview:
-              jumpInPreview(loc.file.name, loc.line)
-            else:
-              jumpToLocation(loc.file.name, loc.line, loc.column)
+            jumpToLocation(loc.file.name, loc.line, loc.column, preview)
           break
 
   timer.finish()

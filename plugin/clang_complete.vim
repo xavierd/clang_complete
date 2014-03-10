@@ -490,11 +490,7 @@ endfunction
 
 function! s:GotoDeclaration(preview)
   try
-    if a:preview == 1
-      python gotoDeclaration(True)
-    else
-      python gotoDeclaration(False)
-    endif
+    python gotoDeclaration(vim.eval('a:preview') == '1')
   catch /^Vim\%((\a\+)\)\=:E37/
     echoe "The current file is not saved, and 'hidden' is not set."
           \ "Either save the file or add 'set hidden' in your vimrc."
