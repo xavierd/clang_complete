@@ -454,7 +454,7 @@ def ForceExit():
   # exit.
   import os
   import signal
-  os.kill(os.getpid(), signal.SIGKILL)
+  os.kill(os.getpid(), signal.SIGTERM)
 
 def getCurrentCompletions(base):
   global debug
