@@ -409,6 +409,12 @@ def formatResult(result):
 class CompleteThread(threading.Thread):
   def __init__(self, line, column, currentFile, fileName, params, timer):
     threading.Thread.__init__(self)
+    # Complete threads are daemon threads. Python and consequently vim does not
+    # wait for daemon threads to finish execution when existing itself. As
+    # clang may compile for a while, we do not have to wait for the compilation
+    # to finish before vim can quit. Before adding this flags, vim was hanging
+    # for a couple of seconds before it exited.
+    self.daemon = True
     self.line = line
     self.column = column
     self.currentFile = currentFile
@@ -442,19 +448,6 @@ def WarmupCache():
   t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
                      params, timer)
   t.start()
-
-def ForceExit():
-  # Close the current buffer to not leave any backup files.
-  vim.command("bd!")
-
-  # Now just kill vim. We do not really have another way to control the clang
-  # threads. Without killing vim, we would hang until all clang processes
-  # return. As we already closed the current buffer, we do not risk to loose
-  # a lot. The only remaining issue is that vim prints the 'Killed' text on
-  # exit.
-  import os
-  import signal
-  os.kill(os.getpid(), signal.SIGKILL)
 
 def getCurrentCompletions(base):
   global debug
