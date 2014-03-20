@@ -1,4 +1,5 @@
 from clang.cindex import *
+from ctypes import *
 import vim
 import time
 import threading
@@ -405,6 +406,8 @@ def formatResult(result):
 
   return completion
 
+def finishThread(tid):
+  pythonapi.PyThreadState_SetAsyncExc(c_long(tid), py_object(Exception))
 
 class CompleteThread(threading.Thread):
   def __init__(self, line, column, currentFile, fileName, params, timer):
@@ -424,6 +427,12 @@ class CompleteThread(threading.Thread):
     self.cwd = params['cwd']
     self.timer = timer
 
+  def get_tid(self):
+    return self.ident
+
+  def finish(self):
+    finishThread(self.get_tid())
+
   def run(self):
     with libclangLock:
       with workingDir(self.cwd):
@@ -435,19 +444,29 @@ class CompleteThread(threading.Thread):
           # not locked The user does not see any delay, as we just pause
           # a background thread.
           time.sleep(0.1)
-          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
-                                    self.timer)
+          try:
+            getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
+                                      self.timer)
+          except:
+            pass
         else:
           self.result = getCurrentCompletionResults(self.line, self.column,
                                                     self.args, self.currentFile,
                                                     self.fileName, self.timer)
 
+def FinishClangComplete():
+  while warmupthread.isAlive():
+    warmupthread.finish()
+    time.sleep(0.1)
+
 def WarmupCache():
+  global warmupthread
   params = getCompileParams(vim.current.buffer.name)
   timer = CodeCompleteTimer(0, "", -1, -1, params)
-  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
-                     params, timer)
-  t.start()
+  warmupthread = CompleteThread(-1, -1, getCurrentFile(),
+                                vim.current.buffer.name,
+                                params, timer)
+  warmupthread.start()
 
 def getCurrentCompletions(base):
   global debug
