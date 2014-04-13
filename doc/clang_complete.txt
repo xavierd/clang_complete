@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2013 Mar 23
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2014 Apr 13
 
 
 		  clang_complete plugin documentation
@@ -197,7 +197,7 @@ Set sources for user options passed to clang. Available sources are:
 This option is processed and all sources are used on buffer loading, not each
 time before doing completion.
 
-Default: "path, .clang_complete"
+Default: ".clang_complete, path"
 
                                         *clang_complete-compilation_database*
                                         *g:clang_compilation_database*
