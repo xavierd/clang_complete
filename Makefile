@@ -1,4 +1,4 @@
-SHELL	:= $(/usr/bin/env bash)
+SHELL	:= /usr/bin/env bash
 FILES	:= $(shell git ls-files autoload bin doc plugin)
 
 all: clang_complete.vmb
