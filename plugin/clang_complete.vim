@@ -163,7 +163,6 @@ function! s:ClangCompleteInit()
     inoremap <expr> <buffer> . <SID>CompleteDot()
     inoremap <expr> <buffer> > <SID>CompleteArrow()
     inoremap <expr> <buffer> : <SID>CompleteColon()
-    inoremap <expr> <buffer> <tab> <SID>updateSnipsInsert()
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_in_preview_key . " :call <SID>GotoDeclaration(1)<CR><Esc>"
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
@@ -546,26 +545,6 @@ function! s:CompleteColon()
     return ':'
   endif
   return ':' . s:LaunchCompletion()
-endfunction
-
-function! s:updateSnipsInsert()
-python << EOF
-import vim
-line = vim.current.line
-row, col = vim.current.window.cursor
-
-r = re.compile('\$`[^`]*`')
-result = r.search(line)
-
-if result is None:
-  if col < len(line) and ( line[col] == ')' or line[col] == '>'):
-    vim.command('return "\<esc>A"')
-  else:
-    vim.command('return "\<c-i>"')
-else:
-  vim.command('call feedkeys("\<esc>\<c-i>")')
-  vim.command('return ""')
-EOF
 endfunction
 
 function! s:GotoDeclaration(preview)
