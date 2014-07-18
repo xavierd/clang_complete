@@ -9,6 +9,12 @@ def snippetsInit():
     vim.command("syntax match placeHolderMark contained /\$`/ conceal")
     vim.command("syntax match placeHolderMark contained /`/ conceal")
 
+  # Check if there is a mapping for <tab> in insert mode (e.g. supertab)
+  vim.command("let oldmap=maparg(\"<tab>\",\"i\")")
+  oldmap = vim.eval("oldmap")
+  # and pass it to updateSnipsInsert
+  vim.command("inoremap <silent> <buffer> <tab> <ESC>:python updateSnipsInsert(" + oldmap + ")<CR>")
+
 # The two following function are performance sensitive, do _nothing_
 # more that the strict necessary.
 
@@ -43,5 +49,31 @@ def updateSnips():
   vim.current.window.cursor = row, start
   isInclusive = vim.eval("&selection") == "inclusive"
   vim.command('call feedkeys("\<ESC>v%dl\<C-G>", "n")' % (end - start - isInclusive))
+
+def updateSnipsInsert(oldmap=""):
+  line = vim.current.line
+  row, col = vim.current.window.cursor
+
+  r = re.compile('\$`[^`]*`')
+  result = r.search(line)
+
+  if (len(oldmap) == 0):
+    tmap = ' feedkeys("a\<tab>", "n")'
+  else:
+    tmap = oldmap
+
+  if result is None:
+    # strange, we need +1 here
+    col = col + 1
+    # is the symbol under the cursor a closing bracket?
+    if col < len(line) and ( line[col] == ')' or line[col] == '>'):
+      # if so, jump to the end of the line
+      vim.command('call feedkeys("A")')
+      return
+    else:
+      vim.command('call ' + tmap)
+  else:
+    vim.command('call ' + tmap)
+    return
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
