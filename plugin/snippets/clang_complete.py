@@ -10,13 +10,15 @@ def snippetsInit():
     vim.command("syntax match placeHolderMark contained /`/ conceal")
 
   # Check if there is a mapping for <tab> in insert mode (e.g. supertab)
-  vim.command("let oldmap=maparg(\"<tab>\",\"i\")")
+  vim.command("let oldmap=maparg(\"<tab>\", \"i\")")
   oldmap = vim.eval("oldmap")
-  # and pass it to updateSnipsInsert
-  vim.command("inoremap <silent> <buffer> <tab> <ESC>:python updateSnipsInsert(" + oldmap + ")<CR>")
+
+  # and do not use insert mode <tab> mapping if so
+  if (len(oldmap) == 0):
+    vim.command("inoremap <silent> <buffer> <tab> <ESC>:python updateSnipsInsert()<CR>")
 
 # The two following function are performance sensitive, do _nothing_
-# more that the strict necessary.
+# more than the strict necessary.
 
 def snippetsFormatPlaceHolder(word):
   return "$`%s`" % word
@@ -50,17 +52,12 @@ def updateSnips():
   isInclusive = vim.eval("&selection") == "inclusive"
   vim.command('call feedkeys("\<ESC>v%dl\<C-G>", "n")' % (end - start - isInclusive))
 
-def updateSnipsInsert(oldmap=""):
+def updateSnipsInsert():
   line = vim.current.line
   row, col = vim.current.window.cursor
 
   r = re.compile('\$`[^`]*`')
   result = r.search(line)
-
-  if (len(oldmap) == 0):
-    tmap = ' feedkeys("a\<tab>", "n")'
-  else:
-    tmap = oldmap
 
   if result is None:
     # strange, we need +1 here
@@ -71,9 +68,6 @@ def updateSnipsInsert(oldmap=""):
       vim.command('call feedkeys("A")')
       return
     else:
-      vim.command('call ' + tmap)
-  else:
-    vim.command('call ' + tmap)
-    return
+      vim.command('call feedkeys("a\<tab>", "n")')
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
