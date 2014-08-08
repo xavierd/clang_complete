@@ -566,6 +566,7 @@ endfunction
 function g:InsertModeTabHelper()
   python insertModeTab()
   return s:insertModeTabTmp
+endfunction
 
 function! g:ClangGotoDeclaration()
   call s:GotoDeclaration(0)
@@ -575,7 +576,6 @@ endfunction
 function! g:ClangGotoDeclarationPreview()
   call s:GotoDeclaration(1)
   return ''
-
 endfunction
 
 " vim: set ts=2 sts=2 sw=2 expandtab :
