@@ -503,4 +503,9 @@ function! g:ClangUpdateQuickFix()
   return ''
 endfunction
 
+function g:InsertModeTabHelper()
+  python insertModeTab()
+  return s:insertModeTabTmp
+endfunction
+
 " vim: set ts=2 sts=2 sw=2 expandtab :

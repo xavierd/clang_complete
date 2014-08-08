@@ -13,9 +13,9 @@ def snippetsInit():
   vim.command("let oldmap=maparg(\"<tab>\", \"i\")")
   oldmap = vim.eval("oldmap")
 
-  # and do not use insert mode <tab> mapping if so
+  # and only use insert mode <tab> mapping if there is none
   if (len(oldmap) == 0):
-    vim.command("inoremap <silent> <buffer> <tab> <ESC>:python updateSnipsInsert()<CR>")
+    vim.command("inoremap <expr> <silent> <buffer> <tab> InsertModeTabHelper()")
 
 # The two following function are performance sensitive, do _nothing_
 # more than the strict necessary.
@@ -52,22 +52,29 @@ def updateSnips():
   isInclusive = vim.eval("&selection") == "inclusive"
   vim.command('call feedkeys("\<ESC>v%dl\<C-G>", "n")' % (end - start - isInclusive))
 
-def updateSnipsInsert():
+def insertModeTab():
   line = vim.current.line
   row, col = vim.current.window.cursor
 
+  # look for argument completion strings (denoted by $` `)
   r = re.compile('\$`[^`]*`')
   result = r.search(line)
 
   if result is None:
-    # strange, we need +1 here
-    col = col + 1
+    # if none found, perform a normal tab or jump to the end of the line
+    # if the symbol under the cursor is a closing bracket
+
+    # strange, we need +1 here if called as :python insertModeTab
+    # col = col + 1
+
     # is the symbol under the cursor a closing bracket?
     if col < len(line) and ( line[col] == ')' or line[col] == '>'):
       # if so, jump to the end of the line
-      vim.command('call feedkeys("A")')
-      return
+      vim.command('let s:insertModeTabTmp="\<ESC>A"')
     else:
-      vim.command('call feedkeys("a\<tab>", "n")')
-
+      vim.command('let s:insertModeTabTmp="\<TAB>"') 
+  else:
+    # line contains argument completion strings, perform a normal-mode tab
+    vim.command('call feedkeys("\<ESC>\<TAB>")')
+    vim.command('let s:insertModeTabTmp=""')
 # vim: set ts=2 sts=2 sw=2 expandtab :
