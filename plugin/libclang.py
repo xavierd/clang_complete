@@ -267,9 +267,11 @@ def getCurrentQuickFixList():
 #   'args' : compiler arguments.
 #            Compilation database returns the complete command line. We need
 #            to filter at least the compiler invocation, the '-o' + output
-#            file, the input file and the '-c' arguments. Note : we behave
-#            differently from cc_args.py which only keeps '-I', '-D' and
-#            '-include' options.
+#            file, the input file and the '-c' arguments. We alter -I paths
+#            to make them absolute, so that we can launch clang from wherever
+#            we are.
+#            Note : we behave differently from cc_args.py which only keeps
+#            '-I', '-D' and '-include' options.
 #
 #    'cwd' : the compiler working directory
 #
@@ -295,6 +297,12 @@ def getCompilationDBParams(fileName):
         if arg == '-o':
           skip_next = 1;
           continue
+        if arg.startswith('-I'):
+          includePath = arg[2:]
+          if not os.path.isabs(includePath):
+            includePath = os.path.normpath(os.path.join(cwd, includePath))
+          args.append('-I'+includePath)
+          continue
         args.append(arg)
       getCompilationDBParams.last_query = { 'args': args, 'cwd': cwd }
 
@@ -305,20 +313,6 @@ def getCompilationDBParams(fileName):
   return { 'args': list(query['args']), 'cwd': query['cwd']}
 
 getCompilationDBParams.last_query = { 'args': [], 'cwd': None }
-
-# A context manager to handle directory changes safely
-from contextlib import contextmanager
-@contextmanager
-def workingDir(dir):
-  savedPath = None
-  if dir != None:
-    savedPath = os.getcwd()
-    os.chdir(dir)
-  try:
-    yield
-  finally:
-    if savedPath != None:
-      os.chdir(savedPath)
 
 def getCompileParams(fileName):
   global builtinHeaderPath
@@ -340,10 +334,9 @@ def updateCurrentDiagnostics():
   params = getCompileParams(vim.current.buffer.name)
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
 
-  with workingDir(params['cwd']):
-    with libclangLock:
-      getCurrentTranslationUnit(params['args'], getCurrentFile(),
-                                vim.current.buffer.name, timer, update = True)
+  with libclangLock:
+    getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                              vim.current.buffer.name, timer, update = True)
   timer.finish()
 
 def getCurrentCompletionResults(line, column, args, currentFile, fileName,
@@ -426,21 +419,20 @@ class CompleteThread(threading.Thread):
 
   def run(self):
     with libclangLock:
-      with workingDir(self.cwd):
-        if self.line == -1:
-          # Warm up the caches. For this it is sufficient to get the
-          # current translation unit. No need to retrieve completion
-          # results.  This short pause is necessary to allow vim to
-          # initialize itself.  Otherwise we would get: E293: block was
-          # not locked The user does not see any delay, as we just pause
-          # a background thread.
-          time.sleep(0.1)
-          getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
-                                    self.timer)
-        else:
-          self.result = getCurrentCompletionResults(self.line, self.column,
-                                                    self.args, self.currentFile,
-                                                    self.fileName, self.timer)
+      if self.line == -1:
+        # Warm up the caches. For this it is sufficient to get the
+        # current translation unit. No need to retrieve completion
+        # results.  This short pause is necessary to allow vim to
+        # initialize itself.  Otherwise we would get: E293: block was
+        # not locked The user does not see any delay, as we just pause
+        # a background thread.
+        time.sleep(0.1)
+        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
+                                  self.timer)
+      else:
+        self.result = getCurrentCompletionResults(self.line, self.column,
+                                                  self.args, self.currentFile,
+                                                  self.fileName, self.timer)
 
 def WarmupCache():
   params = getCompileParams(vim.current.buffer.name)
@@ -505,12 +497,13 @@ def getAbbr(strings):
   return ""
 
 def jumpToLocation(filename, line, column, preview):
+  filenameEscaped = filename.replace(" ", "\\ ")
   if preview:
-    command = "pedit +%d %s" % (line, filename)
+    command = "pedit +%d %s" % (line, filenameEscaped)
   elif filename != vim.current.buffer.name:
-    command = "edit %s" % filename
+    command = "edit %s" % filenameEscaped
   else:
-    command = "normal m"
+    command = "normal m'"
   try:
     vim.command(command)
   except:
@@ -529,25 +522,24 @@ def gotoDeclaration(preview=True):
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, col, params)
 
   with libclangLock:
-    with workingDir(params['cwd']):
-      tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
-                                     vim.current.buffer.name, timer,
-                                     update = True)
-      if tu is None:
-        print "Couldn't get the TranslationUnit"
-        return
+    tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                                   vim.current.buffer.name, timer,
+                                   update = True)
+    if tu is None:
+      print "Couldn't get the TranslationUnit"
+      return
 
-      f = File.from_name(tu, vim.current.buffer.name)
-      loc = SourceLocation.from_position(tu, f, line, col + 1)
-      cursor = Cursor.from_location(tu, loc)
-      defs = [cursor.get_definition(), cursor.referenced]
+    f = File.from_name(tu, vim.current.buffer.name)
+    loc = SourceLocation.from_position(tu, f, line, col + 1)
+    cursor = Cursor.from_location(tu, loc)
+    defs = [cursor.get_definition(), cursor.referenced]
 
-      for d in defs:
-        if d is not None and loc != d.location:
-          loc = d.location
-          if loc.file is not None:
-            jumpToLocation(loc.file.name, loc.line, loc.column, preview)
-          break
+    for d in defs:
+      if d is not None and loc != d.location:
+        loc = d.location
+        if loc.file is not None:
+          jumpToLocation(loc.file.name, loc.line, loc.column, preview)
+        break
 
   timer.finish()
 

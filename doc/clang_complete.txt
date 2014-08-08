@@ -242,11 +242,13 @@ Defaut: 0
 					*g:clang_jumpto_declaration_key*
 Set the key used to jump to declaration.
 Defaut: "<C-]>"
+Note: You could use the g:ClangGotoDeclaration() to do the same with a mapping.
 
 					*clang_complete-jumpto_declaration_in_preview_key*
 					*g:clang_jumpto_declaration_in_preview_key*
-Set the key used to jump to declaration.
+Set the key used to jump to declaration in a preview window.
 Defaut: "<C-W>]"
+Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a mapping.
 
 					*clang_complete-jumpto_back_key*
 					*g:clang_jumpto_back_key*
