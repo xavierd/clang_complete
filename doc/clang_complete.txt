@@ -222,6 +222,13 @@ If libclang.[dll/so/dylib] is not in your library search path, set this to the
 absolute path where libclang is available.
 Default: ""
 
+					*clang_complete-compiler_bin*
+					*g:clang_compiler_bin*
+This option is used to get built-in include paths of the specified compiler.
+If built-in include paths can be obtained,
+options "-I[include path]" will be added to the parsing and completion engine of libclang.
+Default: ""
+
 					*clang_complete-sort_algo*
 					*g:clang_sort_algo*
 How results are sorted (alpha, priority, none). Currently only works with
