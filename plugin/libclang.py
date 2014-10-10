@@ -59,7 +59,10 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   debug = int(vim.eval("g:clang_debug")) == 1
 
   if library_path:
-    Config.set_library_path(library_path)
+    if os.path.isdir(library_path):
+      Config.set_library_path(library_path)
+    else:
+      Config.set_library_file(library_path)
 
   Config.set_compatibility_check(False)
 

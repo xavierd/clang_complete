@@ -218,8 +218,9 @@ Default: 1
 
        				       	*clang_complete-library_path*
        				       	*g:clang_library_path*
-If libclang.[dll/so/dylib] is not in your library search path, set this to the
-absolute path where libclang is available.
+If libclang is not in your library search path, set this to the absolute path
+where libclang is available. This should either be a directory containing a
+file named libclang.[dll/so/dylib] or the clang shared library file itself.
 Default: ""
 
 					*clang_complete-sort_algo*
