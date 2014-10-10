@@ -5,58 +5,28 @@ import threading
 import os
 import shlex
 
-# Check if libclang is able to find the builtin include files.
-#
-# libclang sometimes fails to correctly locate its builtin include files. This
-# happens especially if libclang is not installed at a standard location. This
-# function checks if the builtin includes are available.
-def canFindBuiltinHeaders(index, args = []):
-  flags = 0
-  currentFile = ("test.c", '#include "stddef.h"')
-  try:
-    tu = index.parse("test.c", args, [currentFile], flags)
-  except TranslationUnitLoadError, e:
-    return 0
-  return len(tu.diagnostics) == 0
-
-# Derive path to clang builtin headers.
-#
-# This function tries to derive a path to clang's builtin header files. We are
-# just guessing, but the guess is very educated. In fact, we should be right
-# for all manual installations (the ones where the builtin header path problem
-# is very common) as well as a set of very common distributions.
-def getBuiltinHeaderPath(library_path):
-  knownPaths = [
-          library_path + "/../lib/clang",  # default value
-          library_path + "/../clang",      # gentoo
-          library_path + "/clang",         # opensuse
-          library_path + "/",              # Google
-          "/usr/lib64/clang",              # x86_64 (openSUSE, Fedora)
-          "/usr/lib/clang"
-  ]
-
-  for path in knownPaths:
-    try:
-      files = os.listdir(path)
-      if len(files) >= 1:
-        files = sorted(files)
-        subDir = files[-1]
-      else:
-        subDir = '.'
-      path = path + "/" + subDir + "/include/"
-      arg = "-I" + path
-      if canFindBuiltinHeaders(index, [arg]):
-        return path
-    except:
-      pass
-
-  return None
-
-def initClangComplete(clang_complete_flags, clang_compilation_database, \
-                      library_path):
+def initClangComplete():
   global index
+  global includes
 
   debug = int(vim.eval("g:clang_debug")) == 1
+  clang_complete_flags = vim.eval('g:clang_complete_lib_flags')
+  clang_compilation_database = vim.eval('g:clang_compilation_database')
+  library_path = vim.eval('g:clang_library_path')
+  compiler_bin = vim.eval('g:clang_compiler_bin')
+
+  if len(compiler_bin) != 0:
+    includes = get_include_paths(compiler_bin)
+    if len(includes) == 0:
+      print 'WARNING: Can not find the include paths for "%s"' % compiler_bin
+      print '         This will cause code completion not to work.'
+      print '         Try to add this line to your .vimrc:'
+      print '         g:clang_compiler_bin=your_compiler'
+    if debug:
+      for include in includes:
+        print 'built-in include path: %s' % include
+  else:
+    includes = []
 
   if library_path:
     if os.path.isdir(library_path):
@@ -84,16 +54,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
     ''' % (suggestion, exception_msg)
     return 0
 
-  global builtinHeaderPath
-  builtinHeaderPath = None
-  if not canFindBuiltinHeaders(index):
-    builtinHeaderPath = getBuiltinHeaderPath(library_path)
-
-    if not builtinHeaderPath:
-      print "WARNING: libclang can not find the builtin includes."
-      print "         This will cause slow code completion."
-      print "         Please report the problem."
-
   global translationUnits
   translationUnits = dict()
   global complete_flags
@@ -106,6 +66,35 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
   global libclangLock
   libclangLock = threading.Lock()
   return 1
+
+def get_include_paths(compiler):
+  from subprocess import Popen, PIPE, STDOUT
+  import tempfile
+  cwd = os.getcwd()
+  new_cwd = os.path.dirname(compiler)
+  if new_cwd and len(new_cwd) != 0:
+    os.chdir(new_cwd)
+
+  TMP_FILE = tempfile.gettempdir() + '/dummy.cc'
+  TMP_OBJECT = tempfile.gettempdir() + '/dummy.o'
+  fp = open(TMP_FILE, 'w')
+  fp.close()
+  p = Popen('%s -c -v %s -o %s' % (compiler, TMP_FILE, TMP_OBJECT), \
+      shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT);
+  lines = p.stdout.read().split('\n')
+
+  included = False
+  include = []
+  for line in lines:
+    if not included:
+      if line.startswith('''#include <...> search starts here:'''):
+        included = True
+    else:
+      if line.startswith('''End of search list.'''):
+        break
+      include.append(line.lstrip().rstrip())
+  os.chdir(cwd)
+  return include
 
 # Get a tuple (fileName, fileContent) for the file opened in the current
 # vim buffer. The fileContent contains the unsafed buffer content.
@@ -300,12 +289,6 @@ def getCompilationDBParams(fileName):
         if arg == '-o':
           skip_next = 1;
           continue
-        if arg.startswith('-I'):
-          includePath = arg[2:]
-          if not os.path.isabs(includePath):
-            includePath = os.path.normpath(os.path.join(cwd, includePath))
-          args.append('-I'+includePath)
-          continue
         args.append(arg)
       getCompilationDBParams.last_query = { 'args': args, 'cwd': cwd }
 
@@ -318,16 +301,12 @@ def getCompilationDBParams(fileName):
 getCompilationDBParams.last_query = { 'args': [], 'cwd': None }
 
 def getCompileParams(fileName):
-  global builtinHeaderPath
   params = getCompilationDBParams(fileName)
   args = params['args']
   args += splitOptions(vim.eval("g:clang_user_options"))
-  args += splitOptions(vim.eval("b:clang_user_options"))
   args += splitOptions(vim.eval("b:clang_parameters"))
-
-  if builtinHeaderPath:
-    args.append("-I" + builtinHeaderPath)
-
+  for include in includes:
+    args.append("-I" + include)
   return { 'args' : args,
            'cwd' : params['cwd'] }
 

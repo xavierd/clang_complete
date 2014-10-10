@@ -223,6 +223,13 @@ where libclang is available. This should either be a directory containing a
 file named libclang.[dll/so/dylib] or the clang shared library file itself.
 Default: ""
 
+					*clang_complete-compiler_bin*
+					*g:clang_compiler_bin*
+This option is used to get built-in include paths of the specified compiler.
+If built-in include paths can be obtained,
+options "-I[include path]" will be added to the parsing and completion engine of libclang.
+Default: ""
+
 					*clang_complete-sort_algo*
 					*g:clang_sort_algo*
 How results are sorted (alpha, priority, none). Currently only works with
