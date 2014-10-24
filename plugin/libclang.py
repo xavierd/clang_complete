@@ -26,6 +26,9 @@ def canFindBuiltinHeaders(index, args = []):
 # for all manual installations (the ones where the builtin header path problem
 # is very common) as well as a set of very common distributions.
 def getBuiltinHeaderPath(library_path):
+  if os.path.isfile(library_path):
+    library_path = os.path.dirname(library_path)
+
   knownPaths = [
           library_path + "/../lib/clang",  # default value
           library_path + "/../clang",      # gentoo
