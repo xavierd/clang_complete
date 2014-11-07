@@ -158,14 +158,22 @@ function! s:ClangCompleteInit()
 
   python snippetsInit()
 
+  inoremap <expr> <buffer> <Plug>(clang-launch-completion) <SID>LaunchCompletion()
+  inoremap <expr> <buffer> <Plug>(clang-complete-dot) <SID>CompleteDot()
+  inoremap <expr> <buffer> <Plug>(clang-complete-arrow) <SID>CompleteArrow()
+  inoremap <expr> <buffer> <Plug>(clang-complete-colon) <SID>CompleteColon()
+  nnoremap <buffer> <silent> <Plug>(clang-goto-declaration) :call <SID>GotoDeclaration(0)<CR><Esc>
+  nnoremap <buffer> <silent> <Plug>(clang-goto-declaration-in-preview) :call <SID>GotoDeclaration(1)<CR><Esc>
+  nnoremap <buffer> <silent> <Plug>(clang-jumpto-back) <C-O>
+
   if g:clang_make_default_keymappings == 1
-    inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
-    inoremap <expr> <buffer> . <SID>CompleteDot()
-    inoremap <expr> <buffer> > <SID>CompleteArrow()
-    inoremap <expr> <buffer> : <SID>CompleteColon()
-    execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
-    execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_in_preview_key . " :call <SID>GotoDeclaration(1)<CR><Esc>"
-    execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
+    imap <expr> <buffer> <C-X><C-U> <Plug>(clang-launch-completion)
+    imap <expr> <buffer> . <Plug>(clang-complete-dot)
+    imap <expr> <buffer> > <Plug>(clang-complete-arrow)
+    imap <expr> <buffer> : <Plug>(clang-complete-colon)
+    execute "nmap <buffer> <silent> " . g:clang_jumpto_declaration_key . " <Plug>(clang-goto-declaration)"
+    execute "nmap <buffer> <silent> " . g:clang_jumpto_declaration_in_preview_key . " <Plug>(clang-goto-declaration-in-preview)"
+    execute "nmap <buffer> <silent> " . g:clang_jumpto_back_key . " <Plug>(clang-jumpto-back)"
   endif
 
   " Force menuone. Without it, when there's only one completion result,
