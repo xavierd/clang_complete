@@ -442,6 +442,7 @@ function! ClangComplete(findstart, base)
     python timer.registerEvent("Load into vimscript")
 
     if g:clang_make_default_keymappings == 1
+      let s:old_cr = maparg('<CR>', 'i')
       inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
       inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
     endif
@@ -475,6 +476,7 @@ function! s:HandlePossibleSelectionCtrlY()
 endfunction
 
 function! s:TriggerSnippet()
+  execute 'inoremap <script> <buffer> <silent> <CR> '.s:old_cr
   " Dont bother doing anything until we're sure the user exited the menu
   if !b:snippet_chosen
     return
@@ -482,7 +484,6 @@ function! s:TriggerSnippet()
 
   " Stop monitoring as we'll trigger a snippet
   silent! iunmap <buffer> <C-Y>
-  silent! iunmap <buffer> <CR>
   augroup ClangComplete
     au! CursorMovedI <buffer>
   augroup end
