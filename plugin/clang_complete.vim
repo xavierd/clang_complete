@@ -476,13 +476,18 @@ function! s:HandlePossibleSelectionCtrlY()
 endfunction
 
 function! s:TriggerSnippet()
-  execute 'inoremap <script> <buffer> <silent> <CR> '.s:old_cr
+  " Restore original return key mapping
+  silent! execute 'inoremap <script> <buffer> <silent> <CR> '.s:old_cr
+  
   " Dont bother doing anything until we're sure the user exited the menu
   if !b:snippet_chosen
     return
   endif
 
   " Stop monitoring as we'll trigger a snippet
+  if empty(s:old_cr)
+    silent! iunmap <buffer> <CR>
+  endif
   silent! iunmap <buffer> <C-Y>
   augroup ClangComplete
     au! CursorMovedI <buffer>
