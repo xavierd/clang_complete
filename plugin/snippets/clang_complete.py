@@ -3,7 +3,7 @@ import vim
 
 def snippetsInit():
   vim.command("noremap <silent> <buffer> <tab> :python updateSnips()<CR>")
-  vim.command("snoremap <silent> <buffer> <tab> <ESC>:python updateSnips()<CR>")
+  vim.command("snoremap <silent> <buffer> <tab> <C-[>:python updateSnips()<CR>")
   if int(vim.eval("g:clang_conceal_snippets")) == 1:
     vim.command("syntax match placeHolder /\$`[^`]*`/ contains=placeHolderMark")
     vim.command("syntax match placeHolderMark contained /\$`/ conceal")
@@ -23,7 +23,7 @@ r = re.compile('\$`[^`]*`')
 def snippetsTrigger():
   if r.search(vim.current.line) is None:
     return
-  vim.command('call feedkeys("\<esc>^\<tab>")')
+  vim.command('call feedkeys("\<C-[>^\<tab>")')
 
 def snippetsReset():
   pass
@@ -42,6 +42,6 @@ def updateSnips():
   start, end = result.span()
   vim.current.window.cursor = row, start
   isInclusive = vim.eval("&selection") == "inclusive"
-  vim.command('call feedkeys("\<ESC>v%dl\<C-G>", "n")' % (end - start - isInclusive))
+  vim.command('call feedkeys("\<C-[>v%dl\<C-G>", "n")' % (end - start - isInclusive))
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
