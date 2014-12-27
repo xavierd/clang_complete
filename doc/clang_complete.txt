@@ -55,7 +55,7 @@ some additional kinds of completion along with standard ones (see
 ==============================================================================
 4. Configuration				*clang_complete-configuration*
 
-Each project can have a .clang_complete at his root, containing the compiler
+Each project can have a .clang_complete at its root, containing the compiler
 options. This is useful if you're using some non-standard include paths or
 need to specify particular architecture type, frameworks to use, path to
 precompiled headers, precompiler definitions etc.
