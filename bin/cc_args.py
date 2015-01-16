@@ -56,6 +56,10 @@ def parseArguments(arguments):
       nextIsIncludeFile = True
     elif arg.startswith('-std='):
       options.append(arg)
+    elif arg == '-ansi':
+      options.append(arg)
+    elif arg.startswith('-pedantic'):
+      options.append(arg)
     elif arg.startswith('-W'):
       options.append(arg)
 
