@@ -442,7 +442,7 @@ function! ClangComplete(findstart, base)
     python timer.registerEvent("Load into vimscript")
 
     if g:clang_make_default_keymappings == 1
-      let s:old_cr = maparg('<CR>', 'i')
+      let s:old_cr = maparg('<CR>', 'i', 0, 1)
       inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
       inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
     endif
@@ -477,7 +477,13 @@ endfunction
 
 function! s:TriggerSnippet()
   " Restore original return key mapping
-  silent! execute 'inoremap <script> <buffer> <silent> <CR> '.s:old_cr
+  silent! execute s:old_cr.mode.
+      \ (s:old_cr.noremap ? 'noremap '  : '').' '
+      \ (s:old_cr.buffer  ? '<buffer> ' : '').
+      \ (s:old_cr.expr    ? '<expr> '   : '').
+      \ (s:old_cr.nowait  ? '<nowait> ' : '').
+      \ s:old_cr.lhs.' '.
+      \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
   
   " Dont bother doing anything until we're sure the user exited the menu
   if !b:snippet_chosen
