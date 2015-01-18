@@ -481,26 +481,30 @@ function! s:HandlePossibleSelectionCtrlY()
 endfunction
 
 function! s:StopMonitoring()
-  " Restore original return key mapping
-  if get(s:old_cr, 'buffer', 0)
-    silent! execute s:old_cr.mode.
-        \ (s:old_cr.noremap ? 'noremap '  : 'map').
-        \ (s:old_cr.buffer  ? '<buffer> ' : '').
-        \ (s:old_cr.expr    ? '<expr> '   : '').
-        \ (s:old_cr.nowait  ? '<nowait> ' : '').
-        \ s:old_cr.lhs.' '.
-        \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+  if b:snippet_chosen
+    call s:TriggerSnippet()
   else
-    silent! iunmap <buffer> <CR>
-  endif
-
-  silent! iunmap <buffer> <C-Y>
-  augroup ClangComplete
-    au! CursorMovedI,InsertLeave <buffer>
-    if exists('##CompleteDone')
-      au! CompleteDone <buffer>
+    " Restore original return key mapping
+    if get(s:old_cr, 'buffer', 0)
+      silent! execute s:old_cr.mode.
+          \ (s:old_cr.noremap ? 'noremap '  : 'map').
+          \ (s:old_cr.buffer  ? '<buffer> ' : '').
+          \ (s:old_cr.expr    ? '<expr> '   : '').
+          \ (s:old_cr.nowait  ? '<nowait> ' : '').
+          \ s:old_cr.lhs.' '.
+          \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+    else
+      silent! iunmap <buffer> <CR>
     endif
-  augroup end
+
+    silent! iunmap <buffer> <C-Y>
+    augroup ClangComplete
+      au! CursorMovedI,InsertLeave <buffer>
+      if exists('##CompleteDone')
+        au! CompleteDone <buffer>
+      endif
+    augroup END
+  endif
 endfunction
 
 function! s:TriggerSnippet()
@@ -510,6 +514,7 @@ function! s:TriggerSnippet()
   endif
 
   " Stop monitoring as we'll trigger a snippet
+  let b:snippet_chosen = 0
   call s:StopMonitoring()
 
   " Trigger the snippet
