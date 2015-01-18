@@ -448,6 +448,11 @@ function! ClangComplete(findstart, base)
     endif
     augroup ClangComplete
       au CursorMovedI <buffer> call <SID>TriggerSnippet()
+      if exists('##CompleteDone')
+        au CompleteDone,InsertLeave <buffer> call <SID>StopMonitoring()
+      else
+        au InsertLeave <buffer> call <SID>StopMonitoring()
+      endif
     augroup end
     let b:snippet_chosen = 0
 
@@ -475,7 +480,7 @@ function! s:HandlePossibleSelectionCtrlY()
   return "\<C-Y>"
 endfunction
 
-function! s:TriggerSnippet()
+function! s:StopMonitoring()
   " Restore original return key mapping
   if get(s:old_cr, 'buffer', 0)
     silent! execute s:old_cr.mode.
@@ -489,19 +494,23 @@ function! s:TriggerSnippet()
     silent! iunmap <buffer> <CR>
   endif
 
+  silent! iunmap <buffer> <C-Y>
+  augroup ClangComplete
+    au! CursorMovedI,InsertLeave <buffer>
+    if exists('##CompleteDone')
+      au! CompleteDone <buffer>
+    endif
+  augroup end
+endfunction
+
+function! s:TriggerSnippet()
   " Dont bother doing anything until we're sure the user exited the menu
   if !b:snippet_chosen
     return
   endif
 
   " Stop monitoring as we'll trigger a snippet
-  if empty(s:old_cr)
-    silent! iunmap <buffer> <CR>
-  endif
-  silent! iunmap <buffer> <C-Y>
-  augroup ClangComplete
-    au! CursorMovedI <buffer>
-  augroup end
+  call s:StopMonitoring()
 
   " Trigger the snippet
   python snippetsTrigger()
