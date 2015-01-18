@@ -477,14 +477,18 @@ endfunction
 
 function! s:TriggerSnippet()
   " Restore original return key mapping
-  silent! execute s:old_cr.mode.
-      \ (s:old_cr.noremap ? 'noremap '  : 'map').
-      \ (s:old_cr.buffer  ? '<buffer> ' : '').
-      \ (s:old_cr.expr    ? '<expr> '   : '').
-      \ (s:old_cr.nowait  ? '<nowait> ' : '').
-      \ s:old_cr.lhs.' '.
-      \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
-  
+  if get(s:old_cr, 'buffer', 0)
+    silent! execute s:old_cr.mode.
+        \ (s:old_cr.noremap ? 'noremap '  : 'map').
+        \ (s:old_cr.buffer  ? '<buffer> ' : '').
+        \ (s:old_cr.expr    ? '<expr> '   : '').
+        \ (s:old_cr.nowait  ? '<nowait> ' : '').
+        \ s:old_cr.lhs.' '.
+        \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+  else
+    silent! iunmap <buffer> <CR>
+  endif
+
   " Dont bother doing anything until we're sure the user exited the menu
   if !b:snippet_chosen
     return
