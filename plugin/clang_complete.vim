@@ -478,7 +478,7 @@ endfunction
 function! s:TriggerSnippet()
   " Restore original return key mapping
   silent! execute s:old_cr.mode.
-      \ (s:old_cr.noremap ? 'noremap '  : '').' '
+      \ (s:old_cr.noremap ? 'noremap '  : 'map').
       \ (s:old_cr.buffer  ? '<buffer> ' : '').
       \ (s:old_cr.expr    ? '<expr> '   : '').
       \ (s:old_cr.nowait  ? '<nowait> ' : '').
