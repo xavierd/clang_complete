@@ -442,7 +442,11 @@ function! ClangComplete(findstart, base)
     python timer.registerEvent("Load into vimscript")
 
     if g:clang_make_default_keymappings == 1
-      let s:old_cr = maparg('<CR>', 'i', 0, 1)
+      try
+        let s:old_cr = maparg('<CR>', 'i', 0, 1)
+      catch E118:
+        let s:old_cr = ''
+      endtry
       inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
       inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
     endif
@@ -485,16 +489,18 @@ function! s:StopMonitoring()
     call s:TriggerSnippet()
   else
     " Restore original return key mapping
-    if get(s:old_cr, 'buffer', 0)
-      silent! execute s:old_cr.mode.
-          \ (s:old_cr.noremap ? 'noremap '  : 'map').
-          \ (s:old_cr.buffer  ? '<buffer> ' : '').
-          \ (s:old_cr.expr    ? '<expr> '   : '').
-          \ (s:old_cr.nowait  ? '<nowait> ' : '').
-          \ s:old_cr.lhs.' '.
-          \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
-    else
-      silent! iunmap <buffer> <CR>
+    if type(s:old_cr) == 4
+      if get(s:old_cr, 'buffer', 0)
+        silent! execute s:old_cr.mode.
+            \ (s:old_cr.noremap ? 'noremap '  : 'map').
+            \ (s:old_cr.buffer  ? '<buffer> ' : '').
+            \ (s:old_cr.expr    ? '<expr> '   : '').
+            \ (s:old_cr.nowait  ? '<nowait> ' : '').
+            \ s:old_cr.lhs.' '.
+            \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+      else
+        silent! iunmap <buffer> <CR>
+      endif
     endif
 
     silent! iunmap <buffer> <C-Y>
