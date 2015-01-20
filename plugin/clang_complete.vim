@@ -23,6 +23,9 @@ let b:my_changedtick = 0
 " not during a function call.
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 
+" Older versions of Vim can't check if a map was made with <expr>
+let s:use_maparg = v:version > 703 || (v:version == 703 && has('patch32'))
+
 function! s:ClangCompleteInit()
   let l:bufname = bufname("%")
   if l:bufname == ''
@@ -123,6 +126,10 @@ function! s:ClangCompleteInit()
 
   if !exists('g:clang_make_default_keymappings')
     let g:clang_make_default_keymappings = 1
+  endif
+
+  if !exists('g:clang_restore_cr_imap')
+    let g:clang_restore_cr_imap = 'iunmap <buffer> <CR>'
   endif
 
   call LoadUserOptions()
@@ -442,12 +449,21 @@ function! ClangComplete(findstart, base)
     python timer.registerEvent("Load into vimscript")
 
     if g:clang_make_default_keymappings == 1
-      let s:old_cr = maparg('<CR>', 'i')
+      if s:use_maparg
+        let s:old_cr = maparg('<CR>', 'i', 0, 1)
+      else
+        let s:old_snr = matchstr(maparg('<CR>', 'i'), '<SNR>\d\+_')
+      endif
       inoremap <expr> <buffer> <C-Y> <SID>HandlePossibleSelectionCtrlY()
       inoremap <expr> <buffer> <CR> <SID>HandlePossibleSelectionEnter()
     endif
     augroup ClangComplete
       au CursorMovedI <buffer> call <SID>TriggerSnippet()
+      if exists('##CompleteDone')
+        au CompleteDone,InsertLeave <buffer> call <SID>StopMonitoring()
+      else
+        au InsertLeave <buffer> call <SID>StopMonitoring()
+      endif
     augroup end
     let b:snippet_chosen = 0
 
@@ -475,23 +491,46 @@ function! s:HandlePossibleSelectionCtrlY()
   return "\<C-Y>"
 endfunction
 
+function! s:StopMonitoring()
+  if b:snippet_chosen
+    call s:TriggerSnippet()
+  else
+    " Restore original return key mapping
+    if s:use_maparg
+      if get(s:old_cr, 'buffer', 0)
+        silent! execute s:old_cr.mode.
+            \ (s:old_cr.noremap ? 'noremap '  : 'map').
+            \ (s:old_cr.buffer  ? '<buffer> ' : '').
+            \ (s:old_cr.expr    ? '<expr> '   : '').
+            \ (s:old_cr.nowait  ? '<nowait> ' : '').
+            \ s:old_cr.lhs.' '.
+            \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+      else
+        silent! iunmap <buffer> <CR>
+      endif
+    else
+      silent! execute substitute(g:clang_restore_cr_imap, '<SID>', s:old_snr, 'g')
+    endif
+
+    silent! iunmap <buffer> <C-Y>
+    augroup ClangComplete
+      au! CursorMovedI,InsertLeave <buffer>
+      if exists('##CompleteDone')
+        au! CompleteDone <buffer>
+      endif
+    augroup END
+  endif
+endfunction
+
 function! s:TriggerSnippet()
-  " Restore original return key mapping
-  silent! execute 'inoremap <script> <buffer> <silent> <CR> '.s:old_cr
-  
   " Dont bother doing anything until we're sure the user exited the menu
   if !b:snippet_chosen
     return
   endif
 
   " Stop monitoring as we'll trigger a snippet
-  if empty(s:old_cr)
-    silent! iunmap <buffer> <CR>
-  endif
-  silent! iunmap <buffer> <C-Y>
-  augroup ClangComplete
-    au! CursorMovedI <buffer>
-  augroup end
+  let b:snippet_chosen = 0
+  call s:StopMonitoring()
 
   " Trigger the snippet
   python snippetsTrigger()
