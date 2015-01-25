@@ -496,23 +496,25 @@ function! s:StopMonitoring()
     call s:TriggerSnippet()
   else
     " Restore original return key mapping
-    if s:use_maparg
-      if get(s:old_cr, 'buffer', 0)
-        silent! execute s:old_cr.mode.
-            \ (s:old_cr.noremap ? 'noremap '  : 'map').
-            \ (s:old_cr.buffer  ? '<buffer> ' : '').
-            \ (s:old_cr.expr    ? '<expr> '   : '').
-            \ (s:old_cr.nowait  ? '<nowait> ' : '').
-            \ s:old_cr.lhs.' '.
-            \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+    if g:clang_make_default_keymappings == 1
+      if s:use_maparg
+        if get(s:old_cr, 'buffer', 0)
+          silent! execute s:old_cr.mode.
+              \ (s:old_cr.noremap ? 'noremap '  : 'map').
+              \ (s:old_cr.buffer  ? '<buffer> ' : '').
+              \ (s:old_cr.expr    ? '<expr> '   : '').
+              \ (s:old_cr.nowait  ? '<nowait> ' : '').
+              \ s:old_cr.lhs.' '.
+              \ substitute(s:old_cr.rhs, '<SID>', '<SNR>'.s:old_cr.sid.'_', 'g')
+        else
+          silent! iunmap <buffer> <CR>
+        endif
       else
-        silent! iunmap <buffer> <CR>
+        silent! execute substitute(g:clang_restore_cr_imap, '<SID>', s:old_snr, 'g')
       endif
-    else
-      silent! execute substitute(g:clang_restore_cr_imap, '<SID>', s:old_snr, 'g')
-    endif
 
-    silent! iunmap <buffer> <C-Y>
+      silent! iunmap <buffer> <C-Y>
+    endif
     augroup ClangComplete
       au! CursorMovedI,InsertLeave <buffer>
       if exists('##CompleteDone')
