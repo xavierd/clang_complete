@@ -55,9 +55,25 @@ def getBuiltinHeaderPath(library_path):
 
   return None
 
-def initClangComplete(clang_complete_flags, clang_compilation_database, \
-                      library_path):
+def initClangComplete(include_macros=False, include_code_patterns=False,
+                      include_brief_comments = False,
+                      clang_compilation_database=None,
+                      library_path=None):
   global index
+  global complete_flags
+
+  if (include_macros == "0"):
+    include_macros = False
+  if (include_code_patterns == "0"):
+    include_code_patterns = False
+  if (include_brief_comments == "0"):
+    include_brief_comments = False
+
+  complete_flags = {
+    'include_macros': include_macros,
+    'include_code_patterns': include_code_patterns,
+    'include_brief_comments': include_brief_comments,
+  }
 
   debug = int(vim.eval("g:clang_debug")) == 1
 
@@ -99,8 +115,6 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   global translationUnits
   translationUnits = dict()
-  global complete_flags
-  complete_flags = int(clang_complete_flags)
   global compilation_database
   if clang_compilation_database != '':
     compilation_database = CompilationDatabase.fromDirectory(clang_compilation_database)
@@ -178,7 +192,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
     return tu
 
   flags = TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
-          TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
+          TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD | \
+          TranslationUnit.PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
   try:
     tu = index.parse(fileName, args, [currentFile], flags)
     timer.registerEvent("First parse")
@@ -355,7 +370,7 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
     return None
 
   cr = tu.codeComplete(fileName, line, column, [currentFile],
-      complete_flags)
+      **complete_flags)
   timer.registerEvent("Code Complete")
   return cr
 
@@ -365,6 +380,11 @@ def formatResult(result):
   abbr = ""
   word = ""
   info = ""
+  comment = ""
+
+  commentstr = result.string.briefComment.spelling
+  if (commentstr and commentstr != ""):
+    comment = "// " + commentstr + "\n"
 
   for chunk in result.string:
 
@@ -395,7 +415,7 @@ def formatResult(result):
   completion['word'] = snippetsAddSnippet(info, word, abbr)
   completion['abbr'] = abbr
   completion['menu'] = menu
-  completion['info'] = info
+  completion['info'] = comment + info
   completion['dup'] = 1
 
   # Replace the number that represents a specific kind with a better
@@ -494,7 +514,57 @@ def getCurrentCompletions(base):
   result = map(formatResult, results)
 
   timer.registerEvent("Format")
-  return (str(result), timer)
+  return (toVimRepr(result), timer)
+import types
+
+# Convert python data structures to a vim-compatible string
+#
+# python's default str() conversion is very close to be parsable by vim,
+# but certain patterns cause trouble. This conversion routines are written
+# to be 100% vim compatible. This allows us to properly pass on newlines as
+# well as strings that contain " or '.
+def toVimRepr(v):
+  t = type(v)
+  if t in [types.IntType, types.LongType, types.FloatType]:
+    return repr(v)
+  if t in [types.StringType, types.UnicodeType]:
+    return stringToVimRepr(v)
+  if t is types.ListType:
+    return listToVimRepr(v)
+  if t is types.DictType:
+    return dictToVimRepr(v)
+
+def stringToVimRepr(s):
+  result = '\''
+  for c in s:
+    if c != '\'':
+      result += c
+    else:
+      result += '\'\''
+  result += '\''
+  return result
+
+def listToVimRepr(l):
+  result = '['
+  for i in xrange(len(l)):
+    result += toVimRepr(l[i])
+    if i != len(l) - 1:
+      result += ', '
+  result += ']'
+  return result
+
+def dictToVimRepr(d):
+  result = '{'
+  keys = d.keys()
+  for i in xrange(len(keys)):
+    k = keys[i]
+    result += toVimRepr(k)
+    result += ': '
+    result += toVimRepr(d[k])
+    if i != len(keys) - 1:
+      result += ', '
+  result += '}'
+  return result
 
 def getAbbr(strings):
   for chunks in strings:
