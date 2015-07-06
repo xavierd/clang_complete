@@ -137,6 +137,12 @@ The snippets engine (clang_complete, ultisnips... see the snippets
 subdirectory).
 Default: "clang_complete"
 
+				       	*clang_complete-snippet_jump_map*
+				       	*g:clang_complete_snippet_jump_map*
+Key clang_complete snippet engine uses to jump between replaceables.
+If it is empty string, then nothing is mapped.
+Default: '<tab>'
+
        				       	*clang_complete-conceal_snippets*
        				       	*g:clang_conceal_snippets*
 Note: This option is specific to clang_complete snippets engine.
@@ -272,18 +278,21 @@ Default: 0
 					*g:clang_print_type_key*
 Set the key used to print the type of the identifier under cursor.
 If cursor is on an enum, then the value of that enum is also printed.
+If it is empty then no shortcut will be created to gather this info.
 Defaut: "zp"
 Note: You can call ClangPrintType() vim function to print this information.
 
 					*clang_complete-jumpto_declaration_key*
 					*g:clang_jumpto_declaration_key*
 Set the key used to jump to declaration.
+If it is empty then no shortcut will be created for this jump.
 Default: "<C-]>"
 Note: You could use the g:ClangGotoDeclaration() to do the same with a mapping.
 
 					*clang_complete-jumpto_declaration_in_preview_key*
 					*g:clang_jumpto_declaration_in_preview_key*
 Set the key used to jump to declaration in a preview window.
+If it is empty then no shortcut will be created for this jump.
 Default: "<C-W>]"
 Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a mapping.
 
@@ -292,6 +301,7 @@ Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a ma
 Set the key used to jump back.
 Note: Effectively this will be remapped to <C-O>. The default value is chosen
 to be coherent with ctags implementation.
+If it is empty then nothing will be remapped to <C-O>, you can use <C-O> as it is.
 Default: "<C-T>"
 
 					*clang_complete-make_default_keymappings*
