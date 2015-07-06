@@ -365,6 +365,20 @@ def formatResult(result):
   abbr = ""
   word = ""
   info = ""
+  place_markers_for_optional_args = int(vim.eval("g:clang_complete_optional_args_in_snippets")) == 1
+
+  def roll_out_optional(chunks):
+    result = []
+    word = ""
+    for chunk in chunks:
+      if chunk.isKindInformative() or chunk.isKindResultType() or chunk.isKindTypedText():
+        continue
+
+      word += chunk.spelling
+      if chunk.isKindOptional():
+        result += roll_out_optional(chunk.string)
+
+    return [word] + result
 
   for chunk in result.string:
 
@@ -379,6 +393,12 @@ def formatResult(result):
 
     if chunk.isKindTypedText():
       abbr = chunk_spelling
+
+    if chunk.isKindOptional():
+      for optional_arg in roll_out_optional(chunk.string):
+        if place_markers_for_optional_args:
+          word += snippetsFormatPlaceHolder(optional_arg)
+        info += optional_arg + "=?"
 
     if chunk.isKindPlaceHolder():
       word += snippetsFormatPlaceHolder(chunk_spelling)

@@ -80,6 +80,10 @@ function! s:ClangCompleteInit()
     echoe 'clang_complete: conceal feature not available but requested'
   endif
 
+  if !exists('g:clang_complete_optional_args_in_snippets')
+    let g:clang_complete_optional_args_in_snippets = 0
+  endif
+
   if !exists('g:clang_trailing_placeholder')
     let g:clang_trailing_placeholder = 0
   endif
