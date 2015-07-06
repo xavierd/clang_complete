@@ -207,6 +207,10 @@ function! s:ClangCompleteInit()
     set completeopt+=menuone
   endif
 
+  if g:clang_close_preview == 2
+    set completeopt-=preview
+  endif
+
   " Disable every autocmd that could have been set.
   augroup ClangComplete
     autocmd!
@@ -573,7 +577,7 @@ function! s:TriggerSnippet()
   " Trigger the snippet
   execute s:py_cmd 'snippetsTrigger()'
 
-  if g:clang_close_preview
+  if g:clang_close_preview == 1
     pclose
   endif
 endfunction

@@ -180,6 +180,7 @@ Default: 'iunmap <buffer> <CR>'
        				       	*g:clang_close_preview*
 If equal to 1, the preview window will be close automatically after a
 completion.
+If equal to 2, the preview window won't even be opened.
 Default: 0
 
        				      	*clang_complete-user_options*
