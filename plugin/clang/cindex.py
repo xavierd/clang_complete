@@ -1078,6 +1078,13 @@ class Cursor(Structure):
         """
         return conf.lib.clang_isCursorDefinition(self)
 
+    def is_virtual_method(self):
+        """Determine if a C++ member function or member function template is
+        explicitly declared 'virtual' or if it overrides a virtual method from
+        one of the base classes.
+        """
+        return conf.lib.clang_CXXMethod_isVirtual(self)
+
     def is_static_method(self):
         """Returns True if the cursor refers to a C++ member function or member
         function template that is declared 'static'.
