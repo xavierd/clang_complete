@@ -576,14 +576,17 @@ def jumpToLocation(filename, line, column, preview):
   if not preview:
     vim.current.window.cursor = (line, column - 1)
 
-def gotoDeclaration(preview=True):
+# You must call finish to the timer later.
+def _createTimerAndGetVimPositionAndParameters():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
   line, col = vim.current.window.cursor
   timer = CodeCompleteTimer(debug, vim.current.buffer.name, line, col, params)
+  return [line, col, params, timer]
 
-  with libclangLock:
+# You must get libclangLock before calling this function.
+def _getCursorAndLocation(line, col, params, timer):
     tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
                                    vim.current.buffer.name, timer,
                                    update = True)
@@ -594,8 +597,14 @@ def gotoDeclaration(preview=True):
     f = File.from_name(tu, vim.current.buffer.name)
     loc = SourceLocation.from_position(tu, f, line, col + 1)
     cursor = Cursor.from_location(tu, loc)
-    vim.command("let g:clang_is_virtual_method = 0");
-    vim.command("let g:clang_is_function = 0");
+    return [cursor, loc]
+
+def gotoDeclaration(preview=True):
+  [line, col, params, timer] =  _createTimerAndGetVimPositionAndParameters()
+  vim.command("let g:clang_is_virtual_method = 0");
+  vim.command("let g:clang_is_function = 0");
+  with libclangLock:
+    [cursor, loc] = _getCursorAndLocation(line, col, params, timer)
     if cursor.is_virtual_method():
       vim.command("let g:clang_is_virtual_method = 1");
     if cursor.is_function():
@@ -614,5 +623,31 @@ def gotoDeclaration(preview=True):
         break
 
   timer.finish()
+
+def clangGetType():
+  [line, col, params, timer] =  _createTimerAndGetVimPositionAndParameters()
+
+  type_str = "unknown"
+  with libclangLock:
+    [cursor, loc] = _getCursorAndLocation(line, col, params, timer)
+    type = cursor.type
+    type_str = type.get_spelling()+" ("+type.get_canonical().get_spelling()+")"
+  vim.command("let b:clang_type = '" + type_str.replace("'","''")+"'")
+  const_value = ""
+  if CursorKind.ENUM_CONSTANT_DECL == cursor.kind:
+    const_value = str(cursor.enum_value)
+  if "" == const_value and TypeKind.ENUM == cursor.type.kind:
+    enum_def = cursor.get_definition()
+    if enum_def is not None:
+      const_value = str(enum_def.enum_value)
+  if "" != const_value:
+    vim.command("let b:clang_type = b:clang_type . ' enum value: "+const_value+"'")
+  # TODO: also print other constat values like: const int MYCONST = MY_CONST_WITH_VALUE_TEN + 5
+  # if "" == const_value:
+  #   ... (const_value = "15")
+  #   if "" != const_value:
+  #     vim.command("let b:clang_type = b:clang_type . ' const value: "+const_value+"'")
+  timer.finish()
+
 
 # vim: set ts=2 sts=2 sw=2 expandtab :

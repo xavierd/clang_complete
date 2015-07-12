@@ -1580,6 +1580,15 @@ class Type(Structure):
         """
         return conf.lib.clang_getCanonicalType(self)
 
+    def get_spelling(self):
+        """
+        Pretty-print the underlying type using the rules of the
+        language of the translation unit from which it came.
+
+        If the type is invalid, an empty string is returned.
+        """
+        return conf.lib.clang_getTypeSpelling(self).decode("utf-8")
+
     def is_const_qualified(self):
         """Determine whether a Type has the "const" qualifier set.
 
@@ -2972,6 +2981,11 @@ functionList = [
 
   ("clang_getTypeKindSpelling",
    [c_uint],
+   _CXString,
+   _CXString.from_result),
+
+  ("clang_getTypeSpelling",
+   [Type],
    _CXString,
    _CXString.from_result),
 
