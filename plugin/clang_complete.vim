@@ -195,7 +195,7 @@ function! s:ClangCompleteInit()
     inoremap <expr> <buffer> . <SID>CompleteDot()
     inoremap <expr> <buffer> > <SID>CompleteArrow()
     inoremap <expr> <buffer> : <SID>CompleteColon()
-    execute "nnoremap <buffer> <silent> " . g:clang_print_type_key . " :call <SID>PrintType()<CR><Esc>"
+    execute "nnoremap <buffer> <silent> " . g:clang_print_type_key . " :call ClangPrintType()<CR><Esc>"
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_in_preview_key . " :call <SID>GotoDeclaration(1)<CR><Esc>"
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
@@ -639,7 +639,7 @@ function! s:CompleteColon()
   return ':' . s:LaunchCompletion()
 endfunction
 
-function! s:PrintType()
+function! ClangPrintType()
     execute s:py_cmd "clangGetType()"
     redraw
     echom b:clang_type
