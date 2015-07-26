@@ -148,6 +148,15 @@ for details): >
 
 Default: 1 (0 if conceal not available)
 
+       				       	*clang_complete-optional_args_in_snippets*
+       				       	*g:clang_complete_optional_args_in_snippets*
+If equal to 1, it will add optional arguments to the function call snippet.
+Snippet replaceable object will not be only the argument, but the preceding
+comma will be included as well, so you can press backspace to delete the
+optional argument, while the replaceable is selected.
+Example: foo($`T param1`, $`T param2`$`, T optional_param`)
+Default: 0
+
        				       	*clang_complete-clang_trailing_placeholder*
        				       	*g:clang_trailing_placeholder*
 Note: This option is specific to clang_complete snippets engine.
