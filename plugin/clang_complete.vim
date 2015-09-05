@@ -136,6 +136,15 @@ function! s:ClangCompleteInit()
     let g:clang_restore_cr_imap = 'iunmap <buffer> <CR>'
   endif
 
+  if !exists('g:clang_omnicppcomplete_compliance')
+    let g:clang_omnicppcomplete_compliance = 0
+  endif
+
+  if g:clang_omnicppcomplete_compliance == 1
+    let g:clang_complete_auto = 0
+    let g:clang_make_default_keymappings = 0
+  endif
+
   call LoadUserOptions()
 
   let b:my_changedtick = b:changedtick
@@ -179,6 +188,10 @@ function! s:ClangCompleteInit()
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
   endif
 
+  if g:clang_omnicppcomplete_compliance == 1
+    inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
+  endif
+
   " Force menuone. Without it, when there's only one completion result,
   " it can be confusing (not completing and no popup)
   if g:clang_auto_select != 2
@@ -198,7 +211,10 @@ function! s:ClangCompleteInit()
   endif
 
   setlocal completefunc=ClangComplete
-  setlocal omnifunc=ClangComplete
+  if g:clang_omnicppcomplete_compliance == 0
+    setlocal omnifunc=ClangComplete
+  endif
+
 endfunction
 
 function! LoadUserOptions()
