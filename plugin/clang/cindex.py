@@ -63,6 +63,7 @@ call is efficient.
 # o implement additional SourceLocation, SourceRange, and File methods.
 
 from ctypes import *
+from ctypes.util import find_library
 import collections
 
 import clang.enumerations
@@ -3147,7 +3148,7 @@ class Config:
         elif name == 'Windows':
             file = 'libclang.dll'
         else:
-            file = 'libclang.so'
+            file = find_library("clang") or 'libclang.so'
 
         if Config.library_path:
             file = Config.library_path + '/' + file
