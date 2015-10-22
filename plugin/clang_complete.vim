@@ -284,7 +284,7 @@ function! s:processFilename(filename, root)
       let l:root = substitute(a:root, '\\', '/', 'g')
       if matchstr(a:filename, '\C^".*"\s*$') == ''
         let l:filename = substitute(a:filename, '\C^\(.\{-}\)\s*$'
-                                            \ , '' . l:root . '\1', 'g')
+                                            \ , '"' . l:root . '\1"', 'g')
       else
         " Strip first double-quote and prepend the root.
         let l:filename = substitute(a:filename, '\C^"\(.\{-}\)"\s*$'
