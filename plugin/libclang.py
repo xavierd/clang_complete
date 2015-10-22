@@ -196,7 +196,8 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
 
 def splitOptions(options):
   # Use python's shell command lexer to correctly split the list of options in
-  return shlex.split(options, 1)
+  # accordance with the POSIX standard
+  return shlex.split(options)
 
 def getQuickFix(diagnostic):
   # Some diagnostics have no file, e.g. "too many errors emitted, stopping now"
