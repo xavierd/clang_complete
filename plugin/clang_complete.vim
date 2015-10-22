@@ -281,14 +281,16 @@ function! s:processFilename(filename, root)
   else
     " If a windows file, the filename may need to be quoted.
     if s:isWindows()
+      let l:root = substitute(a:root, '\\', '/', 'g')
       if matchstr(a:filename, '\C^".*"\s*$') == ''
         let l:filename = substitute(a:filename, '\C^\(.\{-}\)\s*$'
-                                            \ , '"' . a:root . '\1"', 'g')
+                                            \ , '' . l:root . '\1', 'g')
       else
         " Strip first double-quote and prepend the root.
-        let l:filename = substitute(a:filename, '\C^"\(.\{-}\)\s*$'
-                                            \ , '"' . a:root . '\1"', 'g')
+        let l:filename = substitute(a:filename, '\C^"\(.\{-}\)"\s*$'
+                                            \ , '"' . l:root . '\1"', 'g')
       endif
+      let l:filename = substitute(l:filename, '/', '\\', 'g')
     else
       " For Unix, assume the filename is already escaped/quoted correctly
       let l:filename = shellescape(a:root) . a:filename
