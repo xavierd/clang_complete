@@ -4,8 +4,6 @@
 #=============================================================================
 
 from .base import Base
-import deoplete.util
-import re
 
 class Source(Base):
     def __init__(self, vim):
