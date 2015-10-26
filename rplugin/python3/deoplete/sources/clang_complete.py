@@ -4,8 +4,6 @@
 #=============================================================================
 
 from .base import Base
-import deoplete.util
-import re
 
 class Source(Base):
     def __init__(self, vim):
@@ -18,7 +16,7 @@ class Source(Base):
         self.min_pattern_length = 1
 
     def get_complete_position(self, context):
-        return self.vim.eval("ClangComplete(1, 0)")
+        return self.vim.call('ClangComplete', 1, 0)
 
     def gather_candidates(self, context):
-        return self.vim.eval("ClangComplete(0, \"\")")
+        return self.vim.call('ClangComplete', 0, '')
