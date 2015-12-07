@@ -6,9 +6,15 @@
 from .base import Base
 from deoplete.util import error 
 
-from clang.cindex import *
 import os
 import shlex
+
+lib_clang_loaded = True
+
+try:
+  from clang.cindex import *
+except:
+  lib_clang_loaded = False
 
 # Check if libclang is able to find the builtin include files.
 #
@@ -305,10 +311,28 @@ class Source(Base):
     self.filetypes = ['c', 'cpp']
     self.is_bytepos = True
     self.min_pattern_length = 1
-    #Init global variables and clang lib, returns 0 on error
-    self.init_ret = initClangComplete(self.vim)
+
+    self.init_ret = 0
+    self.inited = False
+    #Define global variables for later
+    global index
+    global builtinHeaderPath
+    global translationUnits
+    global complete_flags
+    global compilation_database
+    #See if we failed to load the python3 clang lib
+    if not lib_clang_loaded:
+      error(self.vim, "Failed to load the py3 clang lib")
+      error(self.vim, "It is available at:")
+      error(self.vim, "https://pypi.python.org/pypi/libclang-py3")
+      self.inited = True
 
   def get_complete_position(self, context):
+    if not self.inited:
+      #Init global variables and clang lib, returns 0 on error
+      self.init_ret = initClangComplete(self.vim)
+      self.inited = True
+    
     # 1 if it has init was successful
     if self.init_ret:
       return self.vim.call('ClangComplete', 1, 0)
