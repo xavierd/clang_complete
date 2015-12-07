@@ -219,7 +219,7 @@ def formatResult(result):
     chunk_spelling = chunk.spelling
 
     # TODO find out why this is None sometimes
-    # I doesn't seem like this could be the case in the python2 code
+    # I doesn't seem like this ever happened with the python2 code
     if chunk_spelling == None:
       continue
 
@@ -252,7 +252,12 @@ def formatResult(result):
 
   # Replace the number that represents a specific kind with a better
   # textual representation.
-  completion['kind'] = kinds[result.cursorKind]
+  # TODO got a key error of "700" here, unknown type?
+  if result.cursorKind in kinds:
+    completion['kind'] = kinds[result.cursorKind]
+  else:
+    #We don't know what type it is so just add the number it had
+    completion['kind'] = str(result.cursorKind)
 
   return completion
 
