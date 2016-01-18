@@ -13,7 +13,7 @@ class Source(Base):
         self.mark = '[clang]'
         self.filetypes = ['c', 'cpp']
         self.is_bytepos = True
-        self.min_pattern_length = 1
+        self.min_pattern_length = 0
 
     def get_complete_position(self, context):
         return self.vim.call('ClangComplete', 1, 0)
