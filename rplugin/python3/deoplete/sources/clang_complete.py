@@ -315,7 +315,7 @@ class Source(Base):
     self.mark = '[clang]'
     self.filetypes = ['c', 'cpp']
     self.is_bytepos = True
-    self.min_pattern_length = 1
+    self.min_pattern_length = 0
 
     self.init_ret = 0
     self.inited = False
@@ -338,6 +338,10 @@ class Source(Base):
       self.init_ret = initClangComplete(self.vim)
       self.inited = True
     
+    if context['input'][-1] == '\n':
+      #Do not match empty lines
+      return -1
+
     # 1 if it has init was successful
     if self.init_ret:
       return self.vim.call('ClangComplete', 1, 0)
@@ -357,7 +361,7 @@ class Source(Base):
       b_param = self.vim.eval("b:clang_parameters")
 
       sorting = self.vim.eval("g:clang_sort_algo")
-      line, _ = self.vim.current.window.cursor
+      line = self.vim.current.window.cursor[0]
       column = int(self.vim.eval("b:col"))
       params = getCompileParams(self.vim.current.buffer.name)
 
