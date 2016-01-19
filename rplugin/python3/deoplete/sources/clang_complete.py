@@ -338,7 +338,7 @@ class Source(Base):
       self.init_ret = initClangComplete(self.vim)
       self.inited = True
     
-    if context['input'][-1] == '\n':
+    if context['input'][-1].isspace():
       #Do not match empty lines
       return -1
 
