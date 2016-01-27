@@ -154,7 +154,7 @@ function! s:ClangCompleteInit()
     let b:clang_parameters = '-x objective-c'
   endif
 
-  if &filetype == 'cpp' || &filetype == 'objcpp'
+  if &filetype == 'cpp' || &filetype == 'objcpp' || &filetype =~ 'cpp.*' || &filetype =~ 'objcpp.*'
     let b:clang_parameters .= '++'
   endif
 
