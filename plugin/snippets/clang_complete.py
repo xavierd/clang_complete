@@ -2,8 +2,8 @@ import re
 import vim
 
 def snippetsInit():
-  vim.command("inoremap <silent> <buffer> <C-e> <ESC>:python updateSnips()<CR>")
-  vim.command("snoremap <silent> <buffer> <C-e> <ESC>:python updateSnips()<CR>")
+  vim.command("inoremap <silent> <buffer> <C-s> <ESC>:python updateSnips()<CR>")
+  vim.command("snoremap <silent> <buffer> <C-s> <ESC>:python updateSnips()<CR>")
   if int(vim.eval("g:clang_conceal_snippets")) == 1:
     vim.command("syntax match placeHolder /\$`[^`]*`/ contains=placeHolderMark")
     vim.command("syntax match placeHolderMark contained /\$`/ conceal")
