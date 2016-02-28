@@ -315,7 +315,7 @@ class Source(Base):
     self.mark = '[clang]'
     self.filetypes = ['c', 'cpp']
     self.is_bytepos = True
-    self.min_pattern_length = 0
+    self.input_pattern = '[^.]\w*[^\[\]\(\)\{\};\s]'
 
     self.init_ret = 0
     self.inited = False
@@ -338,10 +338,6 @@ class Source(Base):
       self.init_ret = initClangComplete(self.vim)
       self.inited = True
     
-    if not context['input'] or context['input'][-1].isspace():
-      #Do not match empty lines
-      return -1
-
     # 1 if it has init was successful
     if self.init_ret:
       return self.vim.call('ClangComplete', 1, 0)
