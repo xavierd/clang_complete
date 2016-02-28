@@ -229,11 +229,11 @@ def formatResult(result):
     if chunk.isKindOptional():
       for optional_arg in roll_out_optional(chunk.string):
         if place_markers_for_optional_args:
-          word += "$" + optional_arg
+          word += "$`" + optional_arg + "`"
         info += optional_arg + "=?"
 
     if chunk.isKindPlaceHolder():
-      word += "$" + chunk_spelling
+      word += "$`" + chunk_spelling + "`"
     else:
       word += chunk_spelling
 
