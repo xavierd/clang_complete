@@ -315,7 +315,7 @@ class Source(Base):
     self.mark = '[clang]'
     self.filetypes = ['c', 'cpp']
     self.is_bytepos = True
-    self.input_pattern = '[^.]\w*[^\[\]\(\)\{\};\s]'
+    self.input_pattern = '\w*[^\[\]\(\)\{\};\s]'
 
     self.init_ret = 0
     self.inited = False
