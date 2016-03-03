@@ -258,18 +258,18 @@ Default: 0
 					*clang_complete-complete_patterns*
 					*g:clang_complete_patterns*
 If clang should complete code patterns, i.e loop constructs etc.
-Defaut: 0
+Default: 0
 
 					*clang_complete-jumpto_declaration_key*
 					*g:clang_jumpto_declaration_key*
 Set the key used to jump to declaration.
-Defaut: "<C-]>"
+Default: "<C-]>"
 Note: You could use the g:ClangGotoDeclaration() to do the same with a mapping.
 
 					*clang_complete-jumpto_declaration_in_preview_key*
 					*g:clang_jumpto_declaration_in_preview_key*
 Set the key used to jump to declaration in a preview window.
-Defaut: "<C-W>]"
+Default: "<C-W>]"
 Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a mapping.
 
 					*clang_complete-jumpto_back_key*
@@ -277,7 +277,7 @@ Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a ma
 Set the key used to jump back.
 Note: Effectively this will be remapped to <C-O>. The default value is chosen
 to be coherent with ctags implementation.
-Defaut: "<C-T>"
+Default: "<C-T>"
 
 					*clang_complete-make_default_keymappings*
 					*g:clang_make_default_keymappings*
@@ -290,7 +290,7 @@ Default: 1
 Omnicppcomplete compatibility mode. Keeps omni auto-completion in control of
 omnicppcomplete, disables clang's auto-completion (|g:clang_complete_auto|)
 and enables only <C-X><C-U> as main clang completion function.
-Defaut: 0
+Default: 0
 
 ==============================================================================
 6. Known issues					*clang_complete-issues*
