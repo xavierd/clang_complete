@@ -788,6 +788,7 @@ kinds = dict({                                                                 \
                                                                                \
 # Modules                                                                      \
 600 : '600', # CXCursor_ModuleImportDecl (A module import declaration)         \
+601 : 'ta', # CXCursor_TypeAliasTemplateDecl (Template alias declaration)......\
 })
 
 # vim: set ts=2 sts=2 sw=2 expandtab :
