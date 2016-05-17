@@ -1991,6 +1991,8 @@ class TranslationUnit(ClangObject):
         if args is None:
             args = []
 
+        args.append('-fno-color-diagnostics')
+
         if unsaved_files is None:
             unsaved_files = []
 
