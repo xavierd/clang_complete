@@ -42,7 +42,7 @@ def getBuiltinHeaderPath(library_path):
     try:
       files = os.listdir(path)
       if len(files) >= 1:
-        files = sorted(files)
+        files = list(reversed(sorted(files)))
         subDir = files[-1]
       else:
         subDir = '.'
