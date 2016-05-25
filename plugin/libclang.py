@@ -40,15 +40,10 @@ def getBuiltinHeaderPath(library_path):
 
   for path in knownPaths:
     try:
-      files = os.listdir(path)
-      if len(files) >= 1:
-        files = sorted(files)
-        subDir = files[-1]
-      else:
-        subDir = '.'
-      path = path + "/" + subDir + "/include/"
-      arg = "-I" + path
-      if canFindBuiltinHeaders(index, [arg]):
+      subDirs = [f for f in os.listdir(path) if os.path.isdir(path + "/" + f)]
+      subDirs = sorted(subDirs) or ['.']
+      path = path + "/" + subDirs[-1] + "/include"
+      if canFindBuiltinHeaders(index, ["-I" + path]):
         return path
     except:
       pass
