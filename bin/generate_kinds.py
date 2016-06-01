@@ -58,14 +58,12 @@ else:
   exit(-1)
 
 kinds_py_path = os.path.join(
-  os.path.join(
+  os.path.dirname(
     os.path.dirname(
-      os.path.dirname(
-        os.path.abspath(__file__)
-      )
-    ),
-    "plugin"
+      os.path.abspath(__file__)
+    )
   ),
+  "plugin",
   "kinds.py"
 )
 
@@ -81,10 +79,7 @@ with open(kinds_py_path, "w") as f:
     if fl.match(kind.spelling) is not None:
       continue
 
-    if kind.enum_value in mapping:
-      text = mapping[kind.enum_value]
-    else:
-      text = kind.enum_value
+    text = mapping.get(kind.enum_value, kind.enum_value)
     f.write("{0} : '{1}', # {2} {3}\n".format(kind.enum_value, text, kind.spelling, kind.brief_comment))
 
   f.write("}\n")
