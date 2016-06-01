@@ -2,3 +2,4 @@
 *.vmb
 *.cache
 tags
+*.swp
