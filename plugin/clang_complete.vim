@@ -306,11 +306,7 @@ function! s:parseConfig()
     return
   endif
 
-  let l:sep = '/'
-  if s:isWindows()
-    let l:sep = '\'
-  endif
-
+  let l:sep = s:isWindows() ? '\' : '/'
   let l:root = fnamemodify(l:local_conf, ':p:h') . l:sep
 
   let l:opts = readfile(l:local_conf)
