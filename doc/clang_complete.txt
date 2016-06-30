@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2014 Apr 13
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2016 Jun 30
 
 
 		  clang_complete plugin documentation
@@ -59,10 +59,17 @@ some additional kinds of completion along with standard ones (see
 ==============================================================================
 4. Configuration				*clang_complete-configuration*
 
-Each project can have a .clang_complete at its root, containing the compiler
-options. This is useful if you're using some non-standard include paths or
-need to specify particular architecture type, frameworks to use, path to
-precompiled headers, precompiler definitions etc.
+Each project can have a .clang_complete at its root and/or subdirectories,
+containing the compiler options. This is useful if you're using some
+non-standard include paths or need to specify particular architecture type,
+frameworks to use, path to precompiled headers, precompiler definitions etc.
+
+To allow adding options incrementally, special keyword
+"clang_complete_continue" can be placed in the file, which will trigger going
+up in the file system tree looking for more configuration files. As files
+are processed toward the root of the file system options are prepended, so
+options specified in the .clang_complete closest to the file being edited have
+the highest priority.
 
 Note that as with other option sources, .clang_complete file is loaded and
 parsed by the plugin only on buffer loading (or reloading, for example with

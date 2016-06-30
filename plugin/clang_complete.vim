@@ -234,7 +234,7 @@ function! LoadUserOptions()
     elseif l:source == 'compile_commands.json'
       call s:findCompilationDatase(l:source)
     elseif l:source == '.clang_complete'
-      call s:parseConfig()
+      call s:parseConfigs()
     else
       let l:getopts = 'getopts#' . l:source . '#getopts'
       silent call eval(l:getopts . '()')
@@ -300,17 +300,33 @@ function! s:processFilename(filename, root)
   return l:filename
 endfunction
 
-function! s:parseConfig()
-  let l:local_conf = findfile('.clang_complete', getcwd() . ',.;')
-  if l:local_conf == '' || !filereadable(l:local_conf)
-    return
-  endif
+function! s:parseConfigs()
+  let l:confs = findfile('.clang_complete', getcwd() . ',.;', -1)
+  let l:all_opts = []
+  for l:conf in l:confs
+    if !filereadable(l:conf)
+      continue
+    endif
+
+    let [l:opts, l:continue] = s:parseConfig(l:conf)
+    " Prepend options to prioritize those set closer to current file
+    let l:all_opts = l:opts + l:all_opts
+    if !l:continue
+      break
+    endif
+  endfor
+  let b:clang_user_options .= ' ' . join(l:all_opts)
+endfunction
+
+function! s:parseConfig(local_conf)
+  let l:continue_lookup = 0
 
   let l:sep = s:isWindows() ? '\' : '/'
-  let l:root = fnamemodify(l:local_conf, ':p:h') . l:sep
+  let l:root = fnamemodify(a:local_conf, ':p:h') . l:sep
 
-  let l:opts = readfile(l:local_conf)
-  for l:opt in l:opts
+  let l:opts = []
+  let l:lines = readfile(a:local_conf)
+  for l:opt in l:lines
     " Ensure passed filenames are absolute. Only performed on flags which
     " require a filename/directory as an argument, as specified in s:flagInfo
     if matchstr(l:opt, '\C^\s*' . s:flagPattern . '\s*') != ''
@@ -324,8 +340,14 @@ function! s:parseConfig()
       let l:opt = s:flagInfo[l:flag].output . l:filename
     endif
 
-    let b:clang_user_options .= ' ' . l:opt
+    if l:opt == 'clang_complete_continue'
+      let l:continue_lookup = 1
+    else
+      let l:opts += [l:opt]
+    endif
   endfor
+
+  return [l:opts, l:continue_lookup]
 endfunction
 
 function! s:findCompilationDatase(cdb)
