@@ -340,7 +340,7 @@ function! s:parseConfig(local_conf)
       let l:opt = s:flagInfo[l:flag].output . l:filename
     endif
 
-    if l:opt == 'clang_complete_continue'
+    if l:opt == '-D_clang_complete_continue_'
       let l:continue_lookup = 1
     else
       let l:opts += [l:opt]

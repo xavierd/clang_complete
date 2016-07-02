@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2016 Jun 30
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2016 Jul 02
 
 
 		  clang_complete plugin documentation
@@ -64,9 +64,9 @@ containing the compiler options. This is useful if you're using some
 non-standard include paths or need to specify particular architecture type,
 frameworks to use, path to precompiled headers, precompiler definitions etc.
 
-To allow adding options incrementally, special keyword
-"clang_complete_continue" can be placed in the file, which will trigger going
-up in the file system tree looking for more configuration files. As files
+To allow adding options incrementally, special marker
+"-D_clang_complete_continue_" can be placed in the file, which will trigger
+going up in the file system tree looking for more configuration files. As files
 are processed toward the root of the file system options are prepended, so
 options specified in the .clang_complete closest to the file being edited have
 the highest priority.
