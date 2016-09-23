@@ -2,21 +2,24 @@ This plugin uses clang for accurately completing C and C++ code.
 
 ## Installation
 
-To build and install in one step, type:
-$ make install
+- To build and install in one step, type: `$ make install`
 
-To build and install in two steps, type:
+- To build and install in two steps, type:
+
+```
 $ make
 $ vim clang_complete.vmb -c 'so %' -c 'q'
+```
 
-Alternatively, you can also put the files in ~/.vim/
+- Alternatively, you can also put the files in `~/.vim/`
 
 You need Vim 7.3 or higher, compiled with python support and ideally, with
 the conceal feature.
 
 ## Minimum Configuration
 
-- Set the `clang_library_path` variable, example
+- Set the `clang_library_path`, which is the directory containing file named
+  libclang.[dll/so/dylib] or the clang shared library file itself, example:
 
 ```
 let g:clang_library_path='/usr/lib/llvm-3.8/lib'
