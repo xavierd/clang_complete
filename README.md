@@ -52,11 +52,12 @@ See doc/clang_complete.txt for help and license.
 
 ## Troubleshooting
 
-The first step is to check values of 'omnifunc' and 'completefunc' options in
-a C++ buffer where completion doesn't work (the value should be ClangComplete).
-This can be done with the following command: set omnifunc? completefunc?
+The first step is to check values of `'omnifunc'` and `'completefunc'` options
+in a C++ buffer where completion doesn't work (the value should be
+`ClangComplete`).  This can be done with the following command:
+`:set omnifunc? completefunc?`
 
-Output of :messages command after startup could also show something useful in
+Output of `:messages` command after startup could also show something useful in
 case there were problems with plugin initialization.
 
 If everything is fine, next step might be to load only clang_complete plugin
