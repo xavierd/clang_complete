@@ -50,7 +50,7 @@ work and wrap around ends of list.
 
 See doc/clang_complete.txt for help and license.
 
-#### Troubleshooting
+## Troubleshooting
 
 The first step is to check values of 'omnifunc' and 'completefunc' options in
 a C++ buffer where completion doesn't work (the value should be ClangComplete).
