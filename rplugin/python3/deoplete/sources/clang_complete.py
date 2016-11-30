@@ -11,9 +11,9 @@ class Source(Base):
 
         self.name = 'clang_complete'
         self.mark = '[clang]'
-        self.filetypes = ['c', 'cpp']
+        self.filetypes = ['c', 'cpp', 'objc', 'objcpp']
         self.is_bytepos = True
-        self.min_pattern_length = 1
+        self.input_pattern = '[^. \t0-9]\.\w*'
 
     def get_complete_position(self, context):
         return self.vim.call('ClangComplete', 1, 0)

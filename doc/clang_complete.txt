@@ -1,4 +1,4 @@
-*clang_complete.txt*	For Vim version 7.3.  Last change: 2014 Apr 13
+*clang_complete.txt*	For Vim version 7.3.  Last change: 2016 Sep 24
 
 
 		  clang_complete plugin documentation
@@ -239,11 +239,18 @@ Default: 1
 
        				       	*clang_complete-library_path*
        				       	*g:clang_library_path*
-If libclang is not in your library search path, set this to the absolute path
-where libclang is available. This should either be a directory containing a
-file named libclang.[dll/so/dylib] or the clang shared library file itself.
+If libclang is not in the library search path of your system, you should set
+this variable to the absolute path of either directory containing
+libclang.{dll,so,dylib} (for Windows, Unix variants and OS X respectively) or
+to that file itself.
 Default: ""
 
+Example: >
+ " path to directory where library can be found
+ let g:clang_library_path='/usr/lib/llvm-3.8/lib'
+ " or path directly to the library file
+ let g:clang_library_path='/usr/lib64/libclang.so.3.8'
+<
 					*clang_complete-sort_algo*
 					*g:clang_sort_algo*
 How results are sorted (alpha, priority, none). Currently only works with
@@ -258,18 +265,18 @@ Default: 0
 					*clang_complete-complete_patterns*
 					*g:clang_complete_patterns*
 If clang should complete code patterns, i.e loop constructs etc.
-Defaut: 0
+Default: 0
 
 					*clang_complete-jumpto_declaration_key*
 					*g:clang_jumpto_declaration_key*
 Set the key used to jump to declaration.
-Defaut: "<C-]>"
+Default: "<C-]>"
 Note: You could use the g:ClangGotoDeclaration() to do the same with a mapping.
 
 					*clang_complete-jumpto_declaration_in_preview_key*
 					*g:clang_jumpto_declaration_in_preview_key*
 Set the key used to jump to declaration in a preview window.
-Defaut: "<C-W>]"
+Default: "<C-W>]"
 Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a mapping.
 
 					*clang_complete-jumpto_back_key*
@@ -277,7 +284,7 @@ Note: You could use the g:ClangGotoDeclarationPreview() to do the same with a ma
 Set the key used to jump back.
 Note: Effectively this will be remapped to <C-O>. The default value is chosen
 to be coherent with ctags implementation.
-Defaut: "<C-T>"
+Default: "<C-T>"
 
 					*clang_complete-make_default_keymappings*
 					*g:clang_make_default_keymappings*
@@ -290,7 +297,7 @@ Default: 1
 Omnicppcomplete compatibility mode. Keeps omni auto-completion in control of
 omnicppcomplete, disables clang's auto-completion (|g:clang_complete_auto|)
 and enables only <C-X><C-U> as main clang completion function.
-Defaut: 0
+Default: 0
 
 ==============================================================================
 6. Known issues					*clang_complete-issues*
