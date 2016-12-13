@@ -76,6 +76,16 @@ c_object_p = POINTER(c_void_p)
 
 callbacks = {}
 
+def encode(value):
+    import sys
+    if sys.version_info[0] == 2:
+        return value
+
+    try:
+        return value.encode('utf-8')
+    except AttributeError:
+        return value
+
 ### Exception Classes ###
 
 class TranslationUnitLoadError(Exception):
@@ -2001,7 +2011,7 @@ class TranslationUnit(ClangObject):
 
         args_array = None
         if len(args) > 0:
-            args_array = (c_char_p * len(args))(* args)
+            args_array = (c_char_p * len(args))(* [encode(arg) for arg in args])
 
         unsaved_array = None
         if len(unsaved_files) > 0:
@@ -2010,12 +2020,12 @@ class TranslationUnit(ClangObject):
                 if hasattr(contents, "read"):
                     contents = contents.read()
 
-                unsaved_array[i].name = name
-                unsaved_array[i].contents = contents
+                unsaved_array[i].name = encode(name)
+                unsaved_array[i].contents = encode(contents)
                 unsaved_array[i].length = len(contents)
 
-        ptr = conf.lib.clang_parseTranslationUnit(index, filename, args_array,
-                                    len(args), unsaved_array,
+        ptr = conf.lib.clang_parseTranslationUnit(index, encode(filename),
+                                    args_array, len(args), unsaved_array,
                                     len(unsaved_files), options)
 
         if not ptr:
@@ -2192,8 +2202,8 @@ class TranslationUnit(ClangObject):
                     print(value)
                 if not isinstance(value, str):
                     raise TypeError('Unexpected unsaved file contents.')
-                unsaved_files_array[i].name = name
-                unsaved_files_array[i].contents = value
+                unsaved_files_array[i].name = encode(name)
+                unsaved_files_array[i].contents = encode(value)
                 unsaved_files_array[i].length = len(value)
         ptr = conf.lib.clang_reparseTranslationUnit(self, len(unsaved_files),
                 unsaved_files_array, options)
@@ -2256,10 +2266,10 @@ class TranslationUnit(ClangObject):
                     print(value)
                 if not isinstance(value, str):
                     raise TypeError('Unexpected unsaved file contents.')
-                unsaved_files_array[i].name = name
-                unsaved_files_array[i].contents = value
+                unsaved_files_array[i].name = encode(name)
+                unsaved_files_array[i].contents = encode(value)
                 unsaved_files_array[i].length = len(value)
-        ptr = conf.lib.clang_codeCompleteAt(self, path, line, column,
+        ptr = conf.lib.clang_codeCompleteAt(self, encode(path), line, column,
                 unsaved_files_array, len(unsaved_files), options)
         if ptr:
             return CodeCompletionResults(ptr)
@@ -2287,7 +2297,7 @@ class File(ClangObject):
     @staticmethod
     def from_name(translation_unit, file_name):
         """Retrieve a file handle within the given translation unit."""
-        return File(conf.lib.clang_getFile(translation_unit, file_name))
+        return File(conf.lib.clang_getFile(translation_unit, encode(file_name)))
 
     @property
     def name(self):

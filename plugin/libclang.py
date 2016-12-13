@@ -9,6 +9,16 @@ import shlex
 
 from kinds import kinds
 
+def decode(value):
+  import sys
+  if sys.version_info[0] == 2:
+    return value
+
+  try:
+    return value.decode('utf-8')
+  except AttributeError:
+    return value
+
 # Check if libclang is able to find the builtin include files.
 #
 # libclang sometimes fails to correctly locate its builtin include files. This
@@ -202,7 +212,7 @@ def splitOptions(options):
 def getQuickFix(diagnostic):
   # Some diagnostics have no file, e.g. "too many errors emitted, stopping now"
   if diagnostic.location.file:
-    filename = diagnostic.location.file.name
+    filename = decode(diagnostic.location.file.name)
   else:
     filename = ""
 
@@ -211,7 +221,7 @@ def getQuickFix(diagnostic):
   elif diagnostic.severity == diagnostic.Note:
     type = 'I'
   elif diagnostic.severity == diagnostic.Warning:
-    if "argument unused during compilation" in diagnostic.spelling:
+    if "argument unused during compilation" in decode(diagnostic.spelling):
       return None
     type = 'W'
   elif diagnostic.severity == diagnostic.Error:
@@ -224,7 +234,7 @@ def getQuickFix(diagnostic):
   return dict({ 'bufnr' : int(vim.eval("bufnr('" + filename + "', 1)")),
     'lnum' : diagnostic.location.line,
     'col' : diagnostic.location.column,
-    'text' : diagnostic.spelling,
+    'text' : decode(diagnostic.spelling),
     'type' : type})
 
 def getQuickFixList(tu):
@@ -372,7 +382,7 @@ def formatResult(result):
       if chunk.isKindInformative() or chunk.isKindResultType() or chunk.isKindTypedText():
         continue
 
-      word += chunk.spelling
+      word += decode(chunk.spelling)
       if chunk.isKindOptional():
         result += roll_out_optional(chunk.string)
 
@@ -387,7 +397,7 @@ def formatResult(result):
       returnValue = chunk
       continue
 
-    chunk_spelling = chunk.spelling
+    chunk_spelling = decode(chunk.spelling)
 
     if chunk.isKindTypedText():
       abbr = chunk_spelling
@@ -408,7 +418,7 @@ def formatResult(result):
   menu = info
 
   if returnValue:
-    menu = returnValue.spelling + " " + menu
+    menu = decode(returnValue.spelling) + " " + menu
 
   completion['word'] = snippetsAddSnippet(info, word, abbr)
   completion['abbr'] = abbr
@@ -517,11 +527,11 @@ def getCurrentCompletions(base):
 def getAbbr(strings):
   for chunks in strings:
     if chunks.isKindTypedText():
-      return chunks.spelling
+      return decode(chunks.spelling)
   return ""
 
 def jumpToLocation(filename, line, column, preview):
-  filenameEscaped = filename.replace(" ", "\\ ")
+  filenameEscaped = decode(filename).replace(" ", "\\ ")
   if preview:
     command = "pedit +%d %s" % (line, filenameEscaped)
   elif filename != vim.current.buffer.name:
