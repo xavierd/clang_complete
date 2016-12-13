@@ -17,7 +17,7 @@ def canFindBuiltinHeaders(index, args = []):
   currentFile = ("test.c", '#include "stddef.h"')
   try:
     tu = index.parse("test.c", args, [currentFile], flags)
-  except TranslationUnitLoadError, e:
+  except TranslationUnitLoadError as e:
     return 0
   return len(tu.diagnostics) == 0
 
@@ -68,7 +68,7 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
 
   try:
     index = Index.create()
-  except Exception, e:
+  except Exception as e:
     if library_path:
       suggestion = "Are you sure '%s' contains libclang?" % library_path
     else:
@@ -179,7 +179,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
   try:
     tu = index.parse(fileName, args, [currentFile], flags)
     timer.registerEvent("First parse")
-  except TranslationUnitLoadError, e:
+  except TranslationUnitLoadError as e:
     return None
 
   translationUnits[fileName] = tu
