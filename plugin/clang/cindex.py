@@ -488,7 +488,7 @@ class CursorKind(object):
         if value >= len(CursorKind._kinds):
             CursorKind._kinds += [None] * (value - len(CursorKind._kinds) + 1)
         if CursorKind._kinds[value] is not None:
-            raise ValueError,'CursorKind already loaded'
+            raise ValueError('CursorKind already loaded')
         self.value = value
         CursorKind._kinds[value] = self
         CursorKind._name_map = None
@@ -509,7 +509,7 @@ class CursorKind(object):
     @staticmethod
     def from_id(id):
         if id >= len(CursorKind._kinds) or CursorKind._kinds[id] is None:
-            raise ValueError,'Unknown cursor kind'
+            raise ValueError('Unknown cursor kind')
         return CursorKind._kinds[id]
 
     @staticmethod
@@ -1363,7 +1363,7 @@ class TypeKind(object):
         if value >= len(TypeKind._kinds):
             TypeKind._kinds += [None] * (value - len(TypeKind._kinds) + 1)
         if TypeKind._kinds[value] is not None:
-            raise ValueError,'TypeKind already loaded'
+            raise ValueError('TypeKind already loaded')
         self.value = value
         TypeKind._kinds[value] = self
         TypeKind._name_map = None
@@ -1389,7 +1389,7 @@ class TypeKind(object):
     @staticmethod
     def from_id(id):
         if id >= len(TypeKind._kinds) or TypeKind._kinds[id] is None:
-            raise ValueError,'Unknown type kind %d' % id
+            raise ValueError('Unknown type kind %d' % id)
         return TypeKind._kinds[id]
 
     def __repr__(self):
@@ -2191,7 +2191,7 @@ class TranslationUnit(ClangObject):
                     value = value.read()
                     print value
                 if not isinstance(value, str):
-                    raise TypeError,'Unexpected unsaved file contents.'
+                    raise TypeError('Unexpected unsaved file contents.')
                 unsaved_files_array[i].name = name
                 unsaved_files_array[i].contents = value
                 unsaved_files_array[i].length = len(value)
@@ -2255,7 +2255,7 @@ class TranslationUnit(ClangObject):
                     value = value.read()
                     print value
                 if not isinstance(value, str):
-                    raise TypeError,'Unexpected unsaved file contents.'
+                    raise TypeError('Unexpected unsaved file contents.')
                 unsaved_files_array[i].name = name
                 unsaved_files_array[i].contents = value
                 unsaved_files_array[i].length = len(value)
