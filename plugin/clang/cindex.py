@@ -525,7 +525,7 @@ class CursorKind(object):
     @staticmethod
     def get_all_kinds():
         """Return all CursorKind enumeration instances."""
-        return filter(None, CursorKind._kinds)
+        return [_f for _f in CursorKind._kinds if _f]
 
     def is_declaration(self):
         """Test if this is a declaration kind."""
@@ -3091,7 +3091,7 @@ def register_functions(lib, ignore_errors):
     def register(item):
         return register_function(lib, item, ignore_errors)
 
-    map(register, functionList)
+    list(map(register, functionList))
 
 class Config:
     library_path = None

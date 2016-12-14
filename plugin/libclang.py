@@ -238,7 +238,7 @@ def getQuickFix(diagnostic):
     'type' : type})
 
 def getQuickFixList(tu):
-  return filter (None, map (getQuickFix, tu.diagnostics))
+  return [_f for _f in map (getQuickFix, tu.diagnostics) if _f]
 
 def highlightRange(range, hlGroup):
   pattern = '/\%' + str(range.start.line) + 'l' + '\%' \
@@ -264,7 +264,8 @@ def highlightDiagnostic(diagnostic):
     highlightRange(range, hlGroup)
 
 def highlightDiagnostics(tu):
-  map (highlightDiagnostic, tu.diagnostics)
+  for diagnostic in tu.diagnostics:
+    highlightDiagnostic(diagnostic)
 
 def highlightCurrentDiagnostics():
   if vim.current.buffer.name in translationUnits:
@@ -506,7 +507,7 @@ def getCurrentCompletions(base):
   timer.registerEvent("Count # Results (%s)" % str(len(results)))
 
   if base != "":
-    results = filter(lambda x: getAbbr(x.string).startswith(base), results)
+    results = [x for x in results if getAbbr(x.string).startswith(base)]
 
   timer.registerEvent("Filter")
 
@@ -519,7 +520,7 @@ def getCurrentCompletions(base):
 
   timer.registerEvent("Sort")
 
-  result = map(formatResult, results)
+  result = list(map(formatResult, results))
 
   timer.registerEvent("Format")
   return (str(result), timer)
