@@ -513,10 +513,10 @@ def getCurrentCompletions(base):
 
   if sorting == 'priority':
     getPriority = lambda x: x.string.priority
-    results = sorted(results, None, getPriority)
+    results = sorted(results, key=getPriority)
   if sorting == 'alpha':
     getAbbrevation = lambda x: getAbbr(x.string).lower()
-    results = sorted(results, None, getAbbrevation)
+    results = sorted(results, key=getAbbrevation)
 
   timer.registerEvent("Sort")
 
