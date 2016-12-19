@@ -1,3 +1,4 @@
+from __future__ import print_function
 import vim
 import re
 
@@ -29,7 +30,7 @@ def snippetsAddSnippet(fullname, word, abbr):
   return fullname
 
 def snippetsTrigger():
-  print vim.current.line
+  print(vim.current.line)
   UltiSnips_Manager.expand()
 
 def snippetsReset():
