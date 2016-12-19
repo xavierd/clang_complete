@@ -62,9 +62,15 @@ call is efficient.
 #
 # o implement additional SourceLocation, SourceRange, and File methods.
 
-from ctypes import *
-from ctypes.util import find_library
+from __future__ import print_function
+
+from ctypes import (
+    CFUNCTYPE, POINTER, Structure,
+    c_void_p, c_uint, c_int, c_ulong, c_longlong, c_ulonglong, c_char_p,
+    byref, cast, cdll, py_object
+)
 import collections
+import sys
 
 import clang.enumerations
 
@@ -76,6 +82,14 @@ c_object_p = POINTER(c_void_p)
 
 callbacks = {}
 
+
+def encode(value):
+  if sys.version_info[0] == 2:
+    return value
+  else:
+    return value.encode('utf-8')
+
+
 ### Exception Classes ###
 
 class TranslationUnitLoadError(Exception):
@@ -86,7 +100,6 @@ class TranslationUnitLoadError(Exception):
 
     FIXME: Make libclang expose additional error information in this scenario.
     """
-    pass
 
 class TranslationUnitSaveError(Exception):
     """Represents an error that occurred when saving a TranslationUnit.
@@ -427,7 +440,7 @@ class TokenGroup(object):
 
         token_group = TokenGroup(tu, tokens_memory, tokens_count)
 
-        for i in xrange(0, count):
+        for i in range(0, count):
             token = Token()
             token.int_data = tokens_array[i].int_data
             token.ptr_data = tokens_array[i].ptr_data
@@ -488,7 +501,7 @@ class CursorKind(object):
         if value >= len(CursorKind._kinds):
             CursorKind._kinds += [None] * (value - len(CursorKind._kinds) + 1)
         if CursorKind._kinds[value] is not None:
-            raise ValueError,'CursorKind already loaded'
+            raise ValueError('CursorKind already loaded')
         self.value = value
         CursorKind._kinds[value] = self
         CursorKind._name_map = None
@@ -501,7 +514,7 @@ class CursorKind(object):
         """Get the enumeration name of this cursor kind."""
         if self._name_map is None:
             self._name_map = {}
-            for key,value in CursorKind.__dict__.items():
+            for key,value in list(CursorKind.__dict__.items()):
                 if isinstance(value,CursorKind):
                     self._name_map[value] = key
         return self._name_map[self]
@@ -509,13 +522,13 @@ class CursorKind(object):
     @staticmethod
     def from_id(id):
         if id >= len(CursorKind._kinds) or CursorKind._kinds[id] is None:
-            raise ValueError,'Unknown cursor kind'
+            raise ValueError('Unknown cursor kind')
         return CursorKind._kinds[id]
 
     @staticmethod
     def get_all_kinds():
         """Return all CursorKind enumeration instances."""
-        return filter(None, CursorKind._kinds)
+        return [_f for _f in CursorKind._kinds if _f]
 
     def is_declaration(self):
         """Test if this is a declaration kind."""
@@ -1275,7 +1288,7 @@ class Cursor(Structure):
     @property
     def referenced(self):
         """
-        For a cursor that is a reference, returns a cursor 
+        For a cursor that is a reference, returns a cursor
         representing the entity that it references.
         """
         if not hasattr(self, '_referenced'):
@@ -1363,7 +1376,7 @@ class TypeKind(object):
         if value >= len(TypeKind._kinds):
             TypeKind._kinds += [None] * (value - len(TypeKind._kinds) + 1)
         if TypeKind._kinds[value] is not None:
-            raise ValueError,'TypeKind already loaded'
+            raise ValueError('TypeKind already loaded')
         self.value = value
         TypeKind._kinds[value] = self
         TypeKind._name_map = None
@@ -1376,7 +1389,7 @@ class TypeKind(object):
         """Get the enumeration name of this cursor kind."""
         if self._name_map is None:
             self._name_map = {}
-            for key,value in TypeKind.__dict__.items():
+            for key,value in list(TypeKind.__dict__.items()):
                 if isinstance(value,TypeKind):
                     self._name_map[value] = key
         return self._name_map[self]
@@ -1389,7 +1402,7 @@ class TypeKind(object):
     @staticmethod
     def from_id(id):
         if id >= len(TypeKind._kinds) or TypeKind._kinds[id] is None:
-            raise ValueError,'Unknown type kind %d' % id
+            raise ValueError('Unknown type kind %d' % id)
         return TypeKind._kinds[id]
 
     def __repr__(self):
@@ -1859,7 +1872,7 @@ class CodeCompletionResults(ClangObject):
                 self.ccr= ccr
 
             def __len__(self):
-                return int(\
+                return int(
                   conf.lib.clang_codeCompleteGetNumDiagnostics(self.ccr))
 
             def __getitem__(self, key):
@@ -2001,7 +2014,8 @@ class TranslationUnit(ClangObject):
 
         args_array = None
         if len(args) > 0:
-            args_array = (c_char_p * len(args))(* args)
+            args_array = (c_char_p * len(args))(* [encode(argument)
+                                                   for argument in args])
 
         unsaved_array = None
         if len(unsaved_files) > 0:
@@ -2010,11 +2024,11 @@ class TranslationUnit(ClangObject):
                 if hasattr(contents, "read"):
                     contents = contents.read()
 
-                unsaved_array[i].name = name
-                unsaved_array[i].contents = contents
+                unsaved_array[i].name = encode(name)
+                unsaved_array[i].contents = encode(contents)
                 unsaved_array[i].length = len(contents)
 
-        ptr = conf.lib.clang_parseTranslationUnit(index, filename, args_array,
+        ptr = conf.lib.clang_parseTranslationUnit(index, encode(filename), args_array,
                                     len(args), unsaved_array,
                                     len(unsaved_files), options)
 
@@ -2189,13 +2203,13 @@ class TranslationUnit(ClangObject):
                     # FIXME: It would be great to support an efficient version
                     # of this, one day.
                     value = value.read()
-                    print value
+                    print(value)
                 if not isinstance(value, str):
-                    raise TypeError,'Unexpected unsaved file contents.'
-                unsaved_files_array[i].name = name
-                unsaved_files_array[i].contents = value
+                    raise TypeError('Unexpected unsaved file contents.')
+                unsaved_files_array[i].name = encode(name)
+                unsaved_files_array[i].contents = encode(value)
                 unsaved_files_array[i].length = len(value)
-        ptr = conf.lib.clang_reparseTranslationUnit(self, len(unsaved_files),
+        conf.lib.clang_reparseTranslationUnit(self, len(unsaved_files),
                 unsaved_files_array, options)
 
     def save(self, filename):
@@ -2253,13 +2267,13 @@ class TranslationUnit(ClangObject):
                     # FIXME: It would be great to support an efficient version
                     # of this, one day.
                     value = value.read()
-                    print value
+                    print(value)
                 if not isinstance(value, str):
-                    raise TypeError,'Unexpected unsaved file contents.'
-                unsaved_files_array[i].name = name
-                unsaved_files_array[i].contents = value
+                    raise TypeError('Unexpected unsaved file contents.')
+                unsaved_files_array[i].name = encode(name)
+                unsaved_files_array[i].contents = encode(value)
                 unsaved_files_array[i].length = len(value)
-        ptr = conf.lib.clang_codeCompleteAt(self, path, line, column,
+        ptr = conf.lib.clang_codeCompleteAt(self, encode(path), line, column,
                 unsaved_files_array, len(unsaved_files), options)
         if ptr:
             return CodeCompletionResults(ptr)
@@ -2287,7 +2301,8 @@ class File(ClangObject):
     @staticmethod
     def from_name(translation_unit, file_name):
         """Retrieve a file handle within the given translation unit."""
-        return File(conf.lib.clang_getFile(translation_unit, file_name))
+        return File(conf.lib.clang_getFile(translation_unit,
+                                           encode(file_name)))
 
     @property
     def name(self):
@@ -2341,7 +2356,7 @@ class CompilationDatabaseError(Exception):
     constants in this class.
     """
 
-    # An unknown error occured
+    # An unknown error occurred
     ERROR_UNKNOWN = 0
 
     # The database could not be loaded
@@ -2380,7 +2395,7 @@ class CompileCommand(object):
         Invariant : the first argument is the compiler executable
         """
         length = conf.lib.clang_CompileCommand_getNumArgs(self.cmd)
-        for i in xrange(length):
+        for i in range(length):
             yield conf.lib.clang_CompileCommand_getArg(self.cmd, i)
 
 class CompileCommands(object):
@@ -2434,7 +2449,7 @@ class CompilationDatabase(ClangObject):
         try:
             cdb = conf.lib.clang_CompilationDatabase_fromDirectory(buildDir,
                 byref(errorCode))
-        except CompilationDatabaseError as e:
+        except CompilationDatabaseError:
             raise CompilationDatabaseError(int(errorCode.value),
                                            "CompilationDatabase loading failed")
         return cdb
@@ -3081,7 +3096,7 @@ def register_functions(lib, ignore_errors):
     def register(item):
         return register_function(lib, item, ignore_errors)
 
-    map(register, functionList)
+    list(map(register, functionList))
 
 class Config:
     library_path = None
@@ -3093,7 +3108,7 @@ class Config:
     def set_library_path(path):
         """Set the path in which to search for libclang"""
         if Config.loaded:
-            raise Exception("library path must be set before before using " \
+            raise Exception("library path must be set before before using "
                             "any other functionalities in libclang.")
 
         Config.library_path = path
@@ -3102,7 +3117,7 @@ class Config:
     def set_library_file(filename):
         """Set the exact location of libclang"""
         if Config.loaded:
-            raise Exception("library file must be set before before using " \
+            raise Exception("library file must be set before before using "
                             "any other functionalities in libclang.")
 
         Config.library_file = filename
@@ -3126,7 +3141,7 @@ class Config:
         libclang versions.
         """
         if Config.loaded:
-            raise Exception("compatibility_check must be set before before " \
+            raise Exception("compatibility_check must be set before before "
                             "using any other functionalities in libclang.")
 
         Config.compatibility_check = check_status
@@ -3150,7 +3165,7 @@ class Config:
         elif name == 'Windows':
             file = 'libclang.dll'
         else:
-            file = find_library("clang") or 'libclang.so'
+            file = 'libclang.so'
 
         if Config.library_path:
             file = Config.library_path + '/' + file
