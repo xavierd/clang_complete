@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
 import re
@@ -42,7 +42,7 @@ mapping = {
 }
 
 if len(sys.argv) != 2:
-  print "Usage:", sys.argv[0], "<path-to-Index.h>"
+  print("Usage:", sys.argv[0], "<path-to-Index.h>")
   exit(-1)
 
 index = clang.cindex.Index.create()
@@ -54,7 +54,7 @@ for child in tu.cursor.get_children():
     kinds = child
     break
 else:
-  print "Index.h doesn't contain CXCursorKind where it is expected, please report a bug."
+  print("Index.h doesn't contain CXCursorKind where it is expected, please report a bug.")
   exit(-1)
 
 kinds_py_path = os.path.join(
