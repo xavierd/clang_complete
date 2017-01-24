@@ -29,7 +29,7 @@ def snippetsAddSnippet(fullname, word, abbr):
   return fullname
 
 def snippetsTrigger():
-  print vim.current.line
+  print(vim.current.line)
   UltiSnips_Manager.expand()
 
 def snippetsReset():
