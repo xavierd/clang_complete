@@ -538,7 +538,7 @@ def jumpToLocation(filename, line, column, preview):
   elif filename != vim.current.buffer.name:
     command = "edit %s" % filenameEscaped
   else:
-    command = "normal m'"
+    command = "normal! m'"
   try:
     vim.command(command)
   except:
