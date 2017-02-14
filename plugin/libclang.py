@@ -136,7 +136,7 @@ class CodeCompleteTimer:
     print(" ")
     print("libclang code completion")
     print("========================")
-    print("Command: clang %s -fsyntax-only " % " ".join(params['args']), end=' ')
+    print("Command: clang %s -fsyntax-only " % " ".join(decode(params['args'])), end=' ')
     print("-Xclang -code-completion-at=%s:%d:%d %s"
        % (file, line, column, file))
     print("cwd: %s" % params['cwd'])
@@ -297,10 +297,10 @@ def getCompilationDBParams(fileName):
   if compilation_database:
     cmds = compilation_database.getCompileCommands(fileName)
     if cmds != None:
-      cwd = cmds[0].directory
+      cwd = decode(cmds[0].directory)
       args = []
       skip_next = 1 # Skip compiler invocation
-      for arg in cmds[0].arguments:
+      for arg in (decode(x) for x in cmds[0].arguments):
         if skip_next:
           skip_next = 0;
           continue
@@ -499,7 +499,7 @@ def getCurrentCompletions(base):
   cr = t.result
   if cr is None:
     print("Cannot parse this source file. The following arguments "
-        + "are used for clang: " + " ".join(params['args']))
+        + "are used for clang: " + " ".join(decode(params['args'])))
     return (str([]), timer)
 
   results = cr.results
