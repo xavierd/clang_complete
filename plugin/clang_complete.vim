@@ -12,12 +12,8 @@ if exists('g:clang_complete_loaded')
 endif
 let g:clang_complete_loaded = 1
 
-au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
-au FileType c.*,cpp.*,objc.*,objcpp.* call <SID>ClangCompleteInit()
-
-let b:clang_parameters = ''
-let b:clang_user_options = ''
-let b:my_changedtick = 0
+au FileType c,cpp,objc,objcpp call g:ClangCompleteInit()
+au FileType c.*,cpp.*,objc.*,objcpp.* call g:ClangCompleteInit()
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
@@ -34,7 +30,7 @@ elseif has('python3')
   let s:pyfile_cmd = 'py3file'
 endif
 
-function! s:ClangCompleteInit()
+function! g:ClangCompleteInit()
   let l:bufname = bufname("%")
   if l:bufname == ''
     return
@@ -153,7 +149,7 @@ function! s:ClangCompleteInit()
     let g:clang_make_default_keymappings = 0
   endif
 
-  call LoadUserOptions()
+  call g:ClangLoadUserOptions()
 
   let b:my_changedtick = b:changedtick
   let b:clang_parameters = '-x c'
@@ -225,7 +221,7 @@ function! s:ClangCompleteInit()
 
 endfunction
 
-function! LoadUserOptions()
+function! g:ClangLoadUserOptions()
   let b:clang_user_options = ''
 
   let l:option_sources = split(g:clang_auto_user_options, ',')
