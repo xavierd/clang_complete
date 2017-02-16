@@ -151,7 +151,7 @@ function! g:ClangCompleteInit()
 
   call g:ClangLoadUserOptions()
 
-  let b:my_changedtick = b:changedtick
+  let b:clang_complete_changedtick = b:changedtick
   let b:clang_parameters = '-x c'
 
   if &filetype =~ 'objc'
@@ -403,10 +403,10 @@ endfunction
 
 function! s:DoPeriodicQuickFix()
   " Don't do any superfluous reparsing.
-  if b:my_changedtick == b:changedtick
+  if b:clang_complete_changedtick == b:changedtick
     return
   endif
-  let b:my_changedtick = b:changedtick
+  let b:clang_complete_changedtick = b:changedtick
 
   execute s:py_cmd 'updateCurrentDiagnostics()'
   call s:ClangQuickFix()
