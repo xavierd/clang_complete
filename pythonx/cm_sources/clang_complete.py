@@ -4,6 +4,7 @@
 # NVIM_PYTHON_LOG_FILE=nvim.log NVIM_PYTHON_LOG_LEVEL=INFO nvim
 
 # clang python bindings only supports python2
+# https://github.com/llvm-mirror/clang/commit/abdad67b94ad4dad2d655d48ff5f81d6ccf3852e
 
 import cm
 cm.register_source(name='clang_complete',
