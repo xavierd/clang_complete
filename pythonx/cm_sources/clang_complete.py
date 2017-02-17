@@ -20,9 +20,6 @@ import sys
 import os
 import re
 import logging
-import jedi
-import io
-from neovim import attach, setup_logging
 
 logger = logging.getLogger(__name__)
 
