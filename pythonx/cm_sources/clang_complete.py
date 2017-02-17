@@ -36,27 +36,16 @@ class Source:
         libclang_base = os.path.dirname(libclang_base)
         logger.info("libclang_base: %s", libclang_base)
         sys.path.append(libclang_base)
+
         # hack, libclang has 'import vim'
         sys.modules['vim'] = nvim
-
         import libclang
-
-        # TODO: clean these hacks
-        import snippets.dummy as clang_complete_snippets
-        libclang.snippetsInit = clang_complete_snippets.snippetsInit
-        libclang.snippetsFormatPlaceHolder = clang_complete_snippets.snippetsFormatPlaceHolder
-        libclang.snippetsAddSnippet = clang_complete_snippets.snippetsAddSnippet
-        libclang.snippetsTrigger = clang_complete_snippets.snippetsTrigger
-        libclang.snippetsReset = clang_complete_snippets.snippetsReset
-
         self._libclang = libclang
 
+        # init global variables for plugin/clang_complete.vim
         nvim.call('g:ClangCompleteInit')
 
-        libclang.initClangComplete(nvim.eval('g:clang_complete_lib_flags'),
-                                   nvim.eval('g:clang_compilation_database'),
-                                   nvim.eval('g:clang_library_path'),
-                                   )
+        libclang.initClangComplete()
         
     def cm_refresh(self,info,ctx,*args):
 

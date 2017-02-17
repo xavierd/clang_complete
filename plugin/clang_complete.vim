@@ -369,23 +369,7 @@ function! s:initClangCompletePython()
     execute s:py_cmd 'sys.path = ["' . s:plugin_path . '"] + sys.path'
     execute s:pyfile_cmd fnameescape(s:plugin_path) . '/libclang.py'
 
-    try
-      execute s:py_cmd 'from snippets.' . g:clang_snippets_engine . ' import *'
-      let l:snips_loaded = 1
-    catch
-      let l:snips_loaded = 0
-    endtry
-    if l:snips_loaded == 0
-      " Oh yeah, vimscript rocks!
-      " Putting that echoe inside the catch, will throw an error, and
-      " display spurious unwanted errors…
-      echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'
-      return 0
-    endif
-
-    execute s:py_cmd "vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'),"
-                                                    \."vim.eval('g:clang_compilation_database'),"
-                                                    \."vim.eval('g:clang_library_path'))))"
+    execute s:py_cmd "vim.command('let l:res = ' + str(initClangComplete()))"
     if l:res == 0
       return 0
     endif
