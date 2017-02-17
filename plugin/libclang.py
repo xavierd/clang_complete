@@ -329,13 +329,29 @@ def getCompilationDBParams(fileName):
 
 getCompilationDBParams.last_query = { 'args': [], 'cwd': None }
 
-def getCompileParams(fileName):
+def getCompileParams(fileName,filetype=None):
   global builtinHeaderPath
   params = getCompilationDBParams(fileName)
   args = params['args']
   args += splitOptions(vim.eval("g:clang_user_options"))
   args += splitOptions(vim.eval("b:clang_user_options"))
-  args += splitOptions(vim.eval("b:clang_parameters"))
+
+  if filetype is None:
+    filetype = vim.current.buffer.options['filetype']
+
+  ftype_param = '-x c'
+
+  if 'objc' in filetype:
+    ftype_param = '-x objective-c'
+
+  if filetype == 'cpp' or filetype == 'objcpp' or filetype[0:3] == 'cpp' or filetype[0:6] == 'objcpp':
+    ftype_param += '++'
+
+  _,ext = os.path.splitext(fileName)
+  if 'h' in ext:
+    ftype_param += '-header'
+
+  args += splitOptions(ftype_param)
 
   if builtinHeaderPath:
     args.append("-I" + builtinHeaderPath)

@@ -12,8 +12,8 @@ if exists('g:clang_complete_loaded')
 endif
 let g:clang_complete_loaded = 1
 
-au FileType c,cpp,objc,objcpp call g:ClangCompleteInit()
-au FileType c.*,cpp.*,objc.*,objcpp.* call g:ClangCompleteInit()
+au FileType c,cpp,objc,objcpp if g:ClangCompleteInit()  | call s:ClangCompleteBuffer() | endif
+au FileType c.*,cpp.*,objc.*,objcpp.* if g:ClangCompleteInit() | call s:ClangCompleteBuffer() | endif
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
@@ -33,13 +33,13 @@ endif
 function! g:ClangCompleteInit()
   let l:bufname = bufname("%")
   if l:bufname == ''
-    return
+    return 0
   endif
 
   if exists('g:clang_use_library') && g:clang_use_library == 0
     echoe "clang_complete: You can't use clang binary anymore."
     echoe 'For more information see g:clang_use_library help.'
-    return
+    return 0
   endif
 
   if !exists('g:clang_auto_select')
@@ -152,19 +152,6 @@ function! g:ClangCompleteInit()
   call g:ClangLoadUserOptions()
 
   let b:clang_complete_changedtick = b:changedtick
-  let b:clang_parameters = '-x c'
-
-  if &filetype =~ 'objc'
-    let b:clang_parameters = '-x objective-c'
-  endif
-
-  if &filetype == 'cpp' || &filetype == 'objcpp' || &filetype =~ 'cpp.*' || &filetype =~ 'objcpp.*'
-    let b:clang_parameters .= '++'
-  endif
-
-  if expand('%:e') =~ 'h.*'
-    let b:clang_parameters .= '-header'
-  endif
 
   let g:clang_complete_lib_flags = 0
 
@@ -177,10 +164,17 @@ function! g:ClangCompleteInit()
   endif
 
   if s:initClangCompletePython() != 1
-    return
+    return 0
   endif
 
   execute s:py_cmd 'snippetsInit()'
+
+  return 1
+
+endfunction
+
+" key mappings, options, autocmd for buffer
+function! s:ClangCompleteBuffer()
 
   if g:clang_make_default_keymappings == 1
     inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
@@ -203,9 +197,9 @@ function! g:ClangCompleteInit()
     set completeopt+=menuone
   endif
 
-  " Disable every autocmd that could have been set.
+  " Disable every autocmd that could have been set for this buffer
   augroup ClangComplete
-    autocmd!
+    autocmd! * <buffer>
   augroup end
 
   if g:clang_periodic_quickfix == 1
@@ -219,7 +213,7 @@ function! g:ClangCompleteInit()
     setlocal omnifunc=ClangComplete
   endif
 
-endfunction
+endfunc
 
 function! g:ClangLoadUserOptions()
   let b:clang_user_options = ''

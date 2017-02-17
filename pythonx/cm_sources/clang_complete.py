@@ -51,6 +51,8 @@ class Source:
 
         self._libclang = libclang
 
+        nvim.call('g:ClangCompleteInit')
+
         libclang.initClangComplete(nvim.eval('g:clang_complete_lib_flags'),
                                    nvim.eval('g:clang_compilation_database'),
                                    nvim.eval('g:clang_library_path'),
@@ -62,7 +64,7 @@ class Source:
         col = ctx['col']
         typed = ctx['typed']
         path = ctx['filepath']
-        
+
         debug = False
 
         kwtyped = re.search(r'[0-9a-zA-Z_]*?$',typed).group(0)
@@ -74,7 +76,7 @@ class Source:
 
         file = (path, str(src))
 
-        params = self._libclang.getCompileParams(path)
+        params = self._libclang.getCompileParams(path,ctx['scope'])
         timer = self._libclang.CodeCompleteTimer(debug, path, lnum, startcol, params)
         t = self._libclang.CompleteThread(lnum, startcol, file, path, params, timer)
         t.run()
