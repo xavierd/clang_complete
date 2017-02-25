@@ -8,14 +8,15 @@
 
 from cm import register_source, get_src
 register_source(name='clang_complete',
-                   priority=9,
-                   abbreviation='c',
-                   scopes=['c','cpp'],
-                   events=['BufEnter'],
-                   detach=1,
-                   python='python2',
-                   cm_refresh_patterns=[r'[0-9a-zA-Z_#]{3,}$',r'(-\>|\.|::)[\w_]*$'],
-                   )
+                priority=9,
+                abbreviation='c',
+                scoping=True,
+                scopes=['c','cpp'],
+                events=['BufEnter'],
+                detach=1,
+                python='python2',
+                cm_refresh_patterns=[r'[0-9a-zA-Z_#]{3,}$',r'(-\>|\.|::)[\w_]*$'],
+)
 
 import sys
 import os
