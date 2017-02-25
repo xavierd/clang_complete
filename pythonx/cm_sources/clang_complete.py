@@ -6,8 +6,8 @@
 # clang python bindings only supports python2
 # https://github.com/llvm-mirror/clang/commit/abdad67b94ad4dad2d655d48ff5f81d6ccf3852e
 
-import cm
-cm.register_source(name='clang_complete',
+from cm import register_source, get_src
+register_source(name='clang_complete',
                    priority=9,
                    abbreviation='c',
                    scopes=['c','cpp'],
@@ -57,7 +57,7 @@ class Source:
         kwtyped = re.search(r'[0-9a-zA-Z_]*?$',typed).group(0)
         startcol = col-len(kwtyped)
 
-        src = cm.get_src(ctx)
+        src = get_src(self._nvim,ctx)
         if not src.strip():
             return
 
