@@ -549,7 +549,7 @@ def jumpToLocation(filename, line, column, preview):
   if not preview:
     vim.current.window.cursor = (line, column - 1)
 
-def gotoDeclaration(preview=True):
+def gotoDeclaration(preview=True, type_declaration=False):
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1
   params = getCompileParams(vim.current.buffer.name)
@@ -567,7 +567,10 @@ def gotoDeclaration(preview=True):
     f = File.from_name(tu, vim.current.buffer.name)
     loc = SourceLocation.from_position(tu, f, line, col + 1)
     cursor = Cursor.from_location(tu, loc)
-    defs = [cursor.get_definition(), cursor.referenced]
+    if type_declaration:
+      defs = [cursor.type.get_declaration() if cursor.type else None]
+    else:
+      defs = [cursor.get_definition(), cursor.referenced]
 
     for d in defs:
       if d is not None and loc != d.location:
