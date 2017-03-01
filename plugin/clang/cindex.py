@@ -1086,9 +1086,9 @@ class Cursor(Structure):
 
     def get_definition(self):
         """
-        If the cursor is a reference to a declaration or a declaration of
-        some entity, return a cursor that points to the definition of that
-        entity.
+        If the cursor is a declaration of some entity or a reference to a
+        declaration of some entity, return a cursor that points to the
+        definition of that entity.
         """
         # TODO: Should probably check that this is either a reference or
         # declaration prior to issuing the lookup.
