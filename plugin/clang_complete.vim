@@ -375,6 +375,7 @@ function! s:initClangCompletePython()
   " Only parse the python library once
   if !exists('s:libclang_loaded')
     execute s:py_cmd 'import sys'
+    execute s:py_cmd 'import json'
 
     execute s:py_cmd 'sys.path = ["' . s:plugin_path . '"] + sys.path'
     execute s:pyfile_cmd fnameescape(s:plugin_path) . '/libclang.py'
@@ -421,7 +422,7 @@ function! s:ClangQuickFix()
   syntax clear SpellBad
   syntax clear SpellLocal
 
-  execute s:py_cmd "vim.command('let l:list = ' + str(getCurrentQuickFixList()))"
+  execute s:py_cmd "vim.command('let l:list = ' + json.dumps(getCurrentQuickFixList()))"
   execute s:py_cmd 'highlightCurrentDiagnostics()'
 
   if g:clang_complete_copen == 1
