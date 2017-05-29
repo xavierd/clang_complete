@@ -340,7 +340,7 @@ def getCompileParams(fileName):
   args += splitOptions(vim.eval("b:clang_user_options"))
   args += splitOptions(vim.eval("b:clang_parameters"))
 
-  if builtinHeaderPath:
+  if builtinHeaderPath and '-nobuiltininc' not in args:
     args.append("-I" + builtinHeaderPath)
 
   return { 'args' : args,
