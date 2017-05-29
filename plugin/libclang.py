@@ -248,6 +248,9 @@ def highlightRange(range, hlGroup):
   vim.command(command)
 
 def highlightDiagnostic(diagnostic):
+  if decode(diagnostic.location.file.name) != vim.eval('expand("%:p")'):
+    return
+
   if diagnostic.severity == diagnostic.Warning:
     hlGroup = 'SpellLocal'
   elif diagnostic.severity == diagnostic.Error:
