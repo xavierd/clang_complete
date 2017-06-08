@@ -12,12 +12,8 @@ if exists('g:clang_complete_loaded')
 endif
 let g:clang_complete_loaded = 1
 
-au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
-au FileType c.*,cpp.*,objc.*,objcpp.* call <SID>ClangCompleteInit()
-
-let b:clang_parameters = ''
-let b:clang_user_options = ''
-let b:my_changedtick = 0
+au FileType c,cpp,objc,objcpp if g:ClangCompleteInit()  | call s:ClangCompleteBuffer() | endif
+au FileType c.*,cpp.*,objc.*,objcpp.* if g:ClangCompleteInit() | call s:ClangCompleteBuffer() | endif
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
@@ -34,16 +30,16 @@ elseif has('python3')
   let s:pyfile_cmd = 'py3file'
 endif
 
-function! s:ClangCompleteInit()
+function! g:ClangCompleteInit()
   let l:bufname = bufname("%")
   if l:bufname == ''
-    return
+    return 0
   endif
 
   if exists('g:clang_use_library') && g:clang_use_library == 0
     echoe "clang_complete: You can't use clang binary anymore."
     echoe 'For more information see g:clang_use_library help.'
-    return
+    return 0
   endif
 
   if !exists('g:clang_auto_select')
@@ -153,22 +149,9 @@ function! s:ClangCompleteInit()
     let g:clang_make_default_keymappings = 0
   endif
 
-  call LoadUserOptions()
+  call g:ClangLoadUserOptions()
 
-  let b:my_changedtick = b:changedtick
-  let b:clang_parameters = '-x c'
-
-  if &filetype =~ 'objc'
-    let b:clang_parameters = '-x objective-c'
-  endif
-
-  if &filetype == 'cpp' || &filetype == 'objcpp' || &filetype =~ 'cpp.*' || &filetype =~ 'objcpp.*'
-    let b:clang_parameters .= '++'
-  endif
-
-  if expand('%:e') =~ 'h.*'
-    let b:clang_parameters .= '-header'
-  endif
+  let b:clang_complete_changedtick = b:changedtick
 
   let g:clang_complete_lib_flags = 0
 
@@ -181,10 +164,17 @@ function! s:ClangCompleteInit()
   endif
 
   if s:initClangCompletePython() != 1
-    return
+    return 0
   endif
 
   execute s:py_cmd 'snippetsInit()'
+
+  return 1
+
+endfunction
+
+" key mappings, options, autocmd for buffer
+function! s:ClangCompleteBuffer()
 
   if g:clang_make_default_keymappings == 1
     inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
@@ -207,9 +197,9 @@ function! s:ClangCompleteInit()
     set completeopt+=menuone
   endif
 
-  " Disable every autocmd that could have been set.
+  " Disable every autocmd that could have been set for this buffer
   augroup ClangComplete
-    autocmd!
+    autocmd! * <buffer>
   augroup end
 
   if g:clang_periodic_quickfix == 1
@@ -223,9 +213,9 @@ function! s:ClangCompleteInit()
     setlocal omnifunc=ClangComplete
   endif
 
-endfunction
+endfunc
 
-function! LoadUserOptions()
+function! g:ClangLoadUserOptions()
   let b:clang_user_options = ''
 
   let l:option_sources = split(g:clang_auto_user_options, ',')
@@ -380,23 +370,7 @@ function! s:initClangCompletePython()
     execute s:py_cmd 'sys.path = ["' . s:plugin_path . '"] + sys.path'
     execute s:pyfile_cmd fnameescape(s:plugin_path) . '/libclang.py'
 
-    try
-      execute s:py_cmd 'from snippets.' . g:clang_snippets_engine . ' import *'
-      let l:snips_loaded = 1
-    catch
-      let l:snips_loaded = 0
-    endtry
-    if l:snips_loaded == 0
-      " Oh yeah, vimscript rocks!
-      " Putting that echoe inside the catch, will throw an error, and
-      " display spurious unwanted errors…
-      echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'
-      return 0
-    endif
-
-    execute s:py_cmd "vim.command('let l:res = ' + str(initClangComplete(vim.eval('g:clang_complete_lib_flags'),"
-                                                    \."vim.eval('g:clang_compilation_database'),"
-                                                    \."vim.eval('g:clang_library_path'))))"
+    execute s:py_cmd "vim.command('let l:res = ' + str(initClangComplete()))"
     if l:res == 0
       return 0
     endif
@@ -408,10 +382,10 @@ endfunction
 
 function! s:DoPeriodicQuickFix()
   " Don't do any superfluous reparsing.
-  if b:my_changedtick == b:changedtick
+  if b:clang_complete_changedtick == b:changedtick
     return
   endif
-  let b:my_changedtick = b:changedtick
+  let b:clang_complete_changedtick = b:changedtick
 
   execute s:py_cmd 'updateCurrentDiagnostics()'
   call s:ClangQuickFix()

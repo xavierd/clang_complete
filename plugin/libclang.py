@@ -6,6 +6,7 @@ import time
 import threading
 import os
 import shlex
+import importlib
 
 from kinds import kinds
 
@@ -64,9 +65,30 @@ def getBuiltinHeaderPath(library_path):
 
   return None
 
-def initClangComplete(clang_complete_flags, clang_compilation_database, \
-                      library_path):
+def initClangComplete():
+
+  # import snippets
+  try:
+    # m = importlib.import_module(modulename)
+    # for v in m:
+    #   # globals[
+    exec('import snippets.' + vim.eval('g:clang_snippets_engine') + ' as current_snippets')
+    names =  [item for item in dir(current_snippets) if not item.startswith("__")]
+    for name in names:
+      # inject globals from snippets
+      globals()[name] = getattr(current_snippets,name)
+  except:
+    # Oh yeah, vimscript rocks!
+    # Putting that echoe inside the catch, will throw an error, and
+    # display spurious unwanted errors
+    vim.command("echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'")
+    return 0
+
   global index
+
+  clang_complete_flags = vim.eval('g:clang_complete_lib_flags')
+  library_path = vim.eval('g:clang_library_path')
+  clang_compilation_database = vim.eval('g:clang_compilation_database')
 
   debug = int(vim.eval("g:clang_debug")) == 1
 
@@ -333,13 +355,29 @@ def getCompilationDBParams(fileName):
 
 getCompilationDBParams.last_query = { 'args': [], 'cwd': None }
 
-def getCompileParams(fileName):
+def getCompileParams(fileName,filetype=None):
   global builtinHeaderPath
   params = getCompilationDBParams(fileName)
   args = params['args']
   args += splitOptions(vim.eval("g:clang_user_options"))
   args += splitOptions(vim.eval("b:clang_user_options"))
-  args += splitOptions(vim.eval("b:clang_parameters"))
+
+  if filetype is None:
+    filetype = vim.current.buffer.options['filetype']
+
+  ftype_param = '-x c'
+
+  if 'objc' in filetype:
+    ftype_param = '-x objective-c'
+
+  if filetype == 'cpp' or filetype == 'objcpp' or filetype[0:3] == 'cpp' or filetype[0:6] == 'objcpp':
+    ftype_param += '++'
+
+  _,ext = os.path.splitext(fileName)
+  if 'h' in ext:
+    ftype_param += '-header'
+
+  args += splitOptions(ftype_param)
 
   if builtinHeaderPath and '-nobuiltininc' not in args:
     args.append("-I" + builtinHeaderPath)
