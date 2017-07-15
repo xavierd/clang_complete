@@ -2000,6 +2000,9 @@ class TranslationUnit(ClangObject):
         """
         if args is None:
             args = []
+        else:
+            # make a copy, because we're modifying the list right below
+            args = list(args)
 
         args.append('-fno-color-diagnostics')
 
