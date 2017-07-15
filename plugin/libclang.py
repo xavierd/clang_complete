@@ -106,8 +106,16 @@ def initClangComplete(clang_complete_flags, clang_compilation_database, \
       print("         This will cause slow code completion.")
       print("         Please report the problem.")
 
+  # Cache of translation units.  Maps paths of files:
+  # <source file path> : {
+  #   'tu':   <translation unit object>,
+  #   'args': <list of arguments>,
+  # }
+  # New cache entry for the same path, but with different list of arguments,
+  # overwrite previously cached data.
   global translationUnits
   translationUnits = dict()
+
   global complete_flags
   complete_flags = int(clang_complete_flags)
   global compilation_database
@@ -180,8 +188,9 @@ class CodeCompleteTimer:
 
 def getCurrentTranslationUnit(args, currentFile, fileName, timer,
                               update = False):
-  tu = translationUnits.get(fileName)
-  if tu != None:
+  tuCache = translationUnits.get(fileName)
+  if tuCache is not None and tuCache['args'] == args:
+    tu = tuCache['tu']
     if update:
       tu.reparse([currentFile])
       timer.registerEvent("Reparsing")
@@ -195,7 +204,7 @@ def getCurrentTranslationUnit(args, currentFile, fileName, timer,
   except TranslationUnitLoadError as e:
     return None
 
-  translationUnits[fileName] = tu
+  translationUnits[fileName] = { 'tu': tu, 'args': args }
 
   # Reparse to initialize the PCH cache even for auto completion
   # This should be done by index.parse(), however it is not.
@@ -273,11 +282,11 @@ def highlightDiagnostics(tu):
 
 def highlightCurrentDiagnostics():
   if vim.current.buffer.name in translationUnits:
-    highlightDiagnostics(translationUnits[vim.current.buffer.name])
+    highlightDiagnostics(translationUnits[vim.current.buffer.name]['tu'])
 
 def getCurrentQuickFixList():
   if vim.current.buffer.name in translationUnits:
-    return getQuickFixList(translationUnits[vim.current.buffer.name])
+    return getQuickFixList(translationUnits[vim.current.buffer.name]['tu'])
   return []
 
 # Get the compilation parameters from the compilation database for source
