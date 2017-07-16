@@ -417,6 +417,11 @@ function! s:DoPeriodicQuickFix()
   call s:ClangQuickFix()
 endfunction
 
+function! g:ClangListSymbols()
+  execute s:py_cmd "vim.command('let l:list = ' + json.dumps(listSymbols()))"
+  return l:list
+endfunction
+
 function! s:ClangQuickFix()
   " Clear the bad spell, the user may have corrected them.
   syntax clear SpellBad
