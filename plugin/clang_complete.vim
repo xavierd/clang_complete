@@ -239,7 +239,7 @@ function! LoadUserOptions()
     endif
     if l:source == 'path'
       call s:parsePathOption()
-    elseif l:source == 'compile_commands.json'
+    elseif l:source =~# 'compile_commands.json'
       call s:findCompilationDatase(l:source)
     elseif l:source == '.clang_complete'
       call s:parseConfig()
