@@ -184,7 +184,7 @@ Default: 0
 
        				      	*clang_complete-user_options*
        				       	*g:clang_user_options*
-Additionnal compilation argument passed to libclang.
+Additional compilation argument passed to libclang.
 
 Example: >
  " compile all sources as c++11 (just for example, use .clang_complete for
