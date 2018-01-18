@@ -378,11 +378,25 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
 
   cr = tu.codeComplete(fileName, line, column, [currentFile],
       complete_flags)
+
   timer.registerEvent("Code Complete")
   return cr
 
+"""
+A normal dictionary will escape single quotes by doing
+"\'", but vimscript expects them to be escaped as "''".
+This dictionary inherits from the built-in dict and overrides
+repr to call the original, then re-escape single quotes in
+the way that vimscript expects
+"""
+class VimscriptEscapingDict(dict):
+  def __repr__(self):
+    repr = super(VimscriptEscapingDict, self).__repr__()
+    new_repr = repr.replace("\\'", "''")
+    return new_repr
+
 def formatResult(result):
-  completion = dict()
+  completion = VimscriptEscapingDict()
   returnValue = None
   abbr = ""
   word = ""
