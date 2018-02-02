@@ -434,7 +434,10 @@ def formatResult(result):
       for optional_arg in roll_out_optional(chunk.string):
         if place_markers_for_optional_args:
           word += snippetsFormatPlaceHolder(optional_arg)
-        info += optional_arg + "=?"
+        if -1 != optional_arg.find('='):
+          info += optional_arg
+        else:
+          info += optional_arg + "=?"
 
     if chunk.isKindPlaceHolder():
       word += snippetsFormatPlaceHolder(chunk_spelling)
