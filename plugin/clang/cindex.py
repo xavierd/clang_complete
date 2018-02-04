@@ -1088,15 +1088,7 @@ class Cursor(Structure):
     def is_function(self):
         """Determine if cursor is over a function.
         """
-        return ( self.kind == CursorKind.FUNCTION_DECL or
-                 self.kind == CursorKind.OBJC_INSTANCE_METHOD_DECL or
-                 self.kind == CursorKind.OBJC_CLASS_METHOD_DECL or
-                 self.kind == CursorKind.CXX_METHOD or
-                 self.kind == CursorKind.CONSTRUCTOR or
-                 self.kind == CursorKind.DESTRUCTOR or
-                 self.kind == CursorKind.CONVERSION_FUNCTION or
-                 self.kind == CursorKind.FUNCTION_TEMPLATE or
-                 self.kind == CursorKind.CALL_EXPR )
+        return ( -1 != conf.lib.clang_Cursor_getNumArguments(self) )
 
     def is_static_method(self):
         """Returns True if the cursor refers to a C++ member function or member
