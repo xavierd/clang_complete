@@ -1085,6 +1085,19 @@ class Cursor(Structure):
         """
         return conf.lib.clang_CXXMethod_isVirtual(self)
 
+    def is_function(self):
+        """Determine if cursor is over a function.
+        """
+        return ( self.kind == CursorKind.FUNCTION_DECL or
+                 self.kind == CursorKind.OBJC_INSTANCE_METHOD_DECL or
+                 self.kind == CursorKind.OBJC_CLASS_METHOD_DECL or
+                 self.kind == CursorKind.CXX_METHOD or
+                 self.kind == CursorKind.CONSTRUCTOR or
+                 self.kind == CursorKind.DESTRUCTOR or
+                 self.kind == CursorKind.CONVERSION_FUNCTION or
+                 self.kind == CursorKind.FUNCTION_TEMPLATE or
+                 self.kind == CursorKind.CALL_EXPR )
+
     def is_static_method(self):
         """Returns True if the cursor refers to a C++ member function or member
         function template that is declared 'static'.

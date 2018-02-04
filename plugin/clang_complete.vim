@@ -640,9 +640,13 @@ function! s:GotoDeclaration(preview)
     if g:clang_is_virtual_method
       redraw
       echohl ErrorMsg | echom "This is a virtual function!" | echohl None
-    else
+    elseif g:clang_is_function
       redraw
       echom "non-virtual function"
+    else
+      " clear previous message
+      redraw
+      echom ""
     endif
   catch /^Vim\%((\a\+)\)\=:E37/
     echoe "The current file is not saved, and 'hidden' is not set."
