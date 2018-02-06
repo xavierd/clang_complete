@@ -551,6 +551,10 @@ function! s:StopMonitoring()
     return
   endif
 
+  if g:clang_close_preview == 1
+    pclose
+  endif
+
   if g:clang_make_default_keymappings == 1
     " Restore original return and Ctrl-Y key mappings
 
@@ -593,10 +597,6 @@ function! s:TriggerSnippet()
 
   " Trigger the snippet
   execute s:py_cmd 'snippetsTrigger()'
-
-  if g:clang_close_preview == 1
-    pclose
-  endif
 endfunction
 
 function! s:ShouldComplete()
