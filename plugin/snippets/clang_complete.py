@@ -1,12 +1,20 @@
 import re
 import vim
 
-def snippetsInit():
+def getClangSnippetJumpKey(escapeForFeedkeys):
   snippet_jump_map = vim.eval("g:clang_complete_snippet_jump_map")
+  if escapeForFeedkeys:
+    snippet_jump_map = snippet_jump_map.replace('<', r'\<').replace('"', r'\"')
+  return snippet_jump_map
+
+def snippetsInit():
+  python_cmd = vim.eval('s:py_cmd')
+  vim.command("noremap <silent> <buffer> <Plug>ClangSnippetJumpN :{} updateSnips()<CR>".format(python_cmd))
+  vim.command("snoremap <silent> <buffer> <Plug>ClangSnippetJumpS <ESC>:{} updateSnips()<CR>".format(python_cmd))
+  snippet_jump_map = getClangSnippetJumpKey(False)
   if "" != snippet_jump_map:
-    python_cmd = vim.eval('s:py_cmd')
-    vim.command("noremap <silent> <buffer> {} :{} updateSnips()<CR>".format(snippet_jump_map, python_cmd))
-    vim.command("snoremap <silent> <buffer> {} <ESC>:{} updateSnips()<CR>".format(snippet_jump_map, python_cmd))
+    vim.command("map <silent> <buffer> {} <Plug>ClangSnippetJumpN".format(snippet_jump_map))
+    vim.command("smap <silent> <buffer> {} <Plug>ClangSnippetJumpS".format(snippet_jump_map))
   if int(vim.eval("g:clang_conceal_snippets")) == 1:
     vim.command("syntax match placeHolder /\$`[^`]*`/ contains=placeHolderMark")
     vim.command("syntax match placeHolderMark contained /\$`/ conceal")
@@ -26,7 +34,8 @@ r = re.compile('\$`[^`]*`')
 def snippetsTrigger():
   if r.search(vim.current.line) is None:
     return
-  vim.command('call feedkeys("\<esc>^\<tab>")')
+  # Using the Plug here works even if g:clang_complete_snippet_jump_map is empty.
+  vim.command('call feedkeys("\<esc>^\<Plug>ClangSnippetJumpN")')
 
 def snippetsReset():
   pass
@@ -39,7 +48,9 @@ def updateSnips():
   if result is None:
     result = r.search(line)
     if result is None:
-      vim.command('call feedkeys("\<c-i>", "n")')
+      snippet_jump_map = getClangSnippetJumpKey(True)
+      if "" != snippet_jump_map:
+        vim.command('call feedkeys("{}", "n")'.format(snippet_jump_map))
       return
 
   start, end = result.span()
