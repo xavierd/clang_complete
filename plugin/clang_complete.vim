@@ -13,15 +13,14 @@ endif
 let g:clang_complete_loaded = 1
 
 au FileType c,cpp,objc,objcpp call <SID>ClangCompleteInit()
-au FileType c.*,cpp.*,objc.*,objcpp.* call <SID>ClangCompleteInit()
-
-let b:clang_parameters = ''
-let b:clang_user_options = ''
-let b:my_changedtick = 0
 
 " Store plugin path, as this is available only when sourcing the file,
 " not during a function call.
 let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
+
+let b:clang_parameters = ''
+let b:clang_user_options = ''
+let b:my_changedtick = 0
 
 " Older versions of Vim can't check if a map was made with <expr>
 let s:use_maparg = v:version > 703 || (v:version == 703 && has('patch32'))
@@ -222,7 +221,6 @@ function! s:ClangCompleteInit()
   if g:clang_omnicppcomplete_compliance == 0
     setlocal omnifunc=ClangComplete
   endif
-
 endfunction
 
 function! LoadUserOptions()
@@ -276,7 +274,6 @@ for s:flag in values(s:flagInfo)
 endfor
 let s:flagPattern = '\%(' . join(s:flagPatterns, '\|') . '\)'
 
-
 function! s:processFilename(filename, root)
   " Handle Unix absolute path
   if matchstr(a:filename, '\C^[''"\\]\=/') != ''
@@ -322,12 +319,12 @@ function! s:parseConfig()
   let l:root = fnamemodify(l:local_conf, ':p:h') . l:sep
 
   let l:opts = readfile(l:local_conf)
+  let g:target_opt = []
   for l:opt in l:opts
     " Ensure passed filenames are absolute. Only performed on flags which
     " require a filename/directory as an argument, as specified in s:flagInfo
     if matchstr(l:opt, '\C^\s*' . s:flagPattern . '\s*') != ''
-      let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*'
-                            \ , '\1', 'g')
+      let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*', '\1', 'g')
       let l:flag = substitute(l:flag, '^\(.\{-}\)\s*$', '\1', 'g')
       let l:filename = substitute(l:opt,
                                 \ '\C^\s*' . s:flagPattern . '\(.\{-}\)\s*$',
@@ -336,8 +333,9 @@ function! s:parseConfig()
       let l:opt = s:flagInfo[l:flag].output . l:filename
     endif
 
-    let b:clang_user_options .= ' ' . l:opt
+    let g:target_opt = add(g:target_opt, l:opt)
   endfor
+  let b:clang_user_options .= join(g:target_opt, ' ')
 endfunction
 
 function! s:findCompilationDatase(cdb)
