@@ -5,7 +5,7 @@ def snippetsInit():
   python_cmd = vim.eval('s:py_cmd')
 
   vim.command("noremap <silent> <buffer> <c-s> :%s updateSnips()<CR>" % python_cmd)
-  vim.command("snoremap <silent> <buffer> <c-s> <ESC>:%s updateSnips()<CR>" %s python_cmd)
+  vim.command("snoremap <silent> <buffer> <c-s> <ESC>:%s updateSnips()<CR>" % python_cmd)
 
   if int(vim.eval("g:clang_conceal_snippets")) == 1:
     vim.command("syntax match placeHolder /\$`[^`]*`/ contains=placeHolderMark")

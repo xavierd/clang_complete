@@ -389,7 +389,7 @@ function! s:initClangCompletePython()
     if l:snips_loaded == 0
       " Oh yeah, vimscript rocks!
       " Putting that echoe inside the catch, will throw an error, and
-      " display spurious unwanted errors…
+      " display spurious unwanted error
       echoe 'Snippets engine ' . g:clang_snippets_engine . ' not found'
       return 0
     endif
