@@ -145,8 +145,7 @@ class CodeCompleteTimer:
     print("libclang code completion")
     print("========================")
     print("Command: clang %s -fsyntax-only " % " ".join(decode(params['args'])), end=' ')
-    print("-Xclang -code-completion-at=%s:%d:%d %s"
-       % (file, line, column, file))
+    print("-Xclang -code-completion-at=%s:%d:%d %s" % (file, line, column, file))
     print("cwd: %s" % params['cwd'])
     print("File: %s" % file)
     print("Line: %d, Column: %d" % (line, column))
@@ -367,7 +366,11 @@ def updateCurrentDiagnostics():
                               vim.current.buffer.name, timer, update = True)
   timer.finish()
 
-def getCurrentCompletionResults(line, column, args, currentFile, fileName,
+def getCurrentCompletionResults(line, 
+                                column, 
+                                args, 
+                                currentFile, 
+                                fileName,
                                 timer):
 
   tu = getCurrentTranslationUnit(args, currentFile, fileName, timer)
@@ -376,10 +379,14 @@ def getCurrentCompletionResults(line, column, args, currentFile, fileName,
   if tu == None:
     return None
 
-  cr = tu.codeComplete(fileName, line, column, [currentFile],
-      complete_flags)
+  cr = tu.codeComplete(fileName, 
+                       line, 
+                       column, 
+                       [currentFile],
+                       complete_flags)
 
   timer.registerEvent("Code Complete")
+
   return cr
 
 """
@@ -390,6 +397,7 @@ repr to call the original, then re-escape single quotes in
 the way that vimscript expects
 """
 class VimscriptEscapingDict(dict):
+
   def __repr__(self):
     repr = super(VimscriptEscapingDict, self).__repr__()
     new_repr = repr.replace("\\'", "''")
@@ -462,6 +470,7 @@ def formatResult(result):
 
 
 class CompleteThread(threading.Thread):
+
   def __init__(self, line, column, currentFile, fileName, params, timer):
     threading.Thread.__init__(self)
     # Complete threads are daemon threads. Python and consequently vim does not
@@ -489,18 +498,29 @@ class CompleteThread(threading.Thread):
         # not locked The user does not see any delay, as we just pause
         # a background thread.
         time.sleep(0.1)
-        getCurrentTranslationUnit(self.args, self.currentFile, self.fileName,
+
+        getCurrentTranslationUnit(self.args, 
+                                  self.currentFile,
+                                  self.fileName,
                                   self.timer)
       else:
-        self.result = getCurrentCompletionResults(self.line, self.column,
-                                                  self.args, self.currentFile,
-                                                  self.fileName, self.timer)
+        self.result = getCurrentCompletionResults(self.line, 
+                                                  self.column,
+                                                  self.args, 
+                                                  self.currentFile,
+                                                  self.fileName, 
+                                                  self.timer)
 
 def WarmupCache():
   params = getCompileParams(vim.current.buffer.name)
   timer = CodeCompleteTimer(0, "", -1, -1, params)
-  t = CompleteThread(-1, -1, getCurrentFile(), vim.current.buffer.name,
-                     params, timer)
+
+  t = CompleteThread(-1, 
+                     -1, 
+                     getCurrentFile(), 
+                     vim.current.buffer.name,
+                     params, 
+                     timer)
   t.start()
 
 def getCurrentCompletions(base):

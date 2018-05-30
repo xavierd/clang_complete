@@ -279,8 +279,7 @@ function! s:processFilename(filename, root)
   if matchstr(a:filename, '\C^[''"\\]\=/') != ''
     let l:filename = a:filename
   " Handle Windows absolute path
-  elseif s:isWindows() 
-       \ && matchstr(a:filename, '\C^"\=[a-zA-Z]:[/\\]') != ''
+  elseif s:isWindows() && matchstr(a:filename, '\C^"\=[a-zA-Z]:[/\\]') != ''
     let l:filename = a:filename
   " Convert relative path to absolute path
   else
@@ -317,25 +316,34 @@ function! s:parseConfig()
   endif
 
   let l:root = fnamemodify(l:local_conf, ':p:h') . l:sep
-
   let l:opts = readfile(l:local_conf)
-  let g:target_opt = []
-  for l:opt in l:opts
-    " Ensure passed filenames are absolute. Only performed on flags which
-    " require a filename/directory as an argument, as specified in s:flagInfo
-    if matchstr(l:opt, '\C^\s*' . s:flagPattern . '\s*') != ''
-      let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*', '\1', 'g')
-      let l:flag = substitute(l:flag, '^\(.\{-}\)\s*$', '\1', 'g')
-      let l:filename = substitute(l:opt,
-                                \ '\C^\s*' . s:flagPattern . '\(.\{-}\)\s*$',
-                                \ '\1', 'g')
-      let l:filename = s:processFilename(l:filename, l:root)
-      let l:opt = s:flagInfo[l:flag].output . l:filename
-    endif
 
-    let g:target_opt = add(g:target_opt, l:opt)
-  endfor
-  let b:clang_user_options .= join(g:target_opt, ' ')
+  if 0
+    let g:opt_processed = []
+
+    for l:opt in l:opts
+      " Ensure passed filenames are absolute. Only performed on flags which
+      " require a filename/directory as an argument, as specified in s:flagInfo
+      if matchstr(l:opt, '\C^\s*' . s:flagPattern . '\s*') != ''
+        let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*', '\1', 'g')
+        let l:flag = substitute(l:flag, '^\(.\{-}\)\s*$', '\1', 'g')
+        let l:filename = substitute(l:opt,
+                                  \ '\C^\s*' . s:flagPattern . '\(.\{-}\)\s*$',
+                                  \ '\1', 'g')
+        " [j5shi]: no need to process filename for my options
+        " let l:filename = s:processFilename(l:filename, l:root)
+        echo l:opt
+        let l:opt = s:flagInfo[l:flag].output . l:filename
+        echo l:opt
+      endif
+
+      let g:opt_processed = add(g:opt_processed, l:opt)
+    endfor
+
+    let b:clang_user_options .= join(g:opt_processed, ' ')
+  else
+    let b:clang_user_options .= join(l:opts, ' ')
+  endif
 endfunction
 
 function! s:findCompilationDatase(cdb)
