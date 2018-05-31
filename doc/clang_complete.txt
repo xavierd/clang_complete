@@ -79,12 +79,20 @@ of linker arguments in .clang_complete file. They will lead to completion
 failure when using clang executable and will be completely ignored by
 libclang.
 
+A .clang_complete file can include other files with compiler options. This is
+useful if multiple projects share the same set of common options. An include
+option consists of an '@' sign followed by an absolute or relative path to
+another options file. This option can appear multiple times. It is also
+handled recursively so any depth of nesting is supported.
+
 Example .clang_complete file: >
  -DDEBUG
  -include ../config.h
  -I../common
  -I/usr/include/c++/4.5.3/
  -I/usr/include/c++/4.5.3/x86_64-slackware-linux/
+ @../../.clang_complete
+ @/home/user/universal_options
 <
 ==============================================================================
 5. Options					*clang_complete-options*

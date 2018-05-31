@@ -267,6 +267,10 @@ let s:flagInfo = {
 \   '-include': {
 \     'pattern': '-include\s\+',
 \     'output': '-include '
+\   },
+\   '@': {
+\     'pattern': '@\s*',
+\     'output': '@'
 \   }
 \ }
 
@@ -276,36 +280,79 @@ for s:flag in values(s:flagInfo)
 endfor
 let s:flagPattern = '\%(' . join(s:flagPatterns, '\|') . '\)'
 
+" Characters that need escaping inside shell double quotes.
+let s:shellDquoteEscapes = ['$', '`', '\', '"']
+
+" Unfortunately VIM does not have this.
+function! s:shellunescape(path)
+  let l:escaped = a:path
+  let l:unescaped = ''
+  let l:in_quote = ''
+
+  while len(l:escaped)
+    let l:ch = strpart(l:escaped, 0, 1)
+    let l:escaped = strpart(l:escaped, 1)
+
+    if s:isWindows()
+      " Handle quotes.
+      if l:ch == '"'
+        if l:in_quote == '"'
+          if strpart(l:escaped, 0, 1) == '"'
+            " This is an escaped quote. Leave one.
+            let l:escaped = strpart(l:escaped, 1)
+          else
+            " End of a quoted region. Ignore and continue.
+            let l:in_quote = ''
+            continue
+          endif
+        else
+          " Start of a quoted region. Ignore and continue.
+          let l:in_quote = '"'
+          continue
+        endif
+      endif
+    else
+      " Handle quotes.
+      if l:ch == l:in_quote
+        " End of a quoted region. Ignore and continue.
+        let l:in_quote = ''
+        continue
+      elseif l:in_quote == '' && (l:ch == "'" || l:ch == '"')
+        " Start of a quoted region. Ignore and continue.
+        let l:in_quote = l:ch
+        continue
+      endif
+
+      " Handle escapes
+      if l:ch == '\'
+        let l:ech = strpart(l:escaped, 0, 1)
+        if l:in_quote == '"'
+          " Remove the backslash if a special char follows.
+          " Otherwise leave as is.
+          if index(s:shellDquoteEscapes, l:ech) != -1
+            let l:ch = l:ech
+            let l:escaped = strpart(l:escaped, 1)
+          endif
+        elseif l:in_quote == ''
+          " Any char becomes literal after backslash outside quotes.
+          let l:ch = l:ech
+          let l:escaped = strpart(l:escaped, 1)
+        endif
+      endif
+    endif
+
+    let l:unescaped .= l:ch
+  endwhile
+
+  return l:unescaped
+endfunction
 
 function! s:processFilename(filename, root)
-  " Handle Unix absolute path
-  if matchstr(a:filename, '\C^[''"\\]\=/') != ''
-    let l:filename = a:filename
-  " Handle Windows absolute path
-  elseif s:isWindows() 
-       \ && matchstr(a:filename, '\C^"\=[a-zA-Z]:[/\\]') != ''
-    let l:filename = a:filename
-  " Convert relative path to absolute path
-  else
-    " If a windows file, the filename may need to be quoted.
-    if s:isWindows()
-      let l:root = substitute(a:root, '\\', '/', 'g')
-      if matchstr(a:filename, '\C^".*"\s*$') == ''
-        let l:filename = substitute(a:filename, '\C^\(.\{-}\)\s*$'
-                                            \ , '"' . l:root . '\1"', 'g')
-      else
-        " Strip first double-quote and prepend the root.
-        let l:filename = substitute(a:filename, '\C^"\(.\{-}\)"\s*$'
-                                            \ , '"' . l:root . '\1"', 'g')
-      endif
-      let l:filename = substitute(l:filename, '/', '\\', 'g')
-    else
-      " For Unix, assume the filename is already escaped/quoted correctly
-      let l:filename = shellescape(a:root) . a:filename
-    endif
+  " Handle absolute paths
+  if a:filename =~ '^/' || (s:isWindows() && a:filename =~ '\c^[a-z]:[/\\]')
+    return a:filename
   endif
-  
-  return l:filename
+  return a:root . a:filename
 endfunction
 
 function! s:parseConfig()
@@ -313,19 +360,25 @@ function! s:parseConfig()
   if l:local_conf == '' || !filereadable(l:local_conf)
     return
   endif
+  call s:parseConfigRecurse(l:local_conf)
+endfunction
 
+function! s:parseConfigRecurse(local_conf)
   let l:sep = '/'
   if s:isWindows()
     let l:sep = '\'
   endif
 
-  let l:root = fnamemodify(l:local_conf, ':p:h') . l:sep
+  let l:root = fnamemodify(a:local_conf, ':p:h') . l:sep
 
-  let l:opts = readfile(l:local_conf)
+  let l:opts = readfile(a:local_conf)
   for l:opt in l:opts
+    " Remove any escaping that might have been in the config file.
+    let l:opt = s:shellunescape(l:opt)
+
     " Ensure passed filenames are absolute. Only performed on flags which
     " require a filename/directory as an argument, as specified in s:flagInfo
-    if matchstr(l:opt, '\C^\s*' . s:flagPattern . '\s*') != ''
+    if l:opt =~ '\C^\s*' . s:flagPattern
       let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*'
                             \ , '\1', 'g')
       let l:flag = substitute(l:flag, '^\(.\{-}\)\s*$', '\1', 'g')
@@ -336,7 +389,12 @@ function! s:parseConfig()
       let l:opt = s:flagInfo[l:flag].output . l:filename
     endif
 
-    let b:clang_user_options .= ' ' . l:opt
+    if l:opt =~ '^@'
+      " Parse an included config recursively
+      call s:parseConfigRecurse(strpart(l:opt, 1))
+    else
+      let b:clang_user_options .= ' ' . shellescape(l:opt)
+    endif
   endfor
 endfunction
 
