@@ -267,6 +267,10 @@ let s:flagInfo = {
 \   '-include': {
 \     'pattern': '-include\s\+',
 \     'output': '-include '
+\   },
+\   '@': {
+\     'pattern': '@\s\+',
+\     'output': '@'
 \   }
 \ }
 
@@ -313,15 +317,18 @@ function! s:parseConfig()
   if l:local_conf == '' || !filereadable(l:local_conf)
     return
   endif
+  call s:parseConfigRecurse(l:local_conf)
+endfunction
 
+function! s:parseConfigRecurse(local_conf)
   let l:sep = '/'
   if s:isWindows()
     let l:sep = '\'
   endif
 
-  let l:root = fnamemodify(l:local_conf, ':p:h') . l:sep
+  let l:root = fnamemodify(a:local_conf, ':p:h') . l:sep
 
-  let l:opts = readfile(l:local_conf)
+  let l:opts = readfile(a:local_conf)
   for l:opt in l:opts
     " Ensure passed filenames are absolute. Only performed on flags which
     " require a filename/directory as an argument, as specified in s:flagInfo
@@ -336,7 +343,12 @@ function! s:parseConfig()
       let l:opt = s:flagInfo[l:flag].output . l:filename
     endif
 
-    let b:clang_user_options .= ' ' . l:opt
+    if l:opt =~ '^@'
+      " Parse an included config recursively
+      call s:parseConfigRecurse(strpart(l:opt, 1))
+    else
+      let b:clang_user_options .= ' ' . l:opt
+    endif
   endfor
 endfunction
 
