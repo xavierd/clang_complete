@@ -571,15 +571,17 @@ function! s:StopMonitoring(what)
 endfunction
 
 function! s:TriggerSnippet()
+  let l:snippet_chosen = b:snippet_chosen
+  let b:snippet_chosen = 0
+
   call s:StopMonitoring('cr')
 
   " Dont bother doing anything until we're sure the user exited the menu
-  if !b:snippet_chosen
+  if !l:snippet_chosen
     return
   endif
 
   " Stop monitoring as we'll trigger a snippet
-  let b:snippet_chosen = 0
   call s:StopMonitoring('all')
 
   " Trigger the snippet
