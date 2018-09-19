@@ -2,6 +2,19 @@ This plugin uses clang for accurately completing C and C++ code.
 
 ## Installation
 
+You need Vim 7.3 or higher, compiled with python support and ideally, with
+the conceal feature.
+
+#### Not using any plugin management tools
+
+- Just put the files in `~/.vim/`
+
+#### Using plugin managers, runtime path managers or packs of Vim8
+
+- Follow regular procedure outlined in corresponding documentation
+
+#### Using [vimball][vimball] (not in nvim)
+
 - To build and install in one step, type: `$ make install`
 
 - To build and install in two steps, type:
@@ -10,11 +23,6 @@ This plugin uses clang for accurately completing C and C++ code.
 $ make
 $ vim clang_complete.vmb -c 'so %' -c 'q'
 ```
-
-- Alternatively, you can also put the files in `~/.vim/`
-
-You need Vim 7.3 or higher, compiled with python support and ideally, with
-the conceal feature.
 
 ## Minimum Configuration
 
@@ -62,3 +70,5 @@ case there were problems with plugin initialization.
 
 If everything is fine, next step might be to load only clang_complete plugin
 and see if anything changes.
+
+[vimball]: https://vimhelp.appspot.com/pi_vimball.txt.html
