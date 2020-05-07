@@ -38,7 +38,8 @@ $ vim clang_complete.vmb -c 'so %' -c 'q'
 ```
 
 - Compiler options can be configured in a `.clang_complete` file in each project
-  root.  Example of `.clang_complete` file:
+  root.  `.clang_complete` can also include other files in the same format to
+  share options between projects.  Example of `.clang_complete` file:
 
 ```
 -DDEBUG
@@ -46,6 +47,7 @@ $ vim clang_complete.vmb -c 'so %' -c 'q'
 -I../common
 -I/usr/include/c++/4.5.3/
 -I/usr/include/c++/4.5.3/x86_64-slackware-linux/
+@../../.clang_complete
 ```
 
 ## Usage
