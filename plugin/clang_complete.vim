@@ -26,12 +26,12 @@ let s:plugin_path = escape(expand('<sfile>:p:h'), '\')
 " Older versions of Vim can't check if a map was made with <expr>
 let s:use_maparg = v:version > 703 || (v:version == 703 && has('patch32'))
 
-if has('python')
+if has('python3')
+  let s:py_cmd = 'py3'
+  let s:pyfile_cmd = 'py3file'
+elseif has('python')
   let s:py_cmd = 'python'
   let s:pyfile_cmd = 'pyfile'
-elseif has('python3')
-  let s:py_cmd = 'python3'
-  let s:pyfile_cmd = 'py3file'
 endif
 
 function! s:ClangCompleteInit()
@@ -189,6 +189,7 @@ function! s:ClangCompleteInit()
   if g:clang_make_default_keymappings == 1
     inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
     inoremap <expr> <buffer> . <SID>CompleteDot()
+    inoremap <expr> <buffer> _ <SID>CompleteUL()
     inoremap <expr> <buffer> > <SID>CompleteArrow()
     inoremap <expr> <buffer> : <SID>CompleteColon()
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
@@ -282,7 +283,7 @@ function! s:processFilename(filename, root)
   if matchstr(a:filename, '\C^[''"\\]\=/') != ''
     let l:filename = a:filename
   " Handle Windows absolute path
-  elseif s:isWindows() 
+  elseif s:isWindows()
        \ && matchstr(a:filename, '\C^"\=[a-zA-Z]:[/\\]') != ''
     let l:filename = a:filename
   " Convert relative path to absolute path
@@ -304,7 +305,7 @@ function! s:processFilename(filename, root)
       let l:filename = shellescape(a:root) . a:filename
     endif
   endif
-  
+
   return l:filename
 endfunction
 
@@ -607,6 +608,13 @@ function! s:LaunchCompletion()
     endif
   endif
   return l:result
+endfunction
+
+function! s:CompleteUL()
+  if g:clang_complete_auto == 1
+    return '_' . s:LaunchCompletion()
+  endif
+  return '_'
 endfunction
 
 function! s:CompleteDot()
