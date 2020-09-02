@@ -189,6 +189,7 @@ function! s:ClangCompleteInit()
   if g:clang_make_default_keymappings == 1
     inoremap <expr> <buffer> <C-X><C-U> <SID>LaunchCompletion()
     inoremap <expr> <buffer> . <SID>CompleteDot()
+    inoremap <expr> <buffer> _ <SID>CompleteUL()
     inoremap <expr> <buffer> > <SID>CompleteArrow()
     inoremap <expr> <buffer> : <SID>CompleteColon()
     execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
@@ -607,6 +608,13 @@ function! s:LaunchCompletion()
     endif
   endif
   return l:result
+endfunction
+
+function! s:CompleteUL()
+  if g:clang_complete_auto == 1
+    return '_' . s:LaunchCompletion()
+  endif
+  return '_'
 endfunction
 
 function! s:CompleteDot()
