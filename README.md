@@ -7,17 +7,29 @@ the conceal feature.
 
 #### Not using any plugin management tools
 
-- Just put the files in `~/.vim/`
+Just put the files in ~/.vim/
 
-#### Using plugin managers, runtime path managers or packs of Vim8
+```
+git clone https://github.com/xavierd/clang_complete.git /tmp/clang_complete
+cp -r /tmp/clang_complete/* ~/.vim
+```
 
-- Follow regular procedure outlined in corresponding documentation
+#### Using packs of Vim8
+
+```
+mkdir -p ~/.vim/pack/completion/start/
+git clone https://github.com/xavierd/clang_complete.git ~/.vim/pack/completion/start/clang_complete
+```
+
+#### Using plugin managers, runtime path managers
+
+Follow regular procedure outlined in corresponding documentation
 
 #### Using [vimball][vimball] (not in nvim)
 
-- To build and install in one step, type: `$ make install`
+To build and install in one step, type: `$ make install`
 
-- To build and install in two steps, type:
+To build and install in two steps, type:
 
 ```
 $ make
