@@ -43,10 +43,8 @@ $ vim clang_complete.vmb -c 'so %' -c 'q'
   the file itself, example:
 
 ```vim
- " path to directory where library can be found
- let g:clang_library_path='/usr/lib/llvm-3.8/lib'
- " or path directly to the library file
- let g:clang_library_path='/usr/lib64/libclang.so.3.8'
+ " provide path directly to the library file
+ let g:clang_library_path='/usr/lib/llvm-14/lib/libclang-14.so.1'
 ```
 
 - Compiler options can be configured in a `.clang_complete` file in each project
