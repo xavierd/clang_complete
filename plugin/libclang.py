@@ -520,7 +520,7 @@ def getCurrentCompletions(base):
   t = CompleteThread(line, column, getCurrentFile(), vim.current.buffer.name,
                      params, timer)
   t.start()
-  while t.isAlive():
+  while t.is_alive():
     t.join(0.01)
     cancel = int(vim.eval('complete_check()'))
     if cancel != 0:

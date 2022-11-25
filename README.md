@@ -2,19 +2,39 @@ This plugin uses clang for accurately completing C and C++ code.
 
 ## Installation
 
-- To build and install in one step, type: `$ make install`
+You need Vim 7.3 or higher, compiled with python support and ideally, with
+the conceal feature.
 
-- To build and install in two steps, type:
+#### Not using any plugin management tools
+
+Just put the files in ~/.vim/
+
+```
+git clone https://github.com/xavierd/clang_complete.git /tmp/clang_complete
+cp -r /tmp/clang_complete/* ~/.vim
+```
+
+#### Using packs of Vim8
+
+```
+mkdir -p ~/.vim/pack/completion/start/
+git clone https://github.com/xavierd/clang_complete.git ~/.vim/pack/completion/start/clang_complete
+```
+
+#### Using plugin managers, runtime path managers
+
+Follow regular procedure outlined in corresponding documentation
+
+#### Using [vimball][vimball] (not in nvim)
+
+To build and install in one step, type: `$ make install`
+
+To build and install in two steps, type:
 
 ```
 $ make
 $ vim clang_complete.vmb -c 'so %' -c 'q'
 ```
-
-- Alternatively, you can also put the files in `~/.vim/`
-
-You need Vim 7.3 or higher, compiled with python support and ideally, with
-the conceal feature.
 
 ## Minimum Configuration
 
@@ -23,10 +43,8 @@ the conceal feature.
   the file itself, example:
 
 ```vim
- " path to directory where library can be found
- let g:clang_library_path='/usr/lib/llvm-3.8/lib'
- " or path directly to the library file
- let g:clang_library_path='/usr/lib64/libclang.so.3.8'
+ " provide path directly to the library file
+ let g:clang_library_path='/usr/lib/llvm-14/lib/libclang-14.so.1'
 ```
 
 - Compiler options can be configured in a `.clang_complete` file in each project
@@ -62,3 +80,5 @@ case there were problems with plugin initialization.
 
 If everything is fine, next step might be to load only clang_complete plugin
 and see if anything changes.
+
+[vimball]: https://vimhelp.appspot.com/pi_vimball.txt.html
