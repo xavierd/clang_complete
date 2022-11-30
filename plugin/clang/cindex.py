@@ -2025,7 +2025,7 @@ class TranslationUnit(ClangObject):
 
                 unsaved_array[i].name = encode(name)
                 unsaved_array[i].contents = encode(contents)
-                unsaved_array[i].length = len(contents)
+                unsaved_array[i].length = len(unsaved_array[i].contents)
 
         ptr = conf.lib.clang_parseTranslationUnit(index, encode(filename),
                                     args_array, len(args), unsaved_array,
@@ -2207,7 +2207,7 @@ class TranslationUnit(ClangObject):
                     raise TypeError('Unexpected unsaved file contents.')
                 unsaved_files_array[i].name = encode(name)
                 unsaved_files_array[i].contents = encode(value)
-                unsaved_files_array[i].length = len(value)
+                unsaved_files_array[i].length = len(unsaved_files_array[i].contents)
         ptr = conf.lib.clang_reparseTranslationUnit(self, len(unsaved_files),
                 unsaved_files_array, options)
 
@@ -2271,7 +2271,7 @@ class TranslationUnit(ClangObject):
                     raise TypeError('Unexpected unsaved file contents.')
                 unsaved_files_array[i].name = encode(name)
                 unsaved_files_array[i].contents = encode(value)
-                unsaved_files_array[i].length = len(value)
+                unsaved_files_array[i].length = len(unsaved_files_array[i].contents)
         ptr = conf.lib.clang_codeCompleteAt(self, encode(path), line, column,
                 unsaved_files_array, len(unsaved_files), options)
         if ptr:
