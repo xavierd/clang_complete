@@ -278,7 +278,9 @@ Default: 0
 					*g:clang_print_type_key*
 Set the key used to print the type of the identifier under cursor.
 If cursor is on an enum, then the value of that enum is also printed.
-If it is empty then no shortcut will be created to gather this info.
+If cursor is on a constant, then the value of that constant is also printed.
+If g:clang_print_type_key is empty, then no shortcut will be created
+to gather this info.
 Defaut: "zp"
 Note: You can call ClangPrintType() vim function to print this information.
 
