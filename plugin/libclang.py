@@ -627,35 +627,66 @@ def gotoDeclaration(preview=True):
 
   timer.finish()
 
+def getTypeStringUnderCursor(cursor):
+  type_str = "type: "
+
+  type = cursor.type
+  type_spelling = type.get_spelling()
+  type_canonical_spelling = type.get_canonical().get_spelling()
+
+  if type_spelling:
+    type_str += type_spelling
+  else:
+    type_str += "?"
+
+  if type_canonical_spelling and type_canonical_spelling != type_spelling:
+    type_str += ",   canonical type: "+type_canonical_spelling
+
+  return type_str
+
+def getConstantValueStringUnderCursor(cursor):
+  result = ""
+  enum_value = ""
+  const_value = ""
+
+  if CursorKind.ENUM_CONSTANT_DECL == cursor.kind:
+    enum_value = str(cursor.enum_value)
+
+  if "" == enum_value and TypeKind.ENUM == cursor.type.kind:
+    enum_def = cursor.get_definition()
+    if enum_def is not None and CursorKind.ENUM_CONSTANT_DECL == enum_def.kind:
+      enum_value = str(enum_def.enum_value)
+
+  if "" == enum_value and cursor.evaluated_value != None:
+    const_value = str(cursor.evaluated_value)
+
+  if "" != enum_value:
+    result += ",   enum value: " + enum_value
+  if "" != const_value:
+    result += ",   const value: " + const_value
+
+  return result
+
 def clangGetType():
   [line, col, params, timer] =  _createTimerAndGetVimPositionAndParameters()
 
-  type_str = "unknown"
   with libclangLock:
     [cursor, loc] = _getCursorAndLocation(line, col, params, timer)
-    type = cursor.type
-    type_str = type.get_spelling()+" ("+type.get_canonical().get_spelling()+")"
+    type_str = getTypeStringUnderCursor(cursor)
 
-    vim.command("let b:clang_type = '" + type_str.replace("'","''")+"'")
+  vim.command("let b:clang_type = '" + type_str.replace("'","''")+"'")
 
-    enum_value = ""
-    const_value = ""
+  timer.finish()
 
-    if CursorKind.ENUM_CONSTANT_DECL == cursor.kind:
-      enum_value = str(cursor.enum_value)
+def clangGetTypeAndConstantValue():
+  [line, col, params, timer] =  _createTimerAndGetVimPositionAndParameters()
 
-    if "" == enum_value and TypeKind.ENUM == cursor.type.kind:
-      enum_def = cursor.get_definition()
-      if enum_def is not None and CursorKind.ENUM_CONSTANT_DECL == enum_def.kind:
-        enum_value = str(enum_def.enum_value)
+  with libclangLock:
+    [cursor, loc] = _getCursorAndLocation(line, col, params, timer)
+    result = getTypeStringUnderCursor(cursor)
+    result += getConstantValueStringUnderCursor(cursor)
 
-    if "" == enum_value and cursor.evaluated_value != None:
-      const_value = str(cursor.evaluated_value)
-
-    if "" != enum_value:
-      vim.command("let b:clang_type = b:clang_type . ' enum value: "+enum_value+"'")
-    if "" != const_value:
-      vim.command("let b:clang_type = b:clang_type . ' const value: "+const_value.replace("'","''")+"'")
+  vim.command("let b:clang_type_and_value = '" + result.replace("'","''")+"'")
 
   timer.finish()
 

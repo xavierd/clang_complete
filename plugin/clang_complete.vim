@@ -129,7 +129,11 @@ function! s:ClangCompleteInit()
   endif
 
   if !exists('g:clang_print_type_key')
-    let g:clang_print_type_key = 'zp'
+    let g:clang_print_type_key = ''
+  endif
+
+  if !exists('g:clang_print_type_and_constant_value_key')
+    let g:clang_print_type_and_constant_value_key = 'zp'
   endif
 
   if !exists('g:clang_jumpto_declaration_key')
@@ -201,6 +205,9 @@ function! s:ClangCompleteInit()
     inoremap <expr> <buffer> : <SID>CompleteColon()
     if g:clang_print_type_key != ""
       execute "nnoremap <buffer> <silent> " . g:clang_print_type_key . " :call ClangPrintType()<CR><Esc>"
+    endif
+    if g:clang_print_type_and_constant_value_key != ""
+      execute "nnoremap <buffer> <silent> " . g:clang_print_type_and_constant_value_key . " :call ClangPrintTypeAndconstantvalue()<CR><Esc>"
     endif
     if g:clang_jumpto_declaration_key != ""
       execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
@@ -655,6 +662,12 @@ function! ClangPrintType()
     execute s:py_cmd "clangGetType()"
     redraw
     echom b:clang_type
+endfunction
+
+function! ClangPrintTypeAndconstantvalue()
+    execute s:py_cmd "clangGetTypeAndConstantValue()"
+    redraw
+    echom b:clang_type_and_value
 endfunction
 
 function! s:GotoDeclaration(preview)

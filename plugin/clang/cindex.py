@@ -1283,7 +1283,7 @@ class Cursor(Structure):
                       self._evaluated_value = "about " + str(self._evaluated_value)
                 elif EvalResultKind.UNEXPOSED != evalResult.kind:
                     # C string constants (const char*, const char array) are written here.
-                    self._evaluated_value = '"%s"' % (evalResult.getAsString().decode())
+                    self._evaluated_value = '"%s"' % (evalResult.getAsString().decode("utf-8"))
 
         return self._evaluated_value
 

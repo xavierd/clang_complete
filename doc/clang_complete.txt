@@ -277,12 +277,22 @@ Default: 0
 					*clang_complete-print_type_key*
 					*g:clang_print_type_key*
 Set the key used to print the type of the identifier under cursor.
-If cursor is on an enum, then the value of that enum is also printed.
-If cursor is on a constant, then the value of that constant is also printed.
 If g:clang_print_type_key is empty, then no shortcut will be created
 to gather this info.
-Defaut: "zp"
+Defaut: ""
 Note: You can call ClangPrintType() vim function to print this information.
+
+					*clang_complete-print_type_and_constant_value_key*
+					*g:clang_print_type_and_constant_value_key*
+Set the key used to print the type and value of the identifier under cursor.
+If cursor is on an enum, then the value of that enum is printed after the type.
+If cursor is on a constant, then the value of that constant is printed
+after the type.
+If g:clang_print_type_and_constant_value_key is empty,
+then no shortcut will be created to gather this info.
+Defaut: "zp"
+Note: You can call ClangPrintTypeAndconstantvalue() vim function
+to print this information.
 
 					*clang_complete-jumpto_declaration_key*
 					*g:clang_jumpto_declaration_key*
