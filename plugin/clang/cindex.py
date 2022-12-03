@@ -1255,6 +1255,39 @@ class Cursor(Structure):
         return self._enum_value
 
     @property
+    def evaluated_value(self):
+        """Return the value of the constant the cursor is on, or None if not on a constant"""
+
+        if not hasattr(self, '_evaluated_value'):
+            # print("kind: " + str(self.kind))
+            # print("kind: " + str(self.type.kind))
+            # TODO: if CursorKind.MACRO_DEFINITION == self.kind:
+            # TODO: if CursorKind.MACRO_INSTANTIATION == self.kind:
+
+            self._evaluated_value = None
+            evalResult = conf.lib.clang_Cursor_Evaluate(self)
+
+            if evalResult:
+                if EvalResultKind.INT == evalResult.kind:
+                    if TypeKind.ULONGLONG == self.type.kind:
+                      self._evaluated_value = evalResult.getAsUnsigned()
+                    else:
+                      # Every other type should fit inside long long range.
+                      self._evaluated_value = evalResult.getAsLongLong()
+
+                elif EvalResultKind.FLOAT == evalResult.kind:
+                    self._evaluated_value = evalResult.getAsDouble()
+                    if TypeKind.FLOAT == self.type.kind:
+                      # TODO: I have not yet found a way to get value as float, so instead of 3.14 as float
+                      #       I get 3.140000104904175 as double.
+                      self._evaluated_value = "about " + str(self._evaluated_value)
+                elif EvalResultKind.UNEXPOSED != evalResult.kind:
+                    # C string constants (const char*, const char array) are written here.
+                    self._evaluated_value = '"%s"' % (evalResult.getAsString().decode())
+
+        return self._evaluated_value
+
+    @property
     def objc_type_encoding(self):
         """Return the Objective-C type encoding as a str."""
         if not hasattr(self, '_objc_type_encoding'):
@@ -1447,6 +1480,17 @@ TypeKind.DEPENDENT = TypeKind(26)
 TypeKind.OBJCID = TypeKind(27)
 TypeKind.OBJCCLASS = TypeKind(28)
 TypeKind.OBJCSEL = TypeKind(29)
+TypeKind.FLOAT128 = TypeKind(30)
+TypeKind.HALF = TypeKind(31)
+TypeKind.FLOAT16 = TypeKind(32)
+TypeKind.SHORTACCUM = TypeKind(33)
+TypeKind.ACCUM = TypeKind(34)
+TypeKind.LONGACCUM = TypeKind(35)
+TypeKind.USHORTACCUM = TypeKind(36)
+TypeKind.UACCUM = TypeKind(37)
+TypeKind.ULONGACCUM = TypeKind(38)
+TypeKind.BFLOAT16 = TypeKind(39)
+TypeKind.IBM128 = TypeKind(40)
 TypeKind.COMPLEX = TypeKind(100)
 TypeKind.POINTER = TypeKind(101)
 TypeKind.BLOCKPOINTER = TypeKind(102)
@@ -1461,6 +1505,71 @@ TypeKind.FUNCTIONNOPROTO = TypeKind(110)
 TypeKind.FUNCTIONPROTO = TypeKind(111)
 TypeKind.CONSTANTARRAY = TypeKind(112)
 TypeKind.VECTOR = TypeKind(113)
+TypeKind.INCOMPLETEARRAY = TypeKind(114)
+TypeKind.VARIABLEARRAY = TypeKind(115)
+TypeKind.DEPENDENTSIZEDARRAY = TypeKind(116)
+TypeKind.MEMBERPOINTER = TypeKind(117)
+TypeKind.AUTO = TypeKind(118)
+TypeKind.ELABORATED = TypeKind(119) # type that was referred to using an elaborated type keyword, e.g. struct S, N::M::type.
+TypeKind.PIPE = TypeKind(120)
+TypeKind.OCLIMAGE1DRO = TypeKind(121)
+TypeKind.OCLIMAGE1DARRAYRO = TypeKind(122)
+TypeKind.OCLIMAGE1DBUFFERRO = TypeKind(123)
+TypeKind.OCLIMAGE2DRO = TypeKind(124)
+TypeKind.OCLIMAGE2DARRAYRO = TypeKind(125)
+TypeKind.OCLIMAGE2DDEPTHRO = TypeKind(126)
+TypeKind.OCLIMAGE2DARRAYDEPTHRO = TypeKind(127)
+TypeKind.OCLIMAGE2DMSAARO = TypeKind(128)
+TypeKind.OCLIMAGE2DARRAYMSAARO = TypeKind(129)
+TypeKind.OCLIMAGE2DMSAADEPTHRO = TypeKind(130)
+TypeKind.OCLIMAGE2DARRAYMSAADEPTHRO = TypeKind(131)
+TypeKind.OCLIMAGE3DRO = TypeKind(132)
+TypeKind.OCLIMAGE1DWO = TypeKind(133)
+TypeKind.OCLIMAGE1DARRAYWO = TypeKind(134)
+TypeKind.OCLIMAGE1DBUFFERWO = TypeKind(135)
+TypeKind.OCLIMAGE2DWO = TypeKind(136)
+TypeKind.OCLIMAGE2DARRAYWO = TypeKind(137)
+TypeKind.OCLIMAGE2DDEPTHWO = TypeKind(138)
+TypeKind.OCLIMAGE2DARRAYDEPTHWO = TypeKind(139)
+TypeKind.OCLIMAGE2DMSAAWO = TypeKind(140)
+TypeKind.OCLIMAGE2DARRAYMSAAWO = TypeKind(141)
+TypeKind.OCLIMAGE2DMSAADEPTHWO = TypeKind(142)
+TypeKind.OCLIMAGE2DARRAYMSAADEPTHWO = TypeKind(143)
+TypeKind.OCLIMAGE3DWO = TypeKind(144)
+TypeKind.OCLIMAGE1DRW = TypeKind(145)
+TypeKind.OCLIMAGE1DARRAYRW = TypeKind(146)
+TypeKind.OCLIMAGE1DBUFFERRW = TypeKind(147)
+TypeKind.OCLIMAGE2DRW = TypeKind(148)
+TypeKind.OCLIMAGE2DARRAYRW = TypeKind(149)
+TypeKind.OCLIMAGE2DDEPTHRW = TypeKind(150)
+TypeKind.OCLIMAGE2DARRAYDEPTHRW = TypeKind(151)
+TypeKind.OCLIMAGE2DMSAARW = TypeKind(152)
+TypeKind.OCLIMAGE2DARRAYMSAARW = TypeKind(153)
+TypeKind.OCLIMAGE2DMSAADEPTHRW = TypeKind(154)
+TypeKind.OCLIMAGE2DARRAYMSAADEPTHRW = TypeKind(155)
+TypeKind.OCLIMAGE3DRW = TypeKind(156)
+TypeKind.OCLSAMPLER = TypeKind(157)
+TypeKind.OCLEVENT = TypeKind(158)
+TypeKind.OCLQUEUE = TypeKind(159)
+TypeKind.OCLRESERVEID = TypeKind(160)
+TypeKind.OBJCOBJECT = TypeKind(161)
+TypeKind.OBJCTYPEPARAM = TypeKind(162)
+TypeKind.ATTRIBUTED = TypeKind(163)
+TypeKind.OCLINTELSUBGROUPAVCMCEPAYLOAD = TypeKind(164)
+TypeKind.OCLINTELSUBGROUPAVCIMEPAYLOAD = TypeKind(165)
+TypeKind.OCLINTELSUBGROUPAVCREFPAYLOAD = TypeKind(166)
+TypeKind.OCLINTELSUBGROUPAVCSICPAYLOAD = TypeKind(167)
+TypeKind.OCLINTELSUBGROUPAVCMCERESULT = TypeKind(168)
+TypeKind.OCLINTELSUBGROUPAVCIMERESULT = TypeKind(169)
+TypeKind.OCLINTELSUBGROUPAVCREFRESULT = TypeKind(170)
+TypeKind.OCLINTELSUBGROUPAVCSICRESULT = TypeKind(171)
+TypeKind.OCLINTELSUBGROUPAVCIMERESULTSINGLEREFSTREAMOUT = TypeKind(172)
+TypeKind.OCLINTELSUBGROUPAVCIMERESULTDUALREFSTREAMOUT = TypeKind(173)
+TypeKind.OCLINTELSUBGROUPAVCIMESINGLEREFSTREAMIN = TypeKind(174)
+TypeKind.OCLINTELSUBGROUPAVCIMEDUALREFSTREAMIN = TypeKind(175)
+TypeKind.EXTVECTOR = TypeKind(176)
+TypeKind.ATOMIC = TypeKind(177)
+TypeKind.BTFTAGATTRIBUTED = TypeKind(178)
 
 class Type(Structure):
     """
@@ -1653,6 +1762,56 @@ class Type(Structure):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+### Eval Result Kinds ###
+
+class EvalResultKind(object):
+    """
+    Describes the kind of EvalResult.
+    """
+
+    # The unique kind objects, indexed by id.
+    _kinds = []
+    _name_map = None
+
+    def __init__(self, value):
+        if value >= len(EvalResultKind._kinds):
+            EvalResultKind._kinds += [None] * (value - len(EvalResultKind._kinds) + 1)
+        if EvalResultKind._kinds[value] is not None:
+            raise ValueError('EvalResultKind already loaded')
+        self.value = value
+        EvalResultKind._kinds[value] = self
+        EvalResultKind._name_map = None
+
+    def from_param(self):
+        return self.value
+
+    @property
+    def name(self):
+        """Get the enumeration name of this cursor kind."""
+        if self._name_map is None:
+            self._name_map = {}
+            for key,value in EvalResultKind.__dict__.items():
+                if isinstance(value,EvalResultKind):
+                    self._name_map[value] = key
+        return self._name_map[self]
+
+    @staticmethod
+    def from_id(id):
+        if id >= len(EvalResultKind._kinds) or EvalResultKind._kinds[id] is None:
+            raise ValueError('Unknown type kind %d' % id)
+        return EvalResultKind._kinds[id]
+
+    def __repr__(self):
+        return 'EvalResultKind.%s' % (self.name,)
+
+EvalResultKind.UNEXPOSED = EvalResultKind(0)
+EvalResultKind.INT = EvalResultKind(1)
+EvalResultKind.FLOAT = EvalResultKind(2)
+EvalResultKind.Obj_CStr_Literal = EvalResultKind(3)
+EvalResultKind.Str_Literal = EvalResultKind(4)
+EvalResultKind.CF_Str = EvalResultKind(5)
+EvalResultKind.Other = EvalResultKind(6)
 
 ## CIndex Objects ##
 
@@ -2527,6 +2686,43 @@ class Token(Structure):
 
         return cursor
 
+class EvalResult(object):
+    """Evaluation result of a cursor. E.g. cursor on FORTYTWO constant will evaluate to 42."""
+
+    def __init__(self, as_parameter):
+        self._obj = as_parameter
+
+    def __del__(self):
+        conf.lib.clang_EvalResult_dispose(self._obj)
+
+    def __repr__(self):
+        return "<EvalResult>"
+
+    @property
+    def kind(self):
+        if not hasattr(self, '_kind'):
+            self._kind = EvalResultKind.from_id(conf.lib.clang_EvalResult_getKind(self._obj))
+        return self._kind
+
+    def getAsUnsigned(self):
+        return conf.lib.clang_EvalResult_getAsUnsigned(self._obj)
+
+    def getAsString(self):
+        assert self.kind not in [EvalResultKind.UNEXPOSED, EvalResultKind.INT, EvalResultKind.FLOAT]
+        return conf.lib.clang_EvalResult_getAsStr(self._obj)
+
+    def getAsLongLong(self):
+        return conf.lib.clang_EvalResult_getAsLongLong(self._obj)
+
+    def getAsDouble(self):
+        return conf.lib.clang_EvalResult_getAsDouble(self._obj)
+
+    @staticmethod
+    def from_result(res, fn, args):
+        if not res:
+            return None
+        return EvalResult(res)
+
 # Now comes the plumbing to hook up the C library.
 
 # Register callback types in common container.
@@ -2597,6 +2793,11 @@ functionList = [
    [Index, c_char_p],
    c_object_p),
 
+  ("clang_Cursor_Evaluate",
+   [Cursor],
+   c_object_p,
+   EvalResult.from_result),
+
   ("clang_CXXMethod_isStatic",
    [Cursor],
    bool),
@@ -2645,6 +2846,33 @@ functionList = [
   ("clang_equalTypes",
    [Type, Type],
    bool),
+
+  ("clang_EvalResult_dispose()",
+   [c_object_p]),
+
+  ("clang_EvalResult_getAsDouble",
+   [c_object_p],
+   c_double),
+
+  ("clang_EvalResult_getAsInt",
+   [c_object_p],
+   c_int),
+
+  ("clang_EvalResult_getAsLongLong",
+   [c_object_p],
+   c_longlong),
+
+  ("clang_EvalResult_getAsUnsigned",
+   [c_object_p],
+   c_ulonglong),
+
+  ("clang_EvalResult_getAsStr",
+   [c_object_p],
+   c_char_p),
+
+  ("clang_EvalResult_getKind",
+   [c_object_p],
+   c_uint),
 
   ("clang_getArgType",
    [Type, c_uint],

@@ -635,21 +635,28 @@ def clangGetType():
     [cursor, loc] = _getCursorAndLocation(line, col, params, timer)
     type = cursor.type
     type_str = type.get_spelling()+" ("+type.get_canonical().get_spelling()+")"
-  vim.command("let b:clang_type = '" + type_str.replace("'","''")+"'")
-  const_value = ""
-  if CursorKind.ENUM_CONSTANT_DECL == cursor.kind:
-    const_value = str(cursor.enum_value)
-  if "" == const_value and TypeKind.ENUM == cursor.type.kind:
-    enum_def = cursor.get_definition()
-    if enum_def is not None:
-      const_value = str(enum_def.enum_value)
-  if "" != const_value:
-    vim.command("let b:clang_type = b:clang_type . ' enum value: "+const_value+"'")
-  # TODO: also print other constat values like: const int MYCONST = MY_CONST_WITH_VALUE_TEN + 5
-  # if "" == const_value:
-  #   ... (const_value = "15")
-  #   if "" != const_value:
-  #     vim.command("let b:clang_type = b:clang_type . ' const value: "+const_value+"'")
+
+    vim.command("let b:clang_type = '" + type_str.replace("'","''")+"'")
+
+    enum_value = ""
+    const_value = ""
+
+    if CursorKind.ENUM_CONSTANT_DECL == cursor.kind:
+      enum_value = str(cursor.enum_value)
+
+    if "" == enum_value and TypeKind.ENUM == cursor.type.kind:
+      enum_def = cursor.get_definition()
+      if enum_def is not None and CursorKind.ENUM_CONSTANT_DECL == enum_def.kind:
+        enum_value = str(enum_def.enum_value)
+
+    if "" == enum_value and cursor.evaluated_value != None:
+      const_value = str(cursor.evaluated_value)
+
+    if "" != enum_value:
+      vim.command("let b:clang_type = b:clang_type . ' enum value: "+enum_value+"'")
+    if "" != const_value:
+      vim.command("let b:clang_type = b:clang_type . ' const value: "+const_value.replace("'","''")+"'")
+
   timer.finish()
 
 
