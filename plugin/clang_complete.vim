@@ -276,7 +276,6 @@ for s:flag in values(s:flagInfo)
 endfor
 let s:flagPattern = '\%(' . join(s:flagPatterns, '\|') . '\)'
 
-
 function! s:processFilename(filename, root)
   " Handle Unix absolute path
   if matchstr(a:filename, '\C^[''"\\]\=/') != ''
@@ -323,21 +322,59 @@ function! s:parseConfig()
 
   let l:opts = readfile(l:local_conf)
   for l:opt in l:opts
-    " Ensure passed filenames are absolute. Only performed on flags which
-    " require a filename/directory as an argument, as specified in s:flagInfo
-    if matchstr(l:opt, '\C^\s*' . s:flagPattern . '\s*') != ''
-      let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*'
-                            \ , '\1', 'g')
-      let l:flag = substitute(l:flag, '^\(.\{-}\)\s*$', '\1', 'g')
-      let l:filename = substitute(l:opt,
-                                \ '\C^\s*' . s:flagPattern . '\(.\{-}\)\s*$',
-                                \ '\1', 'g')
-      let l:filename = s:processFilename(l:filename, l:root)
-      let l:opt = s:flagInfo[l:flag].output . l:filename
+    let b:clang_user_options .= ' ' . s:parseOption(l:opt, l:root)
+  endfor
+endfunction
+
+function! s:parseOption(opt, root)
+  let l:opt = a:opt
+
+  " If a line is wrapped with backticks (`), take the content between the
+  " backticks and execute it as a shell command. Take the output to stdout
+  " and process the output as if they were ordinary lines in the
+  " .clang_complete file. If the substring '<<FILE>>'' is encountered, it will
+  " be replaced with the absolute path of the file being edited.
+  if matchstr(l:opt, '^\s*`.\{-}`\s*$') != ''
+    let l:filename = expand('%:p')
+    " Make path safe to be used as a shell argument. Either by surrounding with
+    " double quotes on Windows, or using shellescape() on Unix-like systems.
+    if s:isWindows()
+      let l:filename = '"' . l:filename . '"'
+    else
+      let l:filename = shellescape(l:filename)
     endif
 
-    let b:clang_user_options .= ' ' . l:opt
-  endfor
+    let l:cmd = substitute(l:opt, '^\s*`\(.\{-}\)`\s*$', '\1', '')
+    let l:cmd = substitute(l:cmd, '<<FILE>>', l:filename, 'g')
+
+    let l:dynamic_options = ''
+    let l:opts = system(l:cmd)
+
+    if v:shell_error != 0
+      echoe '`' .  l:cmd . '` failed to run successfully.'
+    else
+      for l:opt in split(l:opts, '\n')
+        let l:dynamic_options .= ' ' . s:parseOption(l:opt, a:root)
+      endfor
+    endif
+
+    return l:dynamic_options
+  endif
+
+  " Ensure passed filenames are absolute. Only performed on flags which
+  " require a filename/directory as an argument, as specified in s:flagInfo
+  if matchstr(l:opt, '\C^\s*' . s:flagPattern) != ''
+    let l:flag = substitute(l:opt, '\C^\s*\(' . s:flagPattern . '\).*'
+                          \ , '\1', 'g')
+    let l:flag = substitute(l:flag, '^\(.\{-}\)\s*$', '\1', 'g')
+    let l:filename = substitute(l:opt,
+                              \ '\C^\s*' . s:flagPattern . '\(.\{-}\)\s*$',
+                              \ '\1', 'g')
+    let l:filename = s:processFilename(l:filename, a:root)
+    let l:opt = s:flagInfo[l:flag].output . l:filename
+  endif
+
+  return l:opt
 endfunction
 
 function! s:findCompilationDatase(cdb)
