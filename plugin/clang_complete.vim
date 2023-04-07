@@ -646,6 +646,11 @@ function! g:ClangUpdateQuickFix()
   return ''
 endfunction
 
+function g:InsertModeTabHelper()
+  python insertModeTab()
+  return s:insertModeTabTmp
+endfunction
+
 function! g:ClangGotoDeclaration()
   call s:GotoDeclaration(0)
   return ''
