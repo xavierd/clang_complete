@@ -250,9 +250,9 @@ def getQuickFixList(tu):
   return [_f for _f in map (getQuickFix, tu.diagnostics) if _f]
 
 def highlightRange(range, hlGroup):
-  pattern = '/\%' + str(range.start.line) + 'l' + '\%' \
+  pattern = r'/\%' + str(range.start.line) + 'l' + r'\%' \
       + str(range.start.column) + 'c' + '.*' \
-      + '\%' + str(range.end.column) + 'c/'
+      + r'\%' + str(range.end.column) + 'c/'
   command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
   vim.command(command)
 
@@ -268,7 +268,7 @@ def highlightDiagnostic(diagnostic):
   else:
     return
 
-  pattern = '/\%' + str(diagnostic.location.line) + 'l\%' \
+  pattern = r'/\%' + str(diagnostic.location.line) + r'l\%' \
       + str(diagnostic.location.column) + 'c./'
   command = "exe 'syntax match' . ' " + hlGroup + ' ' + pattern + "'"
   vim.command(command)
