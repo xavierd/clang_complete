@@ -78,6 +78,10 @@ function! s:ClangCompleteInit()
     let g:clang_snippets_engine = 'clang_complete'
   endif
 
+  if !exists('g:clang_complete_snippet_jump_map')
+    let g:clang_complete_snippet_jump_map = '<tab>'
+  endif
+
   if !exists('g:clang_user_options')
     let g:clang_user_options = ''
   endif
@@ -122,6 +126,14 @@ function! s:ClangCompleteInit()
 
   if !exists('g:clang_auto_user_options')
     let g:clang_auto_user_options = '.clang_complete, path'
+  endif
+
+  if !exists('g:clang_print_type_key')
+    let g:clang_print_type_key = ''
+  endif
+
+  if !exists('g:clang_print_type_and_constant_value_key')
+    let g:clang_print_type_and_constant_value_key = 'zp'
   endif
 
   if !exists('g:clang_jumpto_declaration_key')
@@ -191,9 +203,21 @@ function! s:ClangCompleteInit()
     inoremap <expr> <buffer> . <SID>CompleteDot()
     inoremap <expr> <buffer> > <SID>CompleteArrow()
     inoremap <expr> <buffer> : <SID>CompleteColon()
-    execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
-    execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_in_preview_key . " :call <SID>GotoDeclaration(1)<CR><Esc>"
-    execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
+    if g:clang_print_type_key != ""
+      execute "nnoremap <buffer> <silent> " . g:clang_print_type_key . " :call ClangPrintType()<CR><Esc>"
+    endif
+    if g:clang_print_type_and_constant_value_key != ""
+      execute "nnoremap <buffer> <silent> " . g:clang_print_type_and_constant_value_key . " :call ClangPrintTypeAndconstantvalue()<CR><Esc>"
+    endif
+    if g:clang_jumpto_declaration_key != ""
+      execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_key . " :call <SID>GotoDeclaration(0)<CR><Esc>"
+    endif
+    if g:clang_jumpto_declaration_in_preview_key != ""
+      execute "nnoremap <buffer> <silent> " . g:clang_jumpto_declaration_in_preview_key . " :call <SID>GotoDeclaration(1)<CR><Esc>"
+    endif
+    if g:clang_jumpto_back_key != ""
+      execute "nnoremap <buffer> <silent> " . g:clang_jumpto_back_key . " <C-O>"
+    endif
   endif
 
   if g:clang_omnicppcomplete_compliance == 1
@@ -205,6 +229,10 @@ function! s:ClangCompleteInit()
   if g:clang_auto_select != 2
     set completeopt-=menu
     set completeopt+=menuone
+  endif
+
+  if g:clang_close_preview == 2
+    set completeopt-=preview
   endif
 
   " Disable every autocmd that could have been set.
@@ -530,6 +558,10 @@ function! s:StopMonitoring()
     return
   endif
 
+  if g:clang_close_preview == 1
+    pclose
+  endif
+
   if g:clang_make_default_keymappings == 1
     " Restore original return and Ctrl-Y key mappings
 
@@ -572,10 +604,6 @@ function! s:TriggerSnippet()
 
   " Trigger the snippet
   execute s:py_cmd 'snippetsTrigger()'
-
-  if g:clang_close_preview
-    pclose
-  endif
 endfunction
 
 function! s:ShouldComplete()
@@ -630,9 +658,32 @@ function! s:CompleteColon()
   return ':' . s:LaunchCompletion()
 endfunction
 
+function! ClangPrintType()
+    execute s:py_cmd "clangGetType()"
+    redraw
+    echom b:clang_type
+endfunction
+
+function! ClangPrintTypeAndconstantvalue()
+    execute s:py_cmd "clangGetTypeAndConstantValue()"
+    redraw
+    echom b:clang_type_and_value
+endfunction
+
 function! s:GotoDeclaration(preview)
   try
     execute s:py_cmd "gotoDeclaration(vim.eval('a:preview') == '1')"
+    if g:clang_is_virtual_method
+      redraw
+      echohl ErrorMsg | echom "This is a virtual function!" | echohl None
+    elseif g:clang_is_function
+      redraw
+      echom "non-virtual function"
+    else
+      " clear previous message
+      redraw
+      echom ""
+    endif
   catch /^Vim\%((\a\+)\)\=:E37/
     echoe "The current file is not saved, and 'hidden' is not set."
           \ "Either save the file or add 'set hidden' in your vimrc."
