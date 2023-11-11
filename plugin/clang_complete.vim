@@ -493,9 +493,9 @@ function! ClangComplete(findstart, base)
     augroup ClangComplete
       au CursorMovedI <buffer> call <SID>TriggerSnippet()
       if exists('##CompleteDone')
-        au CompleteDone,InsertLeave <buffer> call <SID>StopMonitoring()
+        au CompleteDone,InsertLeave <buffer> call <SID>StopMonitoring('all')
       else
-        au InsertLeave <buffer> call <SID>StopMonitoring()
+        au InsertLeave <buffer> call <SID>StopMonitoring('all')
       endif
     augroup end
     let b:snippet_chosen = 0
@@ -524,7 +524,9 @@ function! s:HandlePossibleSelectionCtrlY()
   return "\<C-Y>"
 endfunction
 
-function! s:StopMonitoring()
+" what argument should be "cr" to restore <cr> mapping only or "all" to undo
+" everything
+function! s:StopMonitoring(what)
   if b:snippet_chosen
     call s:TriggerSnippet()
     return
@@ -549,7 +551,15 @@ function! s:StopMonitoring()
       silent! execute substitute(g:clang_restore_cr_imap, '<SID>', s:old_snr, 'g')
     endif
 
+    if a:what == 'cr'
+      return
+    endif
+
     silent! iunmap <buffer> <C-Y>
+  endif
+
+  if a:what == 'cr'
+    return
   endif
 
   augroup ClangComplete
@@ -561,14 +571,18 @@ function! s:StopMonitoring()
 endfunction
 
 function! s:TriggerSnippet()
+  let l:snippet_chosen = b:snippet_chosen
+  let b:snippet_chosen = 0
+
+  call s:StopMonitoring('cr')
+
   " Dont bother doing anything until we're sure the user exited the menu
-  if !b:snippet_chosen
+  if !l:snippet_chosen
     return
   endif
 
   " Stop monitoring as we'll trigger a snippet
-  let b:snippet_chosen = 0
-  call s:StopMonitoring()
+  call s:StopMonitoring('all')
 
   " Trigger the snippet
   execute s:py_cmd 'snippetsTrigger()'
