@@ -356,6 +356,31 @@ def getCompileParams(fileName):
   return { 'args' : args,
            'cwd' : params['cwd'] }
 
+def listSymbols():
+  global debug
+  debug = int(vim.eval("g:clang_debug")) == 1
+  params = getCompileParams(vim.current.buffer.name)
+  timer = CodeCompleteTimer(debug, vim.current.buffer.name, -1, -1, params)
+
+  list = []
+  def listSymbols(cursor):
+    for c in cursor.get_children():
+      if c.location.file is None or \
+         c.location.file.name.startswith('/usr/include') or \
+         not c.location.isFromMainFile or \
+         not c.kind.is_declaration():
+        continue
+      list.append(c.spelling)
+      listSymbols(c)
+
+  with libclangLock:
+    tu = getCurrentTranslationUnit(params['args'], getCurrentFile(),
+                                   vim.current.buffer.name, timer)
+    listSymbols(tu.cursor)
+  timer.finish()
+
+  return list
+
 def updateCurrentDiagnostics():
   global debug
   debug = int(vim.eval("g:clang_debug")) == 1

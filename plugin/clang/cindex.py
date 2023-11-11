@@ -206,6 +206,11 @@ class SourceLocation(Structure):
         return conf.lib.clang_getLocationForOffset(tu, file, offset)
 
     @property
+    def isFromMainFile(self):
+        """Get the file represented by this source location."""
+        return conf.lib.clang_Location_isFromMainFile(self)
+
+    @property
     def file(self):
         """Get the file represented by this source location."""
         return self._get_instantiation()[0]
@@ -732,9 +737,13 @@ CursorKind.MEMBER_REF = CursorKind(47)
 # A reference to a labeled statement.
 CursorKind.LABEL_REF = CursorKind(48)
 
-# A reference toa a set of overloaded functions or function templates
+# A reference to a set of overloaded functions or function templates
 # that has not yet been resolved to a specific function or function template.
 CursorKind.OVERLOADED_DECL_REF = CursorKind(49)
+
+# A reference to a variable that occurs in some non-expression
+# context, e.g., a C++ lambda capture list.
+CursorKind.VARIABLE_REF = CursorKind(50)
 
 ###
 # Invalid/Error Kinds
@@ -919,6 +928,26 @@ CursorKind.PACK_EXPANSION_EXPR = CursorKind(142)
 # pack.
 CursorKind.SIZE_OF_PACK_EXPR = CursorKind(143)
 
+# Represents a C++ lambda expression that produces a local function
+# object.
+#
+#  \code
+#  void abssort(float *x, unsigned N) {
+#    std::sort(x, x + N,
+#              [](float a, float b) {
+#                return std::abs(a) < std::abs(b);
+#              });
+#  }
+#  \endcode
+CursorKind.LAMBDA_EXPR = CursorKind(144)
+
+# Objective-c Boolean Literal.
+CursorKind.OBJ_BOOL_LITERAL_EXPR = CursorKind(145)
+
+# Represents the "self" expression in a ObjC method.
+CursorKind.OBJ_SELF_EXPR = CursorKind(146)
+
+
 # A statement whose specific kind is not exposed via this interface.
 #
 # Unexposed statements have the same operations as any other kind of statement;
@@ -1010,6 +1039,9 @@ CursorKind.SEH_EXCEPT_STMT = CursorKind(227)
 # Windows Structured Exception Handling's finally statement.
 CursorKind.SEH_FINALLY_STMT = CursorKind(228)
 
+# A MS inline assembly statement extension.
+CursorKind.MS_ASM_STMT = CursorKind(229)
+
 # The null statement.
 CursorKind.NULL_STMT = CursorKind(230)
 
@@ -1039,6 +1071,20 @@ CursorKind.CXX_FINAL_ATTR = CursorKind(404)
 CursorKind.CXX_OVERRIDE_ATTR = CursorKind(405)
 CursorKind.ANNOTATE_ATTR = CursorKind(406)
 CursorKind.ASM_LABEL_ATTR = CursorKind(407)
+CursorKind.PACKED_ATTR = CursorKind(408)
+CursorKind.PURE_ATTR = CursorKind(409)
+CursorKind.CONST_ATTR = CursorKind(410)
+CursorKind.NODUPLICATE_ATTR = CursorKind(411)
+CursorKind.CUDACONSTANT_ATTR = CursorKind(412)
+CursorKind.CUDADEVICE_ATTR = CursorKind(413)
+CursorKind.CUDAGLOBAL_ATTR = CursorKind(414)
+CursorKind.CUDAHOST_ATTR = CursorKind(415)
+CursorKind.CUDASHARED_ATTR = CursorKind(416)
+
+CursorKind.VISIBILITY_ATTR = CursorKind(417)
+
+CursorKind.DLLEXPORT_ATTR = CursorKind(418)
+CursorKind.DLLIMPORT_ATTR = CursorKind(419)
 
 ###
 # Preprocessing
@@ -1046,6 +1092,14 @@ CursorKind.PREPROCESSING_DIRECTIVE = CursorKind(500)
 CursorKind.MACRO_DEFINITION = CursorKind(501)
 CursorKind.MACRO_INSTANTIATION = CursorKind(502)
 CursorKind.INCLUSION_DIRECTIVE = CursorKind(503)
+
+###
+# Extra declaration
+
+# A module import declaration.
+CursorKind.MODULE_IMPORT_DECL = CursorKind(600)
+# A type alias template declaration
+CursorKind.TYPE_ALIAS_TEMPLATE_DECL = CursorKind(601)
 
 ### Cursors ###
 
@@ -3025,6 +3079,10 @@ functionList = [
 
   ("clang_isVolatileQualifiedType",
    [Type],
+   bool),
+
+  ("clang_Location_isFromMainFile",
+   [SourceLocation],
    bool),
 
   ("clang_parseTranslationUnit",
