@@ -630,9 +630,10 @@ function! s:CompleteColon()
   return ':' . s:LaunchCompletion()
 endfunction
 
-function! s:GotoDeclaration(preview)
+function! s:GotoDeclaration(preview, type_declaration)
   try
-    execute s:py_cmd "gotoDeclaration(vim.eval('a:preview') == '1')"
+    execute s:py_cmd "gotoDeclaration(vim.eval('a:preview') == '1', "
+                                   \."vim.eval('a:type_declaration') == '1')"
   catch /^Vim\%((\a\+)\)\=:E37/
     echoe "The current file is not saved, and 'hidden' is not set."
           \ "Either save the file or add 'set hidden' in your vimrc."
@@ -646,13 +647,23 @@ function! g:ClangUpdateQuickFix()
   return ''
 endfunction
 
+function! g:ClangFollowReference()
+  call s:GotoDeclaration(0, 1)
+  return ''
+endfunction
+
+function! g:ClangFollowReferencePreview()
+  call s:GotoDeclaration(1, 1)
+  return ''
+endfunction
+
 function! g:ClangGotoDeclaration()
-  call s:GotoDeclaration(0)
+  call s:GotoDeclaration(0, 0)
   return ''
 endfunction
 
 function! g:ClangGotoDeclarationPreview()
-  call s:GotoDeclaration(1)
+  call s:GotoDeclaration(1, 0)
   return ''
 endfunction
 
