@@ -58,11 +58,24 @@ $ vim clang_complete.vmb -c 'so %' -c 'q'
 -I/usr/include/c++/4.5.3/x86_64-slackware-linux/
 ```
 
+- To enable function parameter completion, install
+  [Ultisnips](https://github.com/SirVer/ultisnips) plugin and set the following:
+
+```vim
+let g:clang_snippets=1
+let g:clang_snippets_engine='ultisnips'
+```
+
+
 ## Usage
 
-The plugin provides list of matches, after that you pick completion from a
+- The plugin provides list of matches, after that you pick completion from a
 generic completion menu where <kbd>Ctrl+N</kbd>, <kbd>Ctrl+P</kbd> and alike
 work and wrap around ends of list.
+
+- If the function parameter completion has been configured, choose the completion
+and hit <kbd>Enter</kbd>, then you can step through and edit each parameter.
+
 
 ## License
 
